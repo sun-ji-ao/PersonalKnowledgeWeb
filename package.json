@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && pagefind --site dist",
+    "import": "node scripts/import_markdown.mjs",
+    "build": "npm run import && astro build && pagefind --site dist",
     "preview": "astro preview"
   },
   "dependencies": {

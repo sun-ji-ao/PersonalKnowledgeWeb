@@ -1,44 +1,38 @@
 ---
+import { getCollection } from 'astro:content';
 import '../styles/global.css';
 
-const categories = [
-  { name: 'C/C++ 快速入门', count: 7, active: true },
-  { name: 'x86/x64 汇编语言', count: 8 },
-  { name: 'C/C++ 软件逆向技术', count: 9 },
-  { name: 'Win32 编程', count: 7 },
-  { name: '进程通信专题', count: 6 },
-  { name: 'Windows 内核安全', count: 7 },
-  { name: 'Windows 网络编程', count: 5 },
-  { name: 'Windows PE 结构', count: 8 },
-  { name: 'Shellcode 开发技术', count: 7 }
-];
+const docs = (await getCollection('docs'))
+  .filter((doc) => !doc.data.draft)
+  .sort((a, b) => a.data.order - b.data.order || a.data.title.localeCompare(b.data.title, 'zh-CN'));
 
-const tags = ['PE', 'Kernel', 'Win32', 'Reverse', 'x64', 'Driver'];
-
-const featuredArticles = [
-  {
-    title: '第一个驱动程序',
-    category: 'Windows 内核安全',
-    description: '从 Markdown 文档自动导入，保留层级、标题、代码块与目录导航。'
-  },
-  {
-    title: 'PE 文件头解析',
-    category: 'Windows PE 结构',
-    description: '以结构化笔记方式整理 PE 文件关键字段、数据目录与解析流程。'
-  },
-  {
-    title: 'x86 汇编框架',
-    category: 'x86/x64 汇编语言',
-    description: '用于快速回顾寄存器、堆栈、函数调用和基础指令。'
+const categoryMap = new Map();
+const tagMap = new Map();
+for (const doc of docs) {
+  categoryMap.set(doc.data.category, (categoryMap.get(doc.data.category) ?? 0) + 1);
+  for (const tag of doc.data.tags) {
+    tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1);
   }
-];
+}
 
-const recentUpdates = [
-  'Windows 内核安全 / 驱动内存管理',
-  '进程通信专题 / 文件映射',
-  'Win32 编程 / 线程同步机制',
-  'Windows PE 结构 / 导入表解析'
-];
+const categories = Array.from(categoryMap.entries())
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 9)
+  .map(([name, count], index) => ({ name, count, active: index === 0 }));
+
+const tags = Array.from(tagMap.entries())
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 6)
+  .map(([tag]) => tag);
+
+const featuredArticles = ['第一个驱动程序', 'PE文件头解析', 'x86汇编框架']
+  .map((title) => docs.find((doc) => doc.data.title.replaceAll(' ', '') === title))
+  .filter(Boolean)
+  .slice(0, 3);
+
+const fallbackFeaturedArticles = docs.slice(0, 3);
+const displayFeaturedArticles = featuredArticles.length > 0 ? featuredArticles : fallbackFeaturedArticles;
+const recentUpdates = docs.slice(-4).reverse();
 
 const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Debug', 'FAQ'];
 ---
@@ -85,7 +79,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
           </a>
           <div id="search" class="search-box" aria-label="站内全文搜索"></div>
           <nav class="nav-links" aria-label="主导航">
-            <a href="#knowledge">知识库</a>
+            <a href="/docs/">知识库</a>
             <a href="#blog">博客</a>
             <a href="#archive">归档</a>
             <a href="#about">关于</a>
@@ -103,7 +97,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
               {
                 categories.map((category) => (
                   <li>
-                    <a class:list={['category-item', { active: category.active }]} href="#">
+                    <a class:list={['category-item', { active: category.active }]} href="/docs/">
                       <span>{category.name}</span>
                       <strong>{category.count}</strong>
                     </a>
@@ -114,7 +108,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
             <div class="tag-cloud" aria-label="标签云">
               <h3>标签云</h3>
               <div>
-                {tags.map((tag) => <a href="#">{tag}</a>)}
+                {tags.map((tag) => <a href="/docs/">{tag}</a>)}
               </div>
             </div>
           </aside>
@@ -183,11 +177,11 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
           <section class="feature-list">
             <h3>精选文章</h3>
             {
-              featuredArticles.map((article) => (
-                <a class="article-card" href="#">
-                  <span>{article.category}</span>
-                  <strong>{article.title}</strong>
-                  <p>{article.description}</p>
+              displayFeaturedArticles.map((article) => (
+                <a class="article-card" href={`/docs/${article.id}/`}>
+                  <span>{article.data.category}</span>
+                  <strong>{article.data.title}</strong>
+                  <p>{article.data.description}</p>
                 </a>
               ))
             }
@@ -195,7 +189,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
           <section class="update-list" id="archive">
             <h3>最近更新</h3>
             <ul>
-              {recentUpdates.map((item) => <li>{item}</li>)}
+              {recentUpdates.map((doc) => <li>{doc.data.category} / {doc.data.title}</li>)}
             </ul>
           </section>
           <section class="stack-card" id="about">

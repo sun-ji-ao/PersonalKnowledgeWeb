@@ -3,6 +3,7 @@ node_modules/
 
 # build output
 dist/
+src/content/docs/
 
 # astro
 .astro/

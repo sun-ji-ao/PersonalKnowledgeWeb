@@ -1,0 +1,73 @@
+---
+import { getCollection, render } from 'astro:content';
+import '../../styles/global.css';
+
+export async function getStaticPaths() {
+  const docs = (await getCollection('docs')).filter((doc) => !doc.data.draft);
+  return docs.map((doc) => ({
+    params: { slug: doc.id },
+    props: { doc }
+  }));
+}
+
+const { doc } = Astro.props;
+const { Content, headings } = await render(doc);
+const visibleHeadings = headings.filter((heading) => heading.depth > 1 && heading.depth < 4);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={doc.data.description} />
+    <title>{doc.data.title} - 孙计奥 Notes</title>
+  </head>
+  <body>
+    <main class="site-shell">
+      <section class="doc-layout">
+        <aside class="doc-side">
+          <a class="back-link" href="/docs/">← 返回知识库</a>
+          <div class="doc-meta-card">
+            <span>分类</span>
+            <strong>{doc.data.category}</strong>
+          </div>
+          <div class="doc-meta-card">
+            <span>标签</span>
+            <div class="doc-tags">
+              {doc.data.tags.map((tag) => <em>{tag}</em>)}
+            </div>
+          </div>
+        </aside>
+
+        <article class="doc-article" data-pagefind-body>
+          <header class="doc-header">
+            <p>{doc.data.category}</p>
+            <h1>{doc.data.title}</h1>
+            {doc.data.description && <span>{doc.data.description}</span>}
+          </header>
+          <div class="markdown-body">
+            <Content />
+          </div>
+        </article>
+
+        <aside class="doc-toc">
+          <h2>文章目录</h2>
+          {
+            visibleHeadings.length > 0 ? (
+              <ol>
+                {visibleHeadings.map((heading) => (
+                  <li class={`depth-${heading.depth}`}>
+                    <a href={`#${heading.slug}`}>{heading.text}</a>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p>本文暂无目录。</p>
+            )
+          }
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

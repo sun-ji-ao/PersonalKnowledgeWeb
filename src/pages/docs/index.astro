@@ -1,0 +1,101 @@
+---
+import { getCollection } from 'astro:content';
+import '../../styles/global.css';
+
+const docs = (await getCollection('docs'))
+  .filter((doc) => !doc.data.draft)
+  .sort((a, b) => {
+    const categoryCompare = a.data.category.localeCompare(b.data.category, 'zh-CN');
+    if (categoryCompare !== 0) {
+      return categoryCompare;
+    }
+    return a.data.order - b.data.order || a.data.title.localeCompare(b.data.title, 'zh-CN');
+  });
+
+const categoryMap = new Map();
+for (const doc of docs) {
+  const group = categoryMap.get(doc.data.category) ?? [];
+  group.push(doc);
+  categoryMap.set(doc.data.category, group);
+}
+const categories = Array.from(categoryMap.entries());
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="孙计奥 Notes 知识库文章索引。" />
+    <link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
+    <title>知识库 - 孙计奥 Notes</title>
+  </head>
+  <body>
+    <main class="site-shell">
+      <section class="hero compact">
+        <p class="eyebrow">Knowledge Base</p>
+        <div class="hero-grid">
+          <div>
+            <h1>知识库</h1>
+            <p class="hero-description">
+              已导入 {docs.length} 篇 Markdown 技术文档，按原始目录自动分组。
+            </p>
+          </div>
+          <a class="primary-link" href="/">返回首页</a>
+        </div>
+      </section>
+
+      <section class="docs-shell">
+        <aside class="docs-categories">
+          <h2>分类</h2>
+          {
+            categories.map(([category, items]) => (
+              <a href={`#${category}`}>
+                <span>{category}</span>
+                <strong>{items.length}</strong>
+              </a>
+            ))
+          }
+        </aside>
+
+        <section class="docs-index">
+          <div id="search" class="search-box docs-search" aria-label="站内全文搜索"></div>
+          {
+            categories.map(([category, items]) => (
+              <section class="docs-group" id={category}>
+                <div class="docs-group-head">
+                  <h2>{category}</h2>
+                  <span>{items.length} 篇</span>
+                </div>
+                <div class="docs-list">
+                  {items.map((doc) => (
+                    <a class="doc-row" href={`/docs/${doc.id}/`}>
+                      <span>{doc.data.order > 0 ? `课时 ${String(doc.data.order).padStart(2, '0')}` : '文档'}</span>
+                      <strong>{doc.data.title}</strong>
+                      <p>{doc.data.description}</p>
+                    </a>
+                  ))}
+                </div>
+              </section>
+            ))
+          }
+        </section>
+      </section>
+    </main>
+    <script is:inline src="/pagefind/pagefind-ui.js"></script>
+    <script is:inline>
+      window.addEventListener('DOMContentLoaded', () => {
+        if (!window.PagefindUI) {
+          return;
+        }
+        new window.PagefindUI({
+          element: '#search',
+          showSubResults: true,
+          translations: {
+            placeholder: '搜索文章、代码、标签...'
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
