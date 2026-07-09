@@ -2,6 +2,7 @@
   color-scheme: dark;
   --bg: #0b1020;
   --bg-deep: #070b16;
+  --bg-end: #111827;
   --panel: #111827;
   --panel-soft: #0f172a;
   --panel-strong: #101827;
@@ -19,6 +20,25 @@
   --shadow: 0 26px 80px rgb(2 6 23 / 52%);
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #edf6ff;
+  --bg-deep: #f8fafc;
+  --bg-end: #ffffff;
+  --panel: #ffffff;
+  --panel-soft: #f8fafc;
+  --panel-strong: #eef6ff;
+  --border: #cbd5e1;
+  --border-strong: #94a3b8;
+  --text: #0f172a;
+  --muted: #475569;
+  --subtle: #64748b;
+  --accent: #0284c7;
+  --accent-2: #7c3aed;
+  --success: #16a34a;
+  --shadow: 0 22px 70px rgb(15 23 42 / 14%);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -33,7 +53,7 @@ body {
   background:
     radial-gradient(circle at 82% 8%, rgb(56 189 248 / 9%), transparent 32%),
     radial-gradient(circle at 10% 78%, rgb(167 139 250 / 8%), transparent 34%),
-    linear-gradient(135deg, var(--bg-deep), var(--bg) 52%, #111827);
+    linear-gradient(135deg, var(--bg-deep), var(--bg) 52%, var(--bg-end));
   color: var(--text);
   font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
 }
@@ -48,6 +68,44 @@ body::before {
     linear-gradient(90deg, rgb(31 41 55 / 34%) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: linear-gradient(to bottom, rgb(0 0 0 / 80%), transparent 92%);
+}
+
+:root[data-theme="light"] body::before {
+  background-image:
+    linear-gradient(rgb(148 163 184 / 18%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(148 163 184 / 18%) 1px, transparent 1px);
+}
+
+:root[data-theme="light"] .app-frame,
+:root[data-theme="light"] .topbar,
+:root[data-theme="light"] .reader,
+:root[data-theme="light"] .article-head,
+:root[data-theme="light"] .not-found-card,
+:root[data-theme="light"] .about-card,
+:root[data-theme="light"] .taxonomy-card,
+:root[data-theme="light"] .stack-card {
+  background: rgb(255 255 255 / 84%);
+}
+
+:root[data-theme="light"] .search-box,
+:root[data-theme="light"] .theme-toggle,
+:root[data-theme="light"] .pager a,
+:root[data-theme="light"] .blog-card a,
+:root[data-theme="light"] .doc-row,
+:root[data-theme="light"] .archive-items a,
+:root[data-theme="light"] .doc-pager a,
+:root[data-theme="light"] .doc-pager .disabled,
+:root[data-theme="light"] .category-item {
+  background: var(--panel-soft);
+}
+
+:root[data-theme="light"] pre,
+:root[data-theme="light"] .markdown-body pre {
+  background: #f1f5f9;
+}
+
+:root[data-theme="light"] .back-to-top-button {
+  background: rgb(255 255 255 / 88%);
 }
 
 .reading-progress {
@@ -272,6 +330,21 @@ h1 {
   background: #0b1020;
   color: var(--muted);
   cursor: pointer;
+}
+
+.floating-theme-toggle {
+  position: fixed;
+  right: 28px;
+  bottom: 84px;
+  z-index: 40;
+  min-width: 64px;
+  background: rgb(15 23 42 / 88%);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+:root[data-theme="light"] .floating-theme-toggle {
+  background: rgb(255 255 255 / 88%);
 }
 
 .content-grid {
