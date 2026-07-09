@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1080" viewBox="0 0 1440 1080" role="img" aria-labelledby="title desc">
+    <title id="title">&#x4E2A;&#x4EBA;&#x77E5;&#x8BC6;&#x7F51;&#x7AD9; UI &#x8BBE;&#x8BA1;&#x793A;&#x610F;&#x56FE;</title>
+    <desc id="desc">Astro + Starlight + Pagefind + Cloudflare Pages personal technical blog and knowledge base UI preview.</desc>
+    <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#070B16"/>
+            <stop offset="55%" stop-color="#0B1020"/>
+            <stop offset="100%" stop-color="#111827"/>
+        </linearGradient>
+        <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#38BDF8"/>
+            <stop offset="100%" stop-color="#A78BFA"/>
+        </linearGradient>
+        <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+            <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#1F2937" stroke-width="1" opacity="0.36"/>
+        </pattern>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="20" stdDeviation="20" flood-color="#020617" flood-opacity="0.52"/>
+        </filter>
+        <style>
+            .main { font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif; }
+            .mono { font-family: "Cascadia Code", Consolas, monospace; }
+            .primary { fill: #E5E7EB; }
+            .secondary { fill: #9CA3AF; }
+            .muted { fill: #64748B; }
+            .cyan { fill: #38BDF8; }
+            .purple { fill: #A78BFA; }
+            .panel { fill: #111827; stroke: #1F2937; stroke-width: 1.2; }
+            .soft { fill: #0F172A; stroke: #1F2937; stroke-width: 1; }
+            .title { font-size: 30px; font-weight: 700; }
+            .h2 { font-size: 19px; font-weight: 700; }
+            .body { font-size: 15px; }
+            .small { font-size: 13px; }
+            .nav { font-size: 15px; font-weight: 600; }
+        </style>
+    </defs>
+    <rect width="1440" height="1080" fill="url(#bg)"/>
+    <rect width="1440" height="1080" fill="url(#grid)" opacity="0.58"/>
+    <circle cx="1160" cy="150" r="280" fill="#38BDF8" opacity="0.06"/>
+    <circle cx="180" cy="860" r="300" fill="#A78BFA" opacity="0.055"/>
+    <text x="72" y="54" class="main secondary small">UI DESIGN PREVIEW - PERSONAL KNOWLEDGE WEBSITE</text>
+    <text x="72" y="96" class="main primary title">&#x4E2A;&#x4EBA;&#x6280;&#x672F;&#x77E5;&#x8BC6;&#x7F51;&#x7AD9; - &#x6781;&#x7B80;&#x79D1;&#x6280;&#x98CE;&#x793A;&#x610F;&#x56FE;</text>
+    <text x="72" y="128" class="main secondary body">Markdown native support / code highlight / categories and tags / Pagefind search / free static deployment</text>
+    <rect x="72" y="154" width="1296" height="820" rx="28" fill="#080D1A" stroke="#1F2937" stroke-width="1.5" filter="url(#shadow)"/>
+    <rect x="96" y="178" width="1248" height="72" rx="22" fill="#0F172A" stroke="#1F2937" stroke-width="1.2"/>
+    <circle cx="132" cy="214" r="18" fill="url(#accent)"/>
+    <path d="M124 214 L132 203 L140 214 L132 225 Z" fill="#0B1020"/>
+    <text x="164" y="209" class="main primary nav">&#x5B59;&#x8BA1;&#x5965; Notes</text>
+    <text x="164" y="229" class="main muted small">&#x5B89;&#x5168;&#x7814;&#x7A76; / Windows / &#x6280;&#x672F;&#x7B14;&#x8BB0;</text>
+    <rect x="392" y="194" width="410" height="40" rx="14" fill="#0B1020" stroke="#1F2937"/>
+    <text x="420" y="219" class="main muted body">&#x641C;&#x7D22; Markdown&#x3001;&#x4EE3;&#x7801;&#x3001;&#x6807;&#x7B7E;...</text>
+    <circle cx="772" cy="214" r="8" fill="none" stroke="#38BDF8" stroke-width="2"/>
+    <line x1="778" y1="220" x2="786" y2="228" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
+    <text x="842" y="219" class="main secondary body">&#x77E5;&#x8BC6;&#x5E93;</text>
+    <text x="918" y="219" class="main secondary body">&#x535A;&#x5BA2;</text>
+    <text x="980" y="219" class="main secondary body">&#x5F52;&#x6863;</text>
+    <text x="1042" y="219" class="main secondary body">&#x5173;&#x4E8E;</text>
+    <rect x="1130" y="194" width="92" height="40" rx="14" fill="#111827" stroke="#1F2937"/>
+    <text x="1152" y="219" class="main secondary small">GitHub</text>
+    <rect x="1234" y="194" width="78" height="40" rx="20" fill="#0B1020" stroke="#1F2937"/>
+    <circle cx="1256" cy="214" r="12" fill="#38BDF8"/>
+    <text x="1276" y="219" class="main muted small">Dark</text>
+    <rect x="96" y="274" width="270" height="640" rx="22" class="panel"/>
+    <text x="120" y="312" class="main primary h2">&#x77E5;&#x8BC6;&#x5206;&#x7C7B;</text>
+    <text x="120" y="336" class="main muted small">Generated from GitHub Markdown folders</text>
+    <rect x="120" y="362" width="222" height="42" rx="12" fill="#0B1020" stroke="#38BDF8" stroke-opacity="0.75"/>
+    <rect x="132" y="377" width="5" height="12" rx="2" fill="#38BDF8"/>
+    <text x="150" y="388" class="main primary nav">C/C++ &#x5FEB;&#x901F;&#x5165;&#x95E8;</text>
+    <text x="316" y="388" class="main muted small">07</text>
+    <rect x="120" y="416" width="222" height="34" rx="10" fill="#0F172A"/>
+    <text x="150" y="438" class="main secondary small">x86/x64 Assembly</text>
+    <text x="316" y="438" class="main muted small">08</text>
+    <rect x="120" y="460" width="222" height="34" rx="10" fill="#0F172A"/>
+    <text x="150" y="482" class="main secondary small">C/C++ Reverse Engineering</text>
+    <text x="316" y="482" class="main muted small">09</text>
+    <rect x="120" y="504" width="222" height="34" rx="10" fill="#0F172A"/>
+    <text x="150" y="526" class="main secondary small">Win32 Programming</text>
+    <text x="316" y="526" class="main muted small">07</text>
+    <rect x="120" y="548" width="222" height="34" rx="10" fill="#0F172A"/>
+    <text x="150" y="570" class="main secondary small">&#x8FDB;&#x7A0B;&#x901A;&#x4FE1;&#x4E13;&#x9898;</text>
+    <text x="316" y="570" class="main muted small">06</text>
+    <rect x="120" y="592" width="222" height="34" rx="10" fill="#0F172A"/>
+    <text x="150" y="614" class="main secondary small">Windows &#x5185;&#x6838;&#x5B89;&#x5168;</text>
+    <text x="316" y="614" class="main muted small">07</text>
+    <rect x="120" y="636" width="222" height="34" rx="10" fill="#0F172A"/>
+    <text x="150" y="658" class="main secondary small">Windows Network</text>
+    <text x="316" y="658" class="main muted small">05</text>
+    <rect x="120" y="680" width="222" height="34" rx="10" fill="#0F172A"/>
+    <text x="150" y="702" class="main secondary small">Windows PE &#x7ED3;&#x6784;</text>
+    <text x="316" y="702" class="main muted small">08</text>
+    <rect x="120" y="724" width="222" height="34" rx="10" fill="#0F172A"/>
+    <text x="150" y="746" class="main secondary small">Shellcode Development</text>
+    <text x="316" y="746" class="main muted small">07</text>
+    <line x1="120" y1="784" x2="342" y2="784" stroke="#1F2937"/>
+    <text x="120" y="816" class="main primary nav">&#x6807;&#x7B7E;&#x4E91;</text>
+    <rect x="120" y="834" width="58" height="26" rx="13" fill="#082F49" stroke="#075985"/>
+    <text x="138" y="852" class="main cyan small">PE</text>
+    <rect x="188" y="834" width="80" height="26" rx="13" fill="#2E1065" stroke="#6D28D9"/>
+    <text x="204" y="852" class="main purple small">Kernel</text>
+    <rect x="278" y="834" width="64" height="26" rx="13" fill="#0F172A" stroke="#334155"/>
+    <text x="294" y="852" class="main secondary small">Win32</text>
+    <rect x="120" y="868" width="78" height="26" rx="13" fill="#0F172A" stroke="#334155"/>
+    <text x="136" y="886" class="main secondary small">Reverse</text>
+    <rect x="208" y="868" width="60" height="26" rx="13" fill="#0F172A" stroke="#334155"/>
+    <text x="224" y="886" class="main secondary small">x64</text>
+    <rect x="390" y="274" width="660" height="640" rx="22" fill="#101827" stroke="#1F2937" stroke-width="1.2"/>
+    <rect x="422" y="306" width="596" height="118" rx="20" fill="#0B1020" stroke="#1F2937"/>
+    <text x="450" y="342" class="main cyan small">&#x77E5;&#x8BC6;&#x5E93; / Windows &#x5185;&#x6838;&#x5B89;&#x5168; / Lesson 02</text>
+    <text x="450" y="380" class="main primary title">&#x7B2C;&#x4E00;&#x4E2A;&#x9A71;&#x52A8;&#x7A0B;&#x5E8F;</text>
+    <text x="450" y="408" class="main secondary body">Imported from Markdown, keeping folder hierarchy, title, code blocks and table of contents.</text>
+    <rect x="820" y="328" width="70" height="28" rx="14" fill="#082F49" stroke="#075985"/>
+    <text x="838" y="347" class="main cyan small">Driver</text>
+    <rect x="900" y="328" width="82" height="28" rx="14" fill="#2E1065" stroke="#6D28D9"/>
+    <text x="916" y="347" class="main purple small">Kernel</text>
+    <text x="422" y="462" class="main primary h2">&#x6587;&#x7AE0;&#x6458;&#x8981;</text>
+    <rect x="422" y="484" width="560" height="10" rx="5" fill="#334155"/>
+    <rect x="422" y="508" width="510" height="10" rx="5" fill="#243244"/>
+    <rect x="422" y="532" width="440" height="10" rx="5" fill="#243244"/>
+    <text x="422" y="588" class="main primary h2">Markdown &#x6B63;&#x6587; + Code Highlight</text>
+    <rect x="422" y="610" width="596" height="170" rx="18" fill="#020617" stroke="#1F2937"/>
+    <rect x="422" y="610" width="596" height="38" rx="18" fill="#0F172A" stroke="#1F2937"/>
+    <circle cx="448" cy="629" r="5" fill="#EF4444"/>
+    <circle cx="466" cy="629" r="5" fill="#F59E0B"/>
+    <circle cx="484" cy="629" r="5" fill="#22C55E"/>
+    <text x="918" y="634" class="mono muted small">driver_entry.cpp</text>
+    <text x="450" y="678" class="mono cyan small">NTSTATUS</text>
+    <text x="524" y="678" class="mono primary small">DriverEntry(</text>
+    <text x="624" y="678" class="mono purple small">PDRIVER_OBJECT</text>
+    <text x="746" y="678" class="mono primary small">driverObject)</text>
+    <text x="450" y="706" class="mono primary small">{</text>
+    <text x="478" y="734" class="mono secondary small">KdPrint((</text>
+    <text x="552" y="734" class="mono cyan small">"Hello Kernel"</text>
+    <text x="668" y="734" class="mono secondary small">));</text>
+    <text x="478" y="762" class="mono purple small">return</text>
+    <text x="538" y="762" class="mono primary small">STATUS_SUCCESS;</text>
+    <text x="450" y="790" class="mono primary small">}</text>
+    <rect x="422" y="814" width="182" height="54" rx="16" fill="#0B1020" stroke="#1F2937"/>
+    <text x="448" y="846" class="main secondary body">&#x4E0A;&#x4E00;&#x7BC7;&#xFF1A;IRQL Basics</text>
+    <rect x="836" y="814" width="182" height="54" rx="16" fill="#0B1020" stroke="#38BDF8" stroke-opacity="0.55"/>
+    <text x="862" y="846" class="main cyan body">&#x4E0B;&#x4E00;&#x7BC7;&#xFF1A;Memory</text>
+    <rect x="1074" y="274" width="270" height="330" rx="22" class="panel"/>
+    <text x="1098" y="312" class="main primary h2">&#x6587;&#x7AE0;&#x76EE;&#x5F55;</text>
+    <line x1="1100" y1="340" x2="1320" y2="340" stroke="#1F2937"/>
+    <circle cx="1106" cy="372" r="4" fill="#38BDF8"/>
+    <text x="1122" y="378" class="main cyan body">&#x73AF;&#x5883;&#x51C6;&#x5907;</text>
+    <circle cx="1106" cy="412" r="4" fill="#475569"/>
+    <text x="1122" y="418" class="main secondary body">DriverEntry</text>
+    <circle cx="1106" cy="452" r="4" fill="#475569"/>
+    <text x="1122" y="458" class="main secondary body">Device Object</text>
+    <circle cx="1106" cy="492" r="4" fill="#475569"/>
+    <text x="1122" y="498" class="main secondary body">Build and Debug</text>
+    <circle cx="1106" cy="532" r="4" fill="#475569"/>
+    <text x="1122" y="538" class="main secondary body">FAQ</text>
+    <rect x="1074" y="628" width="270" height="286" rx="22" class="panel"/>
+    <text x="1098" y="666" class="main primary h2">&#x535A;&#x5BA2;&#x5316;&#x9996;&#x9875;&#x9884;&#x89C8;</text>
+    <text x="1098" y="692" class="main muted small">Document site evolves into a personal tech blog</text>
+    <rect x="1098" y="722" width="222" height="48" rx="14" class="soft"/>
+    <text x="1116" y="752" class="main secondary body">&#x7CBE;&#x9009;&#x6587;&#x7AE0;&#x5361;&#x7247;</text>
+    <rect x="1098" y="782" width="222" height="48" rx="14" class="soft"/>
+    <text x="1116" y="812" class="main secondary body">&#x6700;&#x65B0;&#x66F4;&#x65B0;&#x5217;&#x8868;</text>
+    <rect x="1098" y="842" width="222" height="48" rx="14" class="soft"/>
+    <text x="1116" y="872" class="main secondary body">&#x5206;&#x7C7B; / &#x6807;&#x7B7E; / RSS</text>
+    <rect x="96" y="936" width="1248" height="36" rx="18" fill="#0B1020" stroke="#1F2937"/>
+    <text x="124" y="959" class="main muted small">Stack:</text>
+    <text x="178" y="959" class="main cyan small">Astro</text>
+    <text x="230" y="959" class="main muted small">+</text>
+    <text x="252" y="959" class="main cyan small">Starlight</text>
+    <text x="326" y="959" class="main muted small">+</text>
+    <text x="348" y="959" class="main cyan small">Shiki</text>
+    <text x="392" y="959" class="main muted small">+</text>
+    <text x="414" y="959" class="main cyan small">Pagefind</text>
+    <text x="492" y="959" class="main muted small">+</text>
+    <text x="514" y="959" class="main cyan small">Cloudflare Pages</text>
+    <text x="1036" y="959" class="main muted small">Editable SVG UI mockup</text>
+    <text x="72" y="1030" class="main muted small">Note: this is a layout and visual direction preview, not a final pixel-perfect implementation.</text>
+</svg>
