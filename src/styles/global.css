@@ -50,6 +50,24 @@ body::before {
   mask-image: linear-gradient(to bottom, rgb(0 0 0 / 80%), transparent 92%);
 }
 
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  width: 100%;
+  height: 3px;
+  background: rgb(15 23 42 / 70%);
+}
+
+.reading-progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 18px rgb(56 189 248 / 55%);
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -836,6 +854,27 @@ code {
   border-radius: 16px;
 }
 
+.markdown-body pre {
+  position: relative;
+}
+
+.copy-code-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 7px 10px;
+  border: 1px solid rgb(56 189 248 / 32%);
+  border-radius: 10px;
+  background: rgb(8 47 73 / 74%);
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.copy-code-button:hover {
+  border-color: rgb(56 189 248 / 62%);
+}
+
 .doc-toc ol {
   display: grid;
   gap: 12px;
@@ -895,6 +934,32 @@ code {
   display: grid;
   place-items: center;
   color: var(--subtle);
+}
+
+.back-to-top-button {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 40;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgb(56 189 248 / 42%);
+  border-radius: 50%;
+  background: rgb(15 23 42 / 88%);
+  color: var(--accent);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.back-to-top-button.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .single-column {
@@ -1027,6 +1092,45 @@ code {
   margin-bottom: 0;
   color: var(--muted);
   line-height: 1.9;
+}
+
+.not-found-card {
+  display: grid;
+  min-height: 62vh;
+  align-content: center;
+  justify-items: start;
+  padding: clamp(32px, 7vw, 72px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 80% 20%, rgb(56 189 248 / 14%), transparent 34%),
+    rgb(17 24 39 / 82%);
+  box-shadow: var(--shadow);
+}
+
+.not-found-card h1 {
+  margin-bottom: 18px;
+  font-size: clamp(48px, 10vw, 112px);
+}
+
+.not-found-card p:not(.eyebrow) {
+  max-width: 620px;
+  margin-bottom: 28px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.8;
+}
+
+.not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.primary-link.secondary {
+  border-color: var(--border);
+  background: var(--panel-soft);
+  color: var(--muted);
 }
 
 @media (max-width: 1180px) {

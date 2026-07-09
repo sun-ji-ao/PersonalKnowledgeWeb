@@ -29,6 +29,7 @@ const visibleHeadings = headings.filter((heading) => heading.depth > 1 && headin
     <title>{doc.data.title} - 孙计奥 Notes</title>
   </head>
   <body>
+    <div class="reading-progress"><span data-reading-progress></span></div>
     <main class="site-shell">
       <section class="doc-layout">
         <aside class="doc-side">
@@ -96,5 +97,7 @@ const visibleHeadings = headings.filter((heading) => heading.depth > 1 && headin
         </aside>
       </section>
     </main>
+    <button class="back-to-top-button" type="button" data-back-to-top aria-label="返回顶部">↑</button>
+    <script is:inline src="/reading-enhance.js"></script>
   </body>
 </html>
