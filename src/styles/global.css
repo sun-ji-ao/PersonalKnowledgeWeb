@@ -857,6 +857,54 @@ code {
   color: var(--subtle);
 }
 
+.single-column {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.taxonomy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.taxonomy-card {
+  display: grid;
+  gap: 10px;
+  min-height: 160px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(135deg, rgb(56 189 248 / 10%), transparent 42%),
+    rgb(17 24 39 / 82%);
+}
+
+.taxonomy-card:hover {
+  border-color: rgb(56 189 248 / 52%);
+}
+
+.taxonomy-card span {
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.taxonomy-card strong {
+  color: var(--text);
+  font-size: 20px;
+}
+
+.taxonomy-card p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.compact-card {
+  min-height: 112px;
+}
+
 @media (max-width: 1180px) {
   .topbar,
   .content-grid,
@@ -875,6 +923,10 @@ code {
   .nav-links,
   .hero-actions {
     justify-content: flex-start;
+  }
+
+  .taxonomy-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -901,5 +953,9 @@ code {
 
   .nav-links {
     flex-wrap: wrap;
+  }
+
+  .taxonomy-grid {
+    grid-template-columns: 1fr;
   }
 }

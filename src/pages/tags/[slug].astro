@@ -1,0 +1,51 @@
+---
+import '../../styles/global.css';
+import { getDocUrl, getPublishedDocs, groupDocsByTag } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const docs = await getPublishedDocs();
+  return groupDocsByTag(docs).map((tag) => ({
+    params: { slug: tag.slug },
+    props: { tag }
+  }));
+}
+
+const { tag } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={`标签 ${tag.name} 下的技术文章。`} />
+    <title>{tag.name} - 标签 - 孙计奥 Notes</title>
+  </head>
+  <body>
+    <main class="site-shell">
+      <section class="hero compact">
+        <p class="eyebrow">Tag</p>
+        <div class="hero-grid">
+          <div>
+            <h1>{tag.name}</h1>
+            <p class="hero-description">该标签下共有 {tag.items.length} 篇文章。</p>
+          </div>
+          <a class="primary-link" href="/tags/">全部标签</a>
+        </div>
+      </section>
+      <section class="docs-index single-column">
+        <div class="docs-list">
+          {
+            tag.items.map((doc) => (
+              <a class="doc-row" href={getDocUrl(doc.id)}>
+                <span>{doc.data.category}</span>
+                <strong>{doc.data.title}</strong>
+                <p>{doc.data.description}</p>
+              </a>
+            ))
+          }
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+---
+import '../../styles/global.css';
+import { getPublishedDocs, groupDocsByCategory } from '../../lib/content';
+
+const docs = await getPublishedDocs();
+const categories = groupDocsByCategory(docs).sort((a, b) => b.items.length - a.items.length);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="按分类浏览孙计奥 Notes 技术文章。" />
+    <title>分类 - 孙计奥 Notes</title>
+  </head>
+  <body>
+    <main class="site-shell">
+      <section class="hero compact">
+        <p class="eyebrow">Categories</p>
+        <div class="hero-grid">
+          <div>
+            <h1>文章分类</h1>
+            <p class="hero-description">按原始 Markdown 目录自动生成分类，快速定位某一专题的全部文章。</p>
+          </div>
+          <a class="primary-link" href="/docs/">返回知识库</a>
+        </div>
+      </section>
+      <section class="taxonomy-grid">
+        {
+          categories.map((category) => (
+            <a class="taxonomy-card" href={`/categories/${category.slug}/`}>
+              <span>{category.items.length} 篇文章</span>
+              <strong>{category.name}</strong>
+              <p>{category.items.slice(0, 3).map((doc) => doc.data.title).join(' / ')}</p>
+            </a>
+          ))
+        }
+      </section>
+    </main>
+  </body>
+</html>

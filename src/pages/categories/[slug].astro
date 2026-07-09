@@ -1,0 +1,51 @@
+---
+import '../../styles/global.css';
+import { getDocUrl, getPublishedDocs, groupDocsByCategory } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const docs = await getPublishedDocs();
+  return groupDocsByCategory(docs).map((category) => ({
+    params: { slug: category.slug },
+    props: { category }
+  }));
+}
+
+const { category } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={`分类 ${category.name} 下的技术文章。`} />
+    <title>{category.name} - 分类 - 孙计奥 Notes</title>
+  </head>
+  <body>
+    <main class="site-shell">
+      <section class="hero compact">
+        <p class="eyebrow">Category</p>
+        <div class="hero-grid">
+          <div>
+            <h1>{category.name}</h1>
+            <p class="hero-description">该分类下共有 {category.items.length} 篇文章。</p>
+          </div>
+          <a class="primary-link" href="/categories/">全部分类</a>
+        </div>
+      </section>
+      <section class="docs-index single-column">
+        <div class="docs-list">
+          {
+            category.items.map((doc) => (
+              <a class="doc-row" href={getDocUrl(doc.id)}>
+                <span>{doc.data.order > 0 ? `课时 ${String(doc.data.order).padStart(2, '0')}` : '文档'}</span>
+                <strong>{doc.data.title}</strong>
+                <p>{doc.data.description}</p>
+              </a>
+            ))
+          }
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

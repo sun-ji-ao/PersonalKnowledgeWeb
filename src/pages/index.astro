@@ -1,29 +1,16 @@
 ---
-import { getCollection } from 'astro:content';
 import '../styles/global.css';
+import { getDocUrl, getPublishedDocs, groupDocsByCategory, groupDocsByTag } from '../lib/content';
 
-const docs = (await getCollection('docs'))
-  .filter((doc) => !doc.data.draft)
-  .sort((a, b) => a.data.order - b.data.order || a.data.title.localeCompare(b.data.title, 'zh-CN'));
-
-const categoryMap = new Map();
-const tagMap = new Map();
-for (const doc of docs) {
-  categoryMap.set(doc.data.category, (categoryMap.get(doc.data.category) ?? 0) + 1);
-  for (const tag of doc.data.tags) {
-    tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1);
-  }
-}
-
-const categories = Array.from(categoryMap.entries())
-  .sort((a, b) => b[1] - a[1])
+const docs = await getPublishedDocs();
+const categories = groupDocsByCategory(docs)
+  .sort((a, b) => b.items.length - a.items.length)
   .slice(0, 9)
-  .map(([name, count], index) => ({ name, count, active: index === 0 }));
+  .map((category, index) => ({ ...category, active: index === 0 }));
 
-const tags = Array.from(tagMap.entries())
-  .sort((a, b) => b[1] - a[1])
+const tags = groupDocsByTag(docs)
   .slice(0, 6)
-  .map(([tag]) => tag);
+  .map((tag) => tag.name);
 
 const featuredArticles = ['第一个驱动程序', 'PE文件头解析', 'x86汇编框架']
   .map((title) => docs.find((doc) => doc.data.title.replaceAll(' ', '') === title))
@@ -80,8 +67,9 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
           <div id="search" class="search-box" aria-label="站内全文搜索"></div>
           <nav class="nav-links" aria-label="主导航">
             <a href="/docs/">知识库</a>
-            <a href="#blog">博客</a>
-            <a href="#archive">归档</a>
+            <a href="/categories/">分类</a>
+            <a href="/tags/">标签</a>
+            <a href="/rss.xml">RSS</a>
             <a href="#about">关于</a>
           </nav>
           <button class="theme-toggle" type="button">Dark</button>
@@ -99,7 +87,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
                   <li>
                     <a class:list={['category-item', { active: category.active }]} href="/docs/">
                       <span>{category.name}</span>
-                      <strong>{category.count}</strong>
+                      <strong>{category.items.length}</strong>
                     </a>
                   </li>
                 ))
@@ -108,7 +96,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
             <div class="tag-cloud" aria-label="标签云">
               <h3>标签云</h3>
               <div>
-                {tags.map((tag) => <a href="/docs/">{tag}</a>)}
+                {tags.map((tag) => <a href="/tags/">{tag}</a>)}
               </div>
             </div>
           </aside>
@@ -178,7 +166,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
             <h3>精选文章</h3>
             {
               displayFeaturedArticles.map((article) => (
-                <a class="article-card" href={`/docs/${article.id}/`}>
+                <a class="article-card" href={getDocUrl(article.id)}>
                   <span>{article.data.category}</span>
                   <strong>{article.data.title}</strong>
                   <p>{article.data.description}</p>

@@ -1,0 +1,41 @@
+---
+import '../../styles/global.css';
+import { getPublishedDocs, groupDocsByTag } from '../../lib/content';
+
+const docs = await getPublishedDocs();
+const tags = groupDocsByTag(docs);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="按标签浏览孙计奥 Notes 技术文章。" />
+    <title>标签 - 孙计奥 Notes</title>
+  </head>
+  <body>
+    <main class="site-shell">
+      <section class="hero compact">
+        <p class="eyebrow">Tags</p>
+        <div class="hero-grid">
+          <div>
+            <h1>文章标签</h1>
+            <p class="hero-description">按技术关键词聚合文章，适合快速查找 PE、Kernel、Win32、Reverse 等主题。</p>
+          </div>
+          <a class="primary-link" href="/docs/">返回知识库</a>
+        </div>
+      </section>
+      <section class="taxonomy-grid">
+        {
+          tags.map((tag) => (
+            <a class="taxonomy-card compact-card" href={`/tags/${tag.slug}/`}>
+              <span>{tag.items.length} 篇文章</span>
+              <strong>{tag.name}</strong>
+            </a>
+          ))
+        }
+      </section>
+    </main>
+  </body>
+</html>
