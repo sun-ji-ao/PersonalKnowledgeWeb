@@ -1,16 +1,21 @@
 ---
-import { getCollection, render } from 'astro:content';
 import '../../styles/global.css';
+import { getDocUrl, getPublishedDocs } from '../../lib/content';
+import { render } from 'astro:content';
 
 export async function getStaticPaths() {
-  const docs = (await getCollection('docs')).filter((doc) => !doc.data.draft);
-  return docs.map((doc) => ({
+  const docs = await getPublishedDocs();
+  return docs.map((doc, index) => ({
     params: { slug: doc.id },
-    props: { doc }
+    props: {
+      doc,
+      previousDoc: docs[index - 1] ?? null,
+      nextDoc: docs[index + 1] ?? null
+    }
   }));
 }
 
-const { doc } = Astro.props;
+const { doc, previousDoc, nextDoc } = Astro.props;
 const { Content, headings } = await render(doc);
 const visibleHeadings = headings.filter((heading) => heading.depth > 1 && heading.depth < 4);
 ---
@@ -49,6 +54,28 @@ const visibleHeadings = headings.filter((heading) => heading.depth > 1 && headin
           <div class="markdown-body">
             <Content />
           </div>
+          <nav class="doc-pager" aria-label="文章导航">
+            {
+              previousDoc ? (
+                <a href={getDocUrl(previousDoc.id)}>
+                  <span>上一篇</span>
+                  <strong>{previousDoc.data.title}</strong>
+                </a>
+              ) : (
+                <span class="disabled">已经是第一篇</span>
+              )
+            }
+            {
+              nextDoc ? (
+                <a href={getDocUrl(nextDoc.id)}>
+                  <span>下一篇</span>
+                  <strong>{nextDoc.data.title}</strong>
+                </a>
+              ) : (
+                <span class="disabled">已经是最后一篇</span>
+              )
+            }
+          </nav>
         </article>
 
         <aside class="doc-toc">

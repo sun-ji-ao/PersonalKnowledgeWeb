@@ -857,6 +857,46 @@ code {
   color: var(--subtle);
 }
 
+.doc-pager {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding-top: 28px;
+  margin-top: 34px;
+  border-top: 1px solid var(--border);
+}
+
+.doc-pager a,
+.doc-pager .disabled {
+  min-height: 86px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--panel-soft);
+}
+
+.doc-pager a:hover {
+  border-color: rgb(56 189 248 / 52%);
+}
+
+.doc-pager span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.doc-pager strong {
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.doc-pager .disabled {
+  display: grid;
+  place-items: center;
+  color: var(--subtle);
+}
+
 .single-column {
   max-width: 920px;
   margin: 0 auto;
@@ -905,6 +945,90 @@ code {
   min-height: 112px;
 }
 
+.archive-list {
+  display: grid;
+  gap: 28px;
+}
+
+.archive-group {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgb(17 24 39 / 80%);
+}
+
+.archive-month {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.archive-month strong {
+  color: var(--text);
+  font-size: 24px;
+}
+
+.archive-month span,
+.archive-items span {
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.archive-items {
+  display: grid;
+  gap: 12px;
+}
+
+.archive-items a {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--panel-soft);
+}
+
+.archive-items a:hover strong {
+  color: var(--accent);
+}
+
+.archive-items strong {
+  color: var(--text);
+}
+
+.update-list a:hover {
+  color: var(--accent);
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.about-card {
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(135deg, rgb(56 189 248 / 10%), transparent 38%),
+    rgb(17 24 39 / 82%);
+}
+
+.about-card h2 {
+  margin-bottom: 14px;
+  font-size: 22px;
+}
+
+.about-card p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.9;
+}
+
 @media (max-width: 1180px) {
   .topbar,
   .content-grid,
@@ -927,6 +1051,12 @@ code {
 
   .taxonomy-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .archive-group,
+  .about-grid,
+  .doc-pager {
+    grid-template-columns: 1fr;
   }
 }
 

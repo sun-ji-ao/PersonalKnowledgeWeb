@@ -1,0 +1,60 @@
+---
+import '../../styles/global.css';
+import { getDocUrl, getPublishedDocs } from '../../lib/content';
+
+const docs = (await getPublishedDocs()).slice().reverse();
+const archiveMap = new Map();
+for (const doc of docs) {
+  const date = doc.data.updated ?? doc.data.date ?? new Date();
+  const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const group = archiveMap.get(key) ?? [];
+  group.push(doc);
+  archiveMap.set(key, group);
+}
+const archiveGroups = Array.from(archiveMap.entries());
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="按时间归档浏览孙计奥 Notes 技术文章。" />
+    <title>归档 - 孙计奥 Notes</title>
+  </head>
+  <body>
+    <main class="site-shell">
+      <section class="hero compact">
+        <p class="eyebrow">Archive</p>
+        <div class="hero-grid">
+          <div>
+            <h1>文章归档</h1>
+            <p class="hero-description">按更新时间整理全部文章，方便回顾最近整理和导入的技术笔记。</p>
+          </div>
+          <a class="primary-link" href="/docs/">返回知识库</a>
+        </div>
+      </section>
+
+      <section class="archive-list">
+        {
+          archiveGroups.map(([month, items]) => (
+            <section class="archive-group">
+              <div class="archive-month">
+                <strong>{month}</strong>
+                <span>{items.length} 篇</span>
+              </div>
+              <div class="archive-items">
+                {items.map((doc) => (
+                  <a href={getDocUrl(doc.id)}>
+                    <span>{doc.data.category}</span>
+                    <strong>{doc.data.title}</strong>
+                  </a>
+                ))}
+              </div>
+            </section>
+          ))
+        }
+      </section>
+    </main>
+  </body>
+</html>

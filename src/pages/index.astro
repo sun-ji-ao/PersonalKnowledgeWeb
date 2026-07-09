@@ -69,8 +69,9 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
             <a href="/docs/">知识库</a>
             <a href="/categories/">分类</a>
             <a href="/tags/">标签</a>
+            <a href="/archive/">归档</a>
             <a href="/rss.xml">RSS</a>
-            <a href="#about">关于</a>
+            <a href="/about/">关于</a>
           </nav>
           <button class="theme-toggle" type="button">Dark</button>
         </header>
@@ -149,7 +150,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
               <h2>博客化首页预览</h2>
               <p>文档站逐步演进为个人技术博客。</p>
               <a href="#">精选文章卡片</a>
-              <a href="#">最近更新列表</a>
+              <a href="/archive/">最近更新列表</a>
               <a href="#">分类 / 标签 / RSS</a>
             </section>
           </aside>
@@ -177,7 +178,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
           <section class="update-list" id="archive">
             <h3>最近更新</h3>
             <ul>
-              {recentUpdates.map((doc) => <li>{doc.data.category} / {doc.data.title}</li>)}
+              {recentUpdates.map((doc) => <li><a href={getDocUrl(doc.id)}>{doc.data.category} / {doc.data.title}</a></li>)}
             </ul>
           </section>
           <section class="stack-card" id="about">
