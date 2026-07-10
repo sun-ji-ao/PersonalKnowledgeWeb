@@ -262,10 +262,78 @@ function removeLeadingTitleHeading(content, title) {
   return content.slice(match[0].length).replace(/^\r?\n/, '');
 }
 
+function hasHeadingNumber(text) {
+  return /^\s*(?:\d+(?:\.\d+)*[、.．:：\s]|[一二三四五六七八九十百千万]+[、.．:：]|[（(][一二三四五六七八九十百千万\d]+[）)]|第[一二三四五六七八九十百千万\d]+[章节课时篇部分])/.test(text);
+}
+
+function getHeadingNumberParts(text) {
+  const match = text.trim().match(/^(\d+(?:\.\d+)*)(?=[、.．:：\s])/);
+  return match ? match[1].split('.').map((part) => Number.parseInt(part, 10)) : null;
+}
+
+function syncHeadingCounters(counters, level, numberParts) {
+  if (numberParts) {
+    for (let index = 0; index <= level; index += 1) {
+      counters[index] = numberParts[index] ?? 1;
+    }
+  } else {
+    for (let index = 0; index < level; index += 1) {
+      counters[index] = counters[index] || 1;
+    }
+    counters[level] += 1;
+  }
+  for (let index = level + 1; index < counters.length; index += 1) {
+    counters[index] = 0;
+  }
+}
+
+function createHeadingPrefix(counters, level) {
+  const prefixParts = counters.slice(0, level + 1);
+  return level === 0 ? `${prefixParts[0]}、` : `${prefixParts.join('.')}、`;
+}
+
+function numberMarkdownHeadings(content) {
+  const counters = [0, 0, 0];
+  let isInsideCodeFence = false;
+  return content
+    .split(/\r?\n/)
+    .map((line) => {
+      if (/^\s*```/.test(line) || /^\s*~~~/.test(line)) {
+        isInsideCodeFence = !isInsideCodeFence;
+        return line;
+      }
+      if (isInsideCodeFence) {
+        return line;
+      }
+      const match = line.match(/^(#{2,4})\s+(.+?)(\s+#+\s*)?$/);
+      if (!match) {
+        return line;
+      }
+      const level = match[1].length - 2;
+      const headingText = match[2].trim();
+      const trailingHashes = match[3] ?? '';
+      const numberParts = getHeadingNumberParts(headingText);
+      if (hasHeadingNumber(headingText)) {
+        syncHeadingCounters(counters, level, numberParts);
+        return line;
+      }
+      for (let index = 0; index < level; index += 1) {
+        counters[index] = counters[index] || 1;
+      }
+      counters[level] += 1;
+      for (let index = level + 1; index < counters.length; index += 1) {
+        counters[index] = 0;
+      }
+      return `${match[1]} ${createHeadingPrefix(counters, level)}${headingText}${trailingHashes}`;
+    })
+    .join('\n');
+}
+
 function normalizeMarkdown(content, sourceMarkdownFile, title) {
   const strippedContent = stripFrontmatter(content).replace(/\u0000/g, '');
   const contentWithoutDuplicateTitle = removeLeadingTitleHeading(strippedContent, title);
-  return normalizeCodeFenceLanguages(rewriteMarkdownImages(contentWithoutDuplicateTitle, sourceMarkdownFile));
+  const contentWithNumberedHeadings = numberMarkdownHeadings(contentWithoutDuplicateTitle);
+  return normalizeCodeFenceLanguages(rewriteMarkdownImages(contentWithNumberedHeadings, sourceMarkdownFile));
 }
 
 function createFrontmatter({ title, category, tags, order, draft }) {

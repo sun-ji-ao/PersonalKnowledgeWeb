@@ -2,8 +2,7 @@
   const storageKey = 'sja-notes-theme';
   const root = document.documentElement;
   const storedTheme = window.localStorage.getItem(storageKey);
-  const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-  let currentTheme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : systemTheme;
+  let currentTheme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
 
   function applyTheme(theme) {
     currentTheme = theme;
