@@ -1,15 +1,12 @@
 ---
 import '../styles/global.css';
+import SeoHead from '../components/SeoHead.astro';
 ---
 
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="robots" content="noindex" />
-    <meta name="description" content="页面不存在。" />
-    <title>页面不存在 - 孙计奥 Notes</title>
+    <SeoHead title="页面不存在" description="页面不存在。" path="/404.html" noindex />
   </head>
   <body>
     <main class="site-shell">

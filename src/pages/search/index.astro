@@ -1,0 +1,121 @@
+---
+import '../../styles/global.css';
+import SeoHead from '../../components/SeoHead.astro';
+import { getDocUrl, getPublishedDocs } from '../../lib/content';
+
+const docs = await getPublishedDocs();
+const searchIndex = docs.map((doc) => ({
+  title: doc.data.title,
+  description: doc.data.description ?? '',
+  category: doc.data.category,
+  tags: doc.data.tags,
+  url: getDocUrl(doc.id)
+}));
+const searchIndexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <SeoHead title="搜索" description="搜索孙计奥 Notes 中的技术文章、代码和标签。" path="/search/" />
+  </head>
+  <body>
+    <main class="site-shell">
+      <section class="hero compact">
+        <p class="eyebrow">Search</p>
+        <div class="hero-grid">
+          <div>
+            <h1>站内搜索</h1>
+            <p class="hero-description">输入关键词后点击搜索，结果会在当前页面集中展示。</p>
+          </div>
+          <a class="primary-link" href="/">返回首页</a>
+        </div>
+      </section>
+
+      <section class="search-page-card">
+        <form class="search-box site-search-form search-page-form" action="/search/" method="get" role="search" aria-label="站内全文搜索">
+          <input data-search-page-input name="q" type="search" placeholder="搜索文章、代码、标签..." autocomplete="off" />
+          <button type="submit">搜索</button>
+        </form>
+        <p class="search-page-status" data-search-status>请输入关键词后点击搜索。</p>
+        <div class="search-results-list" data-search-results></div>
+      </section>
+    </main>
+    <script is:inline src="/theme-toggle.js"></script>
+    <script id="search-data" type="application/json" set:html={searchIndexJson}></script>
+    <script is:inline type="module">
+      const query = new URLSearchParams(window.location.search).get('q')?.trim() ?? '';
+      const input = document.querySelector('[data-search-page-input]');
+      const status = document.querySelector('[data-search-status]');
+      const resultsContainer = document.querySelector('[data-search-results]');
+      const searchData = JSON.parse(document.getElementById('search-data')?.textContent ?? '[]');
+      if (input) {
+        input.value = query;
+      }
+      function escapeHtml(value) {
+        return value
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#039;');
+      }
+      function renderResults(results, totalCount, sourceLabel) {
+        if (results.length === 0) {
+          status.textContent = `没有找到与“${query}”相关的文章。`;
+        } else {
+          status.textContent = `找到 ${totalCount} 条与“${query}”相关的结果，当前显示前 ${results.length} 条。${sourceLabel}`;
+        }
+        resultsContainer.innerHTML = results
+          .map((result) => {
+            const title = escapeHtml(result.title);
+            const excerpt = result.excerpt ?? escapeHtml(result.description ?? '');
+            return `
+              <a class="search-result-card" href="${result.url}">
+                <span>${escapeHtml(result.categoryOrUrl)}</span>
+                <strong>${title}</strong>
+                <p>${excerpt}</p>
+              </a>
+            `;
+          })
+          .join('');
+      }
+      function searchFallbackIndex() {
+        const normalizedQuery = query.toLowerCase();
+        return searchData
+          .filter((item) => {
+            const content = `${item.title} ${item.description} ${item.category} ${item.tags.join(' ')}`.toLowerCase();
+            return content.includes(normalizedQuery);
+          })
+          .slice(0, 50)
+          .map((item) => ({
+            title: item.title,
+            description: item.description,
+            categoryOrUrl: `${item.category} / ${item.tags.join(', ')}`,
+            url: item.url
+          }));
+      }
+      if (query.length > 0) {
+        status.textContent = `正在搜索“${query}”...`;
+        try {
+          const pagefind = await import(/* @vite-ignore */ '/pagefind/pagefind.js');
+          const search = await pagefind.search(query);
+          const results = await Promise.all(search.results.slice(0, 50).map((result) => result.data()));
+          renderResults(
+            results.map((result) => ({
+              title: result.meta?.title || result.url,
+              excerpt: result.excerpt ?? '',
+              categoryOrUrl: result.url,
+              url: result.url
+            })),
+            search.results.length,
+            ''
+          );
+        } catch {
+          const fallbackResults = searchFallbackIndex();
+          renderResults(fallbackResults, fallbackResults.length, '当前为开发模式标题索引结果。');
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -2,6 +2,7 @@ import { getCollection } from 'astro:content';
 
 export const SITE_NAME = '孙计奥 Notes';
 export const SITE_DESCRIPTION = '个人技术知识库，沉淀 Windows、C/C++、逆向、安全研究和博客文章。';
+export const SITE_IMAGE = '/og-image.svg';
 
 export function createSlug(value: string): string {
   return value
@@ -20,17 +21,48 @@ export function getDocUrl(docId: string): string {
   return `/docs/${docId}/`;
 }
 
+export function formatDocListTitle(doc: PublishedDocs[number]): string {
+  if (doc.data.order <= 0) {
+    return doc.data.title;
+  }
+  return `${doc.data.order}、${doc.data.title}`;
+}
+
 export async function getPublishedDocs() {
   const docs = await getCollection('docs');
   return docs
     .filter((doc) => !doc.data.draft)
-    .sort((a, b) => {
-      const categoryCompare = a.data.category.localeCompare(b.data.category, 'zh-CN');
-      if (categoryCompare !== 0) {
-        return categoryCompare;
-      }
-      return a.data.order - b.data.order || a.data.title.localeCompare(b.data.title, 'zh-CN');
-    });
+    .sort(compareDocsByCategory);
+}
+
+export type PublishedDocs = Awaited<ReturnType<typeof getPublishedDocs>>;
+
+export function compareDocsByCategory(a: PublishedDocs[number], b: PublishedDocs[number]): number {
+  const categoryCompare = a.data.category.localeCompare(b.data.category, 'zh-CN');
+  if (categoryCompare !== 0) {
+    return categoryCompare;
+  }
+  return a.data.order - b.data.order || a.data.title.localeCompare(b.data.title, 'zh-CN');
+}
+
+export function getDocTimestamp(doc: PublishedDocs[number]): number {
+  return (doc.data.updated ?? doc.data.date ?? new Date(0)).getTime();
+}
+
+export function getRecentDocs(docs: PublishedDocs, limit = 6): PublishedDocs {
+  return docs
+    .slice()
+    .sort((a, b) => getDocTimestamp(b) - getDocTimestamp(a) || a.data.title.localeCompare(b.data.title, 'zh-CN'))
+    .slice(0, limit);
+}
+
+export function getFeaturedDocs(docs: PublishedDocs, preferredTitles: string[], limit = 3): PublishedDocs {
+  const normalizedTitles = preferredTitles.map((title) => title.replaceAll(' ', ''));
+  const preferredDocs = normalizedTitles
+    .map((title) => docs.find((doc) => doc.data.title.replaceAll(' ', '') === title))
+    .filter((doc): doc is PublishedDocs[number] => Boolean(doc));
+  const fallbackDocs = docs.filter((doc) => !preferredDocs.includes(doc));
+  return [...preferredDocs, ...fallbackDocs].slice(0, limit);
 }
 
 export function groupDocsByCategory(docs: Awaited<ReturnType<typeof getPublishedDocs>>) {
@@ -44,7 +76,7 @@ export function groupDocsByCategory(docs: Awaited<ReturnType<typeof getPublished
     name,
     slug: createSlug(name),
     items
-  }));
+  })).sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
 }
 
 export function groupDocsByTag(docs: Awaited<ReturnType<typeof getPublishedDocs>>) {

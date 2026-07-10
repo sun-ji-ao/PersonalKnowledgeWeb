@@ -2,6 +2,7 @@
 import '../../styles/global.css';
 import { getDocUrl, getPublishedDocs } from '../../lib/content';
 import { render } from 'astro:content';
+import SeoHead from '../../components/SeoHead.astro';
 
 export async function getStaticPaths() {
   const docs = await getPublishedDocs();
@@ -17,16 +18,13 @@ export async function getStaticPaths() {
 
 const { doc, previousDoc, nextDoc } = Astro.props;
 const { Content, headings } = await render(doc);
-const visibleHeadings = headings.filter((heading) => heading.depth > 1 && heading.depth < 4);
+const visibleHeadings = headings.filter((heading) => heading.depth > 1 && heading.depth < 5);
 ---
 
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content={doc.data.description} />
-    <title>{doc.data.title} - 孙计奥 Notes</title>
+    <SeoHead title={doc.data.title} description={doc.data.description} path={getDocUrl(doc.id)} type="article" />
   </head>
   <body>
     <div class="reading-progress"><span data-reading-progress></span></div>
@@ -44,13 +42,28 @@ const visibleHeadings = headings.filter((heading) => heading.depth > 1 && headin
               {doc.data.tags.map((tag) => <em>{tag}</em>)}
             </div>
           </div>
+          <div class="doc-toc">
+            <h2>文章目录</h2>
+            {
+              visibleHeadings.length > 0 ? (
+                <nav aria-label="当前文章目录">
+                  {visibleHeadings.map((heading) => (
+                    <a class={`depth-${heading.depth}`} href={`#${heading.slug}`}>
+                      {heading.text}
+                    </a>
+                  ))}
+                </nav>
+              ) : (
+                <p>本文暂无目录。</p>
+              )
+            }
+          </div>
         </aside>
 
         <article class="doc-article" data-pagefind-body>
           <header class="doc-header">
             <p>{doc.data.category}</p>
             <h1>{doc.data.title}</h1>
-            {doc.data.description && <span>{doc.data.description}</span>}
           </header>
           <div class="markdown-body">
             <Content />
@@ -79,22 +92,6 @@ const visibleHeadings = headings.filter((heading) => heading.depth > 1 && headin
           </nav>
         </article>
 
-        <aside class="doc-toc">
-          <h2>文章目录</h2>
-          {
-            visibleHeadings.length > 0 ? (
-              <ol>
-                {visibleHeadings.map((heading) => (
-                  <li class={`depth-${heading.depth}`}>
-                    <a href={`#${heading.slug}`}>{heading.text}</a>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p>本文暂无目录。</p>
-            )
-          }
-        </aside>
       </section>
     </main>
     <button class="back-to-top-button" type="button" data-back-to-top aria-label="返回顶部">↑</button>

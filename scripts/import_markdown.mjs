@@ -3,7 +3,16 @@ import { basename, dirname, extname, join, relative, sep } from 'node:path';
 
 const sourceRoot = process.env.CONTENT_SOURCE_DIR ?? join(process.cwd(), 'bypassAV-study-main');
 const targetRoot = join(process.cwd(), 'src', 'content', 'docs');
+const importedImagesRoot = join(process.cwd(), 'public', 'imported-images');
+const contentRulesPath = join(process.cwd(), 'content_rules.json');
 const today = new Date().toISOString().slice(0, 10);
+const defaultContentRules = {
+  draftPathPrefixes: [],
+  draftPathIncludes: [],
+  draftCategories: [],
+  draftTitles: [],
+  draftTags: []
+};
 
 function listMarkdownFiles(directory) {
   const entries = readdirSync(directory, { withFileTypes: true });
@@ -71,6 +80,51 @@ function inferTags(category, title) {
   return Array.from(tags);
 }
 
+function loadContentRules() {
+  if (!existsSync(contentRulesPath)) {
+    return defaultContentRules;
+  }
+  const rawRules = JSON.parse(readFileSync(contentRulesPath, 'utf8'));
+  return {
+    ...defaultContentRules,
+    ...rawRules
+  };
+}
+
+function normalizePath(value) {
+  return value.split(sep).join('/').replace(/\\/g, '/');
+}
+
+function normalizeComparable(value) {
+  return value.trim().toLowerCase();
+}
+
+function normalizeRuleList(values) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+  return values.filter((value) => typeof value === 'string').map((value) => normalizeComparable(value));
+}
+
+function shouldMarkDraft({ relativePath, category, title, tags }, rules) {
+  const normalizedPath = normalizeComparable(normalizePath(relativePath));
+  const normalizedCategory = normalizeComparable(category);
+  const normalizedTitle = normalizeComparable(title);
+  const normalizedTags = tags.map((tag) => normalizeComparable(tag));
+  const draftPathPrefixes = normalizeRuleList(rules.draftPathPrefixes);
+  const draftPathIncludes = normalizeRuleList(rules.draftPathIncludes);
+  const draftCategories = normalizeRuleList(rules.draftCategories);
+  const draftTitles = normalizeRuleList(rules.draftTitles);
+  const draftTags = normalizeRuleList(rules.draftTags);
+  return (
+    draftPathPrefixes.some((prefix) => normalizedPath.startsWith(prefix)) ||
+    draftPathIncludes.some((fragment) => normalizedPath.includes(fragment)) ||
+    draftCategories.includes(normalizedCategory) ||
+    draftTitles.includes(normalizedTitle) ||
+    draftTags.some((tag) => normalizedTags.includes(tag))
+  );
+}
+
 function escapeYaml(value) {
   return JSON.stringify(value);
 }
@@ -110,11 +164,111 @@ function normalizeCodeFenceLanguages(content) {
   });
 }
 
-function normalizeMarkdown(content) {
-  return normalizeCodeFenceLanguages(stripFrontmatter(content).replace(/\u0000/g, ''));
+function isExternalAssetUrl(value) {
+  return /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(value);
 }
 
-function createFrontmatter({ title, category, tags, order }) {
+function splitMarkdownImageTarget(value) {
+  const trimmedValue = value.trim();
+  if (trimmedValue.startsWith('<')) {
+    const closingIndex = trimmedValue.indexOf('>');
+    if (closingIndex === -1) {
+      return { url: trimmedValue, suffix: '' };
+    }
+    return {
+      url: trimmedValue.slice(1, closingIndex),
+      suffix: trimmedValue.slice(closingIndex + 1)
+    };
+  }
+  const match = trimmedValue.match(/^(\S+)(.*)$/s);
+  if (!match) {
+    return { url: trimmedValue, suffix: '' };
+  }
+  return {
+    url: match[1],
+    suffix: match[2] ?? ''
+  };
+}
+
+function createImagePublicPath(sourceImagePath, sourceMarkdownFile) {
+  const markdownDirectory = dirname(sourceMarkdownFile);
+  const markdownRelativeDirectory = normalizePath(relative(sourceRoot, markdownDirectory));
+  const targetDirectory = join(importedImagesRoot, markdownRelativeDirectory);
+  const targetImagePath = join(targetDirectory, basename(sourceImagePath));
+  mkdirSync(targetDirectory, { recursive: true });
+  cpSync(sourceImagePath, targetImagePath);
+  const publicRelativePath = normalizePath(relative(join(process.cwd(), 'public'), targetImagePath));
+  return `/${encodeURI(publicRelativePath).replace(/%2F/g, '/')}`;
+}
+
+function resolveImagePath(imageUrl, sourceMarkdownFile) {
+  const decodedUrl = decodeURI(imageUrl);
+  const candidatePaths = [
+    join(dirname(sourceMarkdownFile), decodedUrl),
+    join(sourceRoot, decodedUrl)
+  ];
+  return candidatePaths.find((candidatePath) => existsSync(candidatePath));
+}
+
+function rewriteImageUrl(imageUrl, sourceMarkdownFile) {
+  if (!imageUrl || isExternalAssetUrl(imageUrl) || imageUrl.startsWith('/')) {
+    return imageUrl;
+  }
+  const sourceImagePath = resolveImagePath(imageUrl, sourceMarkdownFile);
+  if (!sourceImagePath) {
+    return imageUrl;
+  }
+  return createImagePublicPath(sourceImagePath, sourceMarkdownFile);
+}
+
+function rewriteMarkdownImages(content, sourceMarkdownFile) {
+  const markdownImagePattern = /!\[([^\]]*)\]\(([^)\r\n]+)\)/g;
+  const htmlImagePattern = /(<img\b[^>]*?\bsrc=["'])([^"']+)(["'][^>]*>)/gi;
+  return content
+    .replace(markdownImagePattern, (fullMatch, altText, rawTarget) => {
+      const { url, suffix } = splitMarkdownImageTarget(rawTarget);
+      const rewrittenUrl = rewriteImageUrl(url, sourceMarkdownFile);
+      if (rewrittenUrl === url) {
+        return fullMatch;
+      }
+      return `![${altText}](${rewrittenUrl}${suffix})`;
+    })
+    .replace(htmlImagePattern, (fullMatch, prefix, url, suffix) => {
+      const rewrittenUrl = rewriteImageUrl(url, sourceMarkdownFile);
+      if (rewrittenUrl === url) {
+        return fullMatch;
+      }
+      return `${prefix}${rewrittenUrl}${suffix}`;
+    });
+}
+
+function normalizeHeadingText(value) {
+  return value
+    .replace(/^课时\s*\d+\s*[:：_ -]*/i, '')
+    .replace(/[\s:_：-]+/g, '')
+    .toLowerCase();
+}
+
+function removeLeadingTitleHeading(content, title) {
+  const headingPattern = /^(\s*)#\s+(.+?)(?:\r?\n|$)/;
+  const match = content.match(headingPattern);
+  if (!match) {
+    return content;
+  }
+  const headingText = match[2].replace(/#+\s*$/, '').trim();
+  if (normalizeHeadingText(headingText) !== normalizeHeadingText(title)) {
+    return content;
+  }
+  return content.slice(match[0].length).replace(/^\r?\n/, '');
+}
+
+function normalizeMarkdown(content, sourceMarkdownFile, title) {
+  const strippedContent = stripFrontmatter(content).replace(/\u0000/g, '');
+  const contentWithoutDuplicateTitle = removeLeadingTitleHeading(strippedContent, title);
+  return normalizeCodeFenceLanguages(rewriteMarkdownImages(contentWithoutDuplicateTitle, sourceMarkdownFile));
+}
+
+function createFrontmatter({ title, category, tags, order, draft }) {
   const tagsYaml = tags.map((tag) => `  - ${escapeYaml(tag)}`).join('\n');
   return [
     '---',
@@ -125,7 +279,7 @@ function createFrontmatter({ title, category, tags, order }) {
     tagsYaml,
     `date: ${today}`,
     `updated: ${today}`,
-    'draft: false',
+    `draft: ${draft ? 'true' : 'false'}`,
     `order: ${order}`,
     '---',
     ''
@@ -136,7 +290,9 @@ function importMarkdownFiles() {
   if (!existsSync(sourceRoot)) {
     throw new Error(`源目录不存在：${sourceRoot}`);
   }
+  const contentRules = loadContentRules();
   rmSync(targetRoot, { recursive: true, force: true });
+  rmSync(importedImagesRoot, { recursive: true, force: true });
   mkdirSync(targetRoot, { recursive: true });
   const files = listMarkdownFiles(sourceRoot);
   for (const sourceFile of files) {
@@ -146,9 +302,10 @@ function importMarkdownFiles() {
     const title = getTitle(sourceFile);
     const order = getOrder(sourceFile);
     const tags = inferTags(category, title);
+    const draft = shouldMarkDraft({ relativePath, category, title, tags }, contentRules);
     const rawContent = readFileSync(sourceFile, 'utf8');
-    const content = normalizeMarkdown(rawContent);
-    const frontmatter = createFrontmatter({ title, category, tags, order });
+    const content = normalizeMarkdown(rawContent, sourceFile, title);
+    const frontmatter = createFrontmatter({ title, category, tags, order, draft });
     mkdirSync(dirname(targetFile), { recursive: true });
     writeFileSync(targetFile, `${frontmatter}${content.trim()}\n`, 'utf8');
   }

@@ -1,19 +1,17 @@
 ---
 import '../../styles/global.css';
-import { getDocUrl, getPublishedDocs, groupDocsByCategory } from '../../lib/content';
+import { formatDocListTitle, getDocUrl, getPublishedDocs, groupDocsByCategory, groupDocsByTag } from '../../lib/content';
+import SeoHead from '../../components/SeoHead.astro';
 
 const docs = await getPublishedDocs();
 const categories = groupDocsByCategory(docs);
+const tags = groupDocsByTag(docs);
 ---
 
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="孙计奥 Notes 知识库文章索引。" />
-    <link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
-    <title>知识库 - 孙计奥 Notes</title>
+    <SeoHead title="知识库" description="孙计奥 Notes 知识库文章索引。" path="/docs/" />
   </head>
   <body>
     <main class="site-shell">
@@ -35,7 +33,7 @@ const categories = groupDocsByCategory(docs);
           <h2>分类</h2>
           {
             categories.map((category) => (
-              <a href={`#${category.slug}`}>
+              <a href={`/categories/${category.slug}/`}>
                 <span>{category.name}</span>
                 <strong>{category.items.length}</strong>
               </a>
@@ -44,19 +42,51 @@ const categories = groupDocsByCategory(docs);
         </aside>
 
         <section class="docs-index">
-          <div id="search" class="search-box docs-search" aria-label="站内全文搜索"></div>
+          <form class="search-box site-search-form docs-search" action="/search/" method="get" role="search" aria-label="站内全文搜索">
+            <input name="q" type="search" placeholder="搜索文章、代码、标签..." autocomplete="off" />
+            <button type="submit">搜索</button>
+          </form>
+          <form class="docs-filter-panel" data-docs-filter aria-label="文章筛选">
+            <label>
+              <span>关键词</span>
+              <input data-filter-keyword type="search" placeholder="按标题、摘要、标签过滤..." />
+            </label>
+            <label>
+              <span>分类</span>
+              <select data-filter-category>
+                <option value="">全部分类</option>
+                {categories.map((category) => <option value={category.name}>{category.name}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>标签</span>
+              <select data-filter-tag>
+                <option value="">全部标签</option>
+                {tags.map((tag) => <option value={tag.name}>{tag.name}</option>)}
+              </select>
+            </label>
+            <button type="reset">重置筛选</button>
+          </form>
+          <p class="docs-filter-summary" data-filter-summary>当前显示 {docs.length} 篇文章。</p>
           {
             categories.map((category) => (
-              <section class="docs-group" id={category.slug}>
+              <section class="docs-group" id={category.slug} data-docs-group>
                 <div class="docs-group-head">
                   <h2>{category.name}</h2>
                   <span>{category.items.length} 篇</span>
                 </div>
                 <div class="docs-list">
                   {category.items.map((doc) => (
-                    <a class="doc-row" href={getDocUrl(doc.id)}>
-                      <span>{doc.data.order > 0 ? `课时 ${String(doc.data.order).padStart(2, '0')}` : '文档'}</span>
-                      <strong>{doc.data.title}</strong>
+                    <a
+                      class="doc-row"
+                      href={getDocUrl(doc.id)}
+                      data-doc-row
+                      data-category={doc.data.category}
+                      data-tags={doc.data.tags.join(' ')}
+                      data-title={doc.data.title}
+                      data-description={doc.data.description ?? ''}
+                    >
+                      <strong>{formatDocListTitle(doc)}</strong>
                       <p>{doc.data.description}</p>
                     </a>
                   ))}
@@ -64,23 +94,56 @@ const categories = groupDocsByCategory(docs);
               </section>
             ))
           }
+          <p class="docs-empty-state" data-filter-empty hidden>没有匹配的文章，请调整筛选条件。</p>
         </section>
       </section>
     </main>
     <script is:inline src="/theme-toggle.js"></script>
-    <script is:inline src="/pagefind/pagefind-ui.js"></script>
     <script is:inline>
       window.addEventListener('DOMContentLoaded', () => {
-        if (!window.PagefindUI) {
+        const filterForm = document.querySelector('[data-docs-filter]');
+        if (!filterForm) {
           return;
         }
-        new window.PagefindUI({
-          element: '#search',
-          showSubResults: true,
-          translations: {
-            placeholder: '搜索文章、代码、标签...'
+        const keywordInput = filterForm.querySelector('[data-filter-keyword]');
+        const categorySelect = filterForm.querySelector('[data-filter-category]');
+        const tagSelect = filterForm.querySelector('[data-filter-tag]');
+        const rows = Array.from(document.querySelectorAll('[data-doc-row]'));
+        const groups = Array.from(document.querySelectorAll('[data-docs-group]'));
+        const summary = document.querySelector('[data-filter-summary]');
+        const emptyState = document.querySelector('[data-filter-empty]');
+        const normalize = (value) => value.toString().trim().toLowerCase();
+        const updateFilter = () => {
+          const keyword = normalize(keywordInput.value);
+          const category = categorySelect.value;
+          const tag = tagSelect.value;
+          let visibleCount = 0;
+          for (const row of rows) {
+            const rowCategory = row.dataset.category ?? '';
+            const rowTags = row.dataset.tags ?? '';
+            const haystack = normalize(`${row.dataset.title ?? ''} ${row.dataset.description ?? ''} ${rowTags}`);
+            const matchesKeyword = keyword.length === 0 || haystack.includes(keyword);
+            const matchesCategory = category.length === 0 || rowCategory === category;
+            const matchesTag = tag.length === 0 || rowTags.split(' ').includes(tag);
+            const isVisible = matchesKeyword && matchesCategory && matchesTag;
+            row.hidden = !isVisible;
+            if (isVisible) {
+              visibleCount += 1;
+            }
           }
-        });
+          for (const group of groups) {
+            group.hidden = !group.querySelector('[data-doc-row]:not([hidden])');
+          }
+          if (summary) {
+            summary.textContent = `当前显示 ${visibleCount} 篇文章。`;
+          }
+          if (emptyState) {
+            emptyState.hidden = visibleCount > 0;
+          }
+        };
+        filterForm.addEventListener('input', updateFilter);
+        filterForm.addEventListener('reset', () => window.setTimeout(updateFilter, 0));
+        updateFilter();
       });
     </script>
   </body>

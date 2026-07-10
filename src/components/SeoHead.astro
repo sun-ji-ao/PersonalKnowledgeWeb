@@ -1,0 +1,43 @@
+---
+import { SITE_DESCRIPTION, SITE_IMAGE, SITE_NAME } from '../lib/content';
+
+interface Props {
+  title?: string;
+  description?: string;
+  path?: string;
+  type?: 'website' | 'article';
+  image?: string;
+  noindex?: boolean;
+}
+
+const {
+  title = SITE_NAME,
+  description = SITE_DESCRIPTION,
+  path = Astro.url.pathname,
+  type = 'website',
+  image = SITE_IMAGE,
+  noindex = false
+} = Astro.props;
+
+const baseUrl = Astro.site ?? Astro.url.origin;
+const pageTitle = title.includes(SITE_NAME) ? title : `${title} - ${SITE_NAME}`;
+const canonicalUrl = new URL(path, baseUrl).toString();
+const imageUrl = new URL(image, baseUrl).toString();
+---
+
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content={description} />
+{noindex && <meta name="robots" content="noindex" />}
+<link rel="canonical" href={canonicalUrl} />
+<meta property="og:site_name" content={SITE_NAME} />
+<meta property="og:title" content={pageTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:type" content={type} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:image" content={imageUrl} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={pageTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={imageUrl} />
+<title>{pageTitle}</title>

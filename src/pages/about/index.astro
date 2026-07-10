@@ -1,6 +1,7 @@
 ---
 import '../../styles/global.css';
 import { SITE_DESCRIPTION, SITE_NAME, getPublishedDocs, groupDocsByCategory, groupDocsByTag } from '../../lib/content';
+import SeoHead from '../../components/SeoHead.astro';
 
 const docs = await getPublishedDocs();
 const categories = groupDocsByCategory(docs);
@@ -10,10 +11,7 @@ const tags = groupDocsByTag(docs);
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content={`${SITE_NAME} 的站点介绍、内容来源和技术栈说明。`} />
-    <title>关于 - {SITE_NAME}</title>
+    <SeoHead title="关于" description={`${SITE_NAME} 的站点介绍、内容来源和技术栈说明。`} path="/about/" />
   </head>
   <body>
     <main class="site-shell">

@@ -1,6 +1,7 @@
 ---
 import '../../styles/global.css';
-import { getDocUrl, getPublishedDocs } from '../../lib/content';
+import { formatDocListTitle, getDocUrl, getPublishedDocs } from '../../lib/content';
+import SeoHead from '../../components/SeoHead.astro';
 
 const docs = (await getPublishedDocs()).slice().reverse();
 const archiveMap = new Map();
@@ -17,10 +18,7 @@ const archiveGroups = Array.from(archiveMap.entries());
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="按时间归档浏览孙计奥 Notes 技术文章。" />
-    <title>归档 - 孙计奥 Notes</title>
+    <SeoHead title="归档" description="按时间归档浏览孙计奥 Notes 技术文章。" path="/archive/" />
   </head>
   <body>
     <main class="site-shell">
@@ -46,8 +44,8 @@ const archiveGroups = Array.from(archiveMap.entries());
               <div class="archive-items">
                 {items.map((doc) => (
                   <a href={getDocUrl(doc.id)}>
-                    <span>{doc.data.category}</span>
-                    <strong>{doc.data.title}</strong>
+                    <strong>{formatDocListTitle(doc)}</strong>
+                    <p>{doc.data.description}</p>
                   </a>
                 ))}
               </div>

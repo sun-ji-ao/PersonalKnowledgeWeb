@@ -1,25 +1,25 @@
 ---
 import '../styles/global.css';
-import { getDocUrl, getPublishedDocs, groupDocsByCategory, groupDocsByTag } from '../lib/content';
+import {
+  formatDocListTitle,
+  getDocUrl,
+  getFeaturedDocs,
+  getPublishedDocs,
+  getRecentDocs,
+  groupDocsByCategory,
+  groupDocsByTag
+} from '../lib/content';
+import SeoHead from '../components/SeoHead.astro';
 
 const docs = await getPublishedDocs();
-const categories = groupDocsByCategory(docs)
-  .sort((a, b) => b.items.length - a.items.length)
-  .slice(0, 9)
-  .map((category, index) => ({ ...category, active: index === 0 }));
+const topCategories = groupDocsByCategory(docs).sort((a, b) => b.items.length - a.items.length);
+const categories = topCategories.slice(0, 9).map((category, index) => ({ ...category, active: index === 0 }));
 
-const tags = groupDocsByTag(docs)
-  .slice(0, 6)
-  .map((tag) => tag.name);
+const tags = groupDocsByTag(docs).slice(0, 6);
 
-const featuredArticles = ['第一个驱动程序', 'PE文件头解析', 'x86汇编框架']
-  .map((title) => docs.find((doc) => doc.data.title.replaceAll(' ', '') === title))
-  .filter(Boolean)
-  .slice(0, 3);
-
-const fallbackFeaturedArticles = docs.slice(0, 3);
-const displayFeaturedArticles = featuredArticles.length > 0 ? featuredArticles : fallbackFeaturedArticles;
-const recentUpdates = docs.slice(-4).reverse();
+const displayFeaturedArticles = getFeaturedDocs(docs, ['第一个驱动程序', 'PE文件头解析', 'x86汇编框架'], 3);
+const recentUpdates = getRecentDocs(docs, 5);
+const learningRoutes = topCategories.slice(0, 4);
 
 const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Debug', 'FAQ'];
 ---
@@ -27,14 +27,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="个人技术知识网站，支持 Markdown、代码高亮、分类标签、全文搜索和静态部署。"
-    />
-    <link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
-    <title>个人技术知识网站</title>
+    <SeoHead title="个人技术知识网站" description="个人技术知识网站，支持 Markdown、代码高亮、分类标签、全文搜索和静态部署。" path="/" />
   </head>
   <body>
     <main class="site-shell">
@@ -64,7 +57,10 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
               <small>安全研究 / Windows / 技术笔记</small>
             </span>
           </a>
-          <div id="search" class="search-box" aria-label="站内全文搜索"></div>
+          <form class="search-box site-search-form" action="/search/" method="get" role="search" aria-label="站内全文搜索">
+            <input name="q" type="search" placeholder="搜索 Markdown、代码、标签..." autocomplete="off" />
+            <button type="submit">搜索</button>
+          </form>
           <nav class="nav-links" aria-label="主导航">
             <a href="/docs/">知识库</a>
             <a href="/categories/">分类</a>
@@ -86,7 +82,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
               {
                 categories.map((category) => (
                   <li>
-                    <a class:list={['category-item', { active: category.active }]} href="/docs/">
+                    <a class:list={['category-item', { active: category.active }]} href={`/categories/${category.slug}/`}>
                       <span>{category.name}</span>
                       <strong>{category.items.length}</strong>
                     </a>
@@ -97,7 +93,7 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
             <div class="tag-cloud" aria-label="标签云">
               <h3>标签云</h3>
               <div>
-                {tags.map((tag) => <a href="/tags/">{tag}</a>)}
+                {tags.map((tag) => <a href={`/tags/${tag.slug}/`}>{tag.name}</a>)}
               </div>
             </div>
           </aside>
@@ -149,9 +145,9 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
             <section class="blog-card" id="blog">
               <h2>博客化首页预览</h2>
               <p>文档站逐步演进为个人技术博客。</p>
-              <a href="#">精选文章卡片</a>
+              <a href="#featured">精选文章卡片</a>
               <a href="/archive/">最近更新列表</a>
-              <a href="#">分类 / 标签 / RSS</a>
+              <a href="/categories/">分类 / 标签 / RSS</a>
             </section>
           </aside>
         </div>
@@ -160,52 +156,55 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
       <section class="home-sections" aria-label="首页内容模块">
         <div class="section-heading">
           <p class="eyebrow">Blog Ready</p>
-          <h2>首页内容模块</h2>
+          <h2>真实内容信息流</h2>
         </div>
         <div class="home-grid">
-          <section class="feature-list">
+          <section class="feature-list" id="featured">
             <h3>精选文章</h3>
             {
               displayFeaturedArticles.map((article) => (
                 <a class="article-card" href={getDocUrl(article.id)}>
-                  <span>{article.data.category}</span>
-                  <strong>{article.data.title}</strong>
+                  <strong>{formatDocListTitle(article)}</strong>
                   <p>{article.data.description}</p>
                 </a>
               ))
             }
           </section>
           <section class="update-list" id="archive">
-            <h3>最近更新</h3>
+            <h3>最新文章</h3>
             <ul>
-              {recentUpdates.map((doc) => <li><a href={getDocUrl(doc.id)}>{doc.data.category} / {doc.data.title}</a></li>)}
+              {recentUpdates.map((doc) => <li><a href={getDocUrl(doc.id)}>{formatDocListTitle(doc)}</a></li>)}
             </ul>
           </section>
-          <section class="stack-card" id="about">
-            <h3>技术栈</h3>
-            <p>Astro + Shiki + Pagefind + Cloudflare Pages</p>
+          <section class="stack-card route-card" id="about">
+            <h3>学习路线</h3>
+            <p>按专题目录持续阅读</p>
+            <div class="route-links">
+              {learningRoutes.map((category) => <a href={`/categories/${category.slug}/`}>{category.name}</a>)}
+            </div>
             <p>
-              当前功能均可静态生成，不需要后端服务，部署成本低，适合个人知识库和技术博客。
+              当前内容按分类、标签、归档和全文搜索组织，适合从基础语法逐步进入 Windows、安全研究和底层专题。
             </p>
           </section>
         </div>
+        <section class="category-showcase" aria-label="热门分类">
+          <div>
+            <p class="eyebrow">Popular Categories</p>
+            <h3>热门分类</h3>
+          </div>
+          <div class="category-showcase-grid">
+            {
+              topCategories.slice(0, 6).map((category) => (
+                <a href={`/categories/${category.slug}/`}>
+                  <strong>{category.name}</strong>
+                  <span>{category.items.length} 篇文章</span>
+                </a>
+              ))
+            }
+          </div>
+        </section>
       </section>
     </main>
     <script is:inline src="/theme-toggle.js"></script>
-    <script is:inline src="/pagefind/pagefind-ui.js"></script>
-    <script is:inline>
-      window.addEventListener('DOMContentLoaded', () => {
-        if (!window.PagefindUI) {
-          return;
-        }
-        new window.PagefindUI({
-          element: '#search',
-          showSubResults: true,
-          translations: {
-            placeholder: '搜索 Markdown、代码、标签...'
-          }
-        });
-      });
-    </script>
   </body>
 </html>

@@ -1,6 +1,7 @@
 ---
 import '../../styles/global.css';
-import { getDocUrl, getPublishedDocs, groupDocsByTag } from '../../lib/content';
+import { formatDocListTitle, getDocUrl, getPublishedDocs, groupDocsByTag } from '../../lib/content';
+import SeoHead from '../../components/SeoHead.astro';
 
 export async function getStaticPaths() {
   const docs = await getPublishedDocs();
@@ -16,10 +17,7 @@ const { tag } = Astro.props;
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content={`标签 ${tag.name} 下的技术文章。`} />
-    <title>{tag.name} - 标签 - 孙计奥 Notes</title>
+    <SeoHead title={`${tag.name} - 标签`} description={`标签 ${tag.name} 下的技术文章。`} path={`/tags/${tag.slug}/`} />
   </head>
   <body>
     <main class="site-shell">
@@ -38,8 +36,7 @@ const { tag } = Astro.props;
           {
             tag.items.map((doc) => (
               <a class="doc-row" href={getDocUrl(doc.id)}>
-                <span>{doc.data.category}</span>
-                <strong>{doc.data.title}</strong>
+                <strong>{formatDocListTitle(doc)}</strong>
                 <p>{doc.data.description}</p>
               </a>
             ))
