@@ -1,0 +1,58 @@
+---
+import {
+  extractDocExcerpt,
+  formatDisplayDate,
+  formatDocListTitle,
+  getDocUrl,
+  getHomePageUrl,
+  type DocWithDisplayDate
+} from '../lib/content';
+
+interface Props {
+  items: DocWithDisplayDate[];
+  currentPage: number;
+  totalPages: number;
+}
+
+const { items, currentPage, totalPages } = Astro.props;
+const previousPage = currentPage > 1 ? getHomePageUrl(currentPage - 1) : null;
+const nextPage = currentPage < totalPages ? getHomePageUrl(currentPage + 1) : null;
+---
+
+<section class="paper-feed" aria-label="文章列表">
+  {
+    items.map(({ doc, displayDate }) => (
+      <article class="paper-item">
+        <h2 class="paper-title">
+          <a href={getDocUrl(doc.id)}>{formatDocListTitle(doc)}</a>
+        </h2>
+        <div class="paper-meta-row">
+          <span class="paper-meta-item">
+            <svg class="paper-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="4" width="14" height="16" rx="2" fill="none" stroke="currentcolor" stroke-width="1.6" />
+              <path d="M8 2v4M16 2v4M5 10h14" stroke="currentcolor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+            {formatDisplayDate(displayDate)}
+          </span>
+          <span class="paper-meta-item">
+            <svg class="paper-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h7l3 3h6v7H4V7z" fill="none" stroke="currentcolor" stroke-width="1.6" stroke-linejoin="round" />
+            </svg>
+            {doc.data.category}
+          </span>
+        </div>
+        <p class="paper-summary">
+          <strong>摘要</strong>
+          {extractDocExcerpt(doc)}
+        </p>
+      </article>
+    ))
+  }
+  <footer class="paper-pagination">
+    <span>第 {currentPage} 页 / 共 {totalPages} 页</span>
+    <div class="paper-pagination-actions">
+      {previousPage && <a class="paper-page-btn" href={previousPage}>← 上一页</a>}
+      {nextPage && <a class="paper-page-btn" href={nextPage}>下一页 →</a>}
+    </div>
+  </footer>
+</section>

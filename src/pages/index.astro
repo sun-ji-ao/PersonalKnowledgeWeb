@@ -1,27 +1,13 @@
 ---
 import '../styles/global.css';
-import {
-  formatDocListTitle,
-  getDocUrl,
-  getFeaturedDocs,
-  getPublishedDocs,
-  getRecentDocs,
-  groupDocsByCategory,
-  groupDocsByTag
-} from '../lib/content';
+import { getPaginatedDocsByDisplayDate, getPublishedDocs, groupDocsByCategory } from '../lib/content';
+import HomeArticleFeed from '../components/HomeArticleFeed.astro';
+import HomeShell from '../components/HomeShell.astro';
 import SeoHead from '../components/SeoHead.astro';
 
 const docs = await getPublishedDocs();
-const topCategories = groupDocsByCategory(docs).sort((a, b) => b.items.length - a.items.length);
-const categories = topCategories.slice(0, 9).map((category, index) => ({ ...category, active: index === 0 }));
-
-const tags = groupDocsByTag(docs).slice(0, 6);
-
-const displayFeaturedArticles = getFeaturedDocs(docs, ['第一个驱动程序', 'PE文件头解析', 'x86汇编框架'], 3);
-const recentUpdates = getRecentDocs(docs, 5);
-const learningRoutes = topCategories.slice(0, 4);
-
-const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Debug', 'FAQ'];
+const categories = groupDocsByCategory(docs).sort((a, b) => b.items.length - a.items.length);
+const feed = getPaginatedDocsByDisplayDate(docs, 1);
 ---
 
 <!doctype html>
@@ -29,182 +15,10 @@ const tocItems = ['环境准备', 'DriverEntry', 'Device Object', 'Build and Deb
   <head>
     <SeoHead title="个人技术知识网站" description="个人技术知识网站，支持 Markdown、代码高亮、分类标签、全文搜索和静态部署。" path="/" />
   </head>
-  <body>
-    <main class="site-shell">
-      <section class="hero">
-        <p class="eyebrow">Personal Knowledge Website</p>
-        <div class="hero-grid">
-          <div>
-            <h1>个人技术知识网站</h1>
-            <p class="hero-description">
-              面向 Markdown 技术文档的极简科技风知识库，适合沉淀 Windows、C/C++、逆向、安全研究和博客文章。
-            </p>
-          </div>
-          <div class="hero-actions" aria-label="站点能力">
-            <span>Markdown</span>
-            <span>代码高亮</span>
-            <span>全文搜索</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="app-frame" aria-label="网站界面预览">
-        <header class="topbar">
-          <a class="brand" href="/" aria-label="返回首页">
-            <span class="brand-mark">孙</span>
-            <span>
-              <strong>孙计奥 Notes</strong>
-              <small>安全研究 / Windows / 技术笔记</small>
-            </span>
-          </a>
-          <form class="search-box site-search-form" action="/search/" method="get" role="search" aria-label="站内全文搜索">
-            <input name="q" type="search" placeholder="搜索 Markdown、代码、标签..." autocomplete="off" />
-            <button type="submit">搜索</button>
-          </form>
-          <nav class="nav-links" aria-label="主导航">
-            <a href="/docs/">知识库</a>
-            <a href="/categories/">分类</a>
-            <a href="/tags/">标签</a>
-            <a href="/archive/">归档</a>
-            <a href="/rss.xml">RSS</a>
-            <a href="/about/">关于</a>
-          </nav>
-          <button class="theme-toggle" type="button">Dark</button>
-        </header>
-
-        <div class="content-grid">
-          <aside class="sidebar" id="knowledge">
-            <div class="panel-title">
-              <h2>知识分类</h2>
-              <p>按 GitHub Markdown 目录生成</p>
-            </div>
-            <ul class="category-list">
-              {
-                categories.map((category) => (
-                  <li>
-                    <a class:list={['category-item', { active: category.active }]} href={`/categories/${category.slug}/`}>
-                      <span>{category.name}</span>
-                      <strong>{category.items.length}</strong>
-                    </a>
-                  </li>
-                ))
-              }
-            </ul>
-            <div class="tag-cloud" aria-label="标签云">
-              <h3>标签云</h3>
-              <div>
-                {tags.map((tag) => <a href={`/tags/${tag.slug}/`}>{tag.name}</a>)}
-              </div>
-            </div>
-          </aside>
-
-          <article class="reader">
-            <div class="article-head">
-              <p>知识库 / Windows 内核安全 / Lesson 02</p>
-              <h2>第一个驱动程序</h2>
-              <p>
-                从 Markdown 文档自动导入，保留层级、标题、代码块、分类标签和文章目录导航。
-              </p>
-              <div class="article-tags">
-                <span>Driver</span>
-                <span>Kernel</span>
-              </div>
-            </div>
-
-            <section class="article-section">
-              <h3>文章摘要</h3>
-              <p>
-                该页面展示技术文档转博客后的阅读效果：左侧用于分类检索，中间专注正文阅读，右侧提供当前文章目录。
-              </p>
-            </section>
-
-            <section class="article-section">
-              <h3>Markdown 正文与代码高亮</h3>
-              <pre><code><span class="code-keyword">NTSTATUS</span> DriverEntry(
-    <span class="code-type">PDRIVER_OBJECT</span> driverObject
-) &#123;
-    KdPrint((<span class="code-string">"Hello Kernel"</span>));
-    <span class="code-keyword">return</span> STATUS_SUCCESS;
-&#125;</code></pre>
-            </section>
-
-            <div class="pager">
-              <a href="#">上一篇：IRQL Basics</a>
-              <a href="#">下一篇：Memory</a>
-            </div>
-          </article>
-
-          <aside class="right-rail">
-            <section class="toc-card">
-              <h2>文章目录</h2>
-              <ol>
-                {tocItems.map((item, index) => <li class={index === 0 ? 'active' : ''}>{item}</li>)}
-              </ol>
-            </section>
-
-            <section class="blog-card" id="blog">
-              <h2>博客化首页预览</h2>
-              <p>文档站逐步演进为个人技术博客。</p>
-              <a href="#featured">精选文章卡片</a>
-              <a href="/archive/">最近更新列表</a>
-              <a href="/categories/">分类 / 标签 / RSS</a>
-            </section>
-          </aside>
-        </div>
-      </section>
-
-      <section class="home-sections" aria-label="首页内容模块">
-        <div class="section-heading">
-          <p class="eyebrow">Blog Ready</p>
-          <h2>真实内容信息流</h2>
-        </div>
-        <div class="home-grid">
-          <section class="feature-list" id="featured">
-            <h3>精选文章</h3>
-            {
-              displayFeaturedArticles.map((article) => (
-                <a class="article-card" href={getDocUrl(article.id)}>
-                  <strong>{formatDocListTitle(article)}</strong>
-                  <p>{article.data.description}</p>
-                </a>
-              ))
-            }
-          </section>
-          <section class="update-list" id="archive">
-            <h3>最新文章</h3>
-            <ul>
-              {recentUpdates.map((doc) => <li><a href={getDocUrl(doc.id)}>{formatDocListTitle(doc)}</a></li>)}
-            </ul>
-          </section>
-          <section class="stack-card route-card" id="about">
-            <h3>学习路线</h3>
-            <p>按专题目录持续阅读</p>
-            <div class="route-links">
-              {learningRoutes.map((category) => <a href={`/categories/${category.slug}/`}>{category.name}</a>)}
-            </div>
-            <p>
-              当前内容按分类、标签、归档和全文搜索组织，适合从基础语法逐步进入 Windows、安全研究和底层专题。
-            </p>
-          </section>
-        </div>
-        <section class="category-showcase" aria-label="热门分类">
-          <div>
-            <p class="eyebrow">Popular Categories</p>
-            <h3>热门分类</h3>
-          </div>
-          <div class="category-showcase-grid">
-            {
-              topCategories.slice(0, 6).map((category) => (
-                <a href={`/categories/${category.slug}/`}>
-                  <strong>{category.name}</strong>
-                  <span>{category.items.length} 篇文章</span>
-                </a>
-              ))
-            }
-          </div>
-        </section>
-      </section>
-    </main>
+  <body class="home-page">
+    <HomeShell categories={categories}>
+      <HomeArticleFeed items={feed.items} currentPage={feed.currentPage} totalPages={feed.totalPages} />
+    </HomeShell>
     <script is:inline src="/theme-toggle.js"></script>
   </body>
 </html>

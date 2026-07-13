@@ -23,7 +23,7 @@ export async function GET({ site }: { site: URL }) {
   const categories = groupDocsByCategory(docs);
   const tags = groupDocsByTag(docs);
   const baseUrl = site.toString();
-  const staticPaths = ['/', '/docs/', '/search/', '/categories/', '/tags/', '/archive/', '/about/', '/rss.xml'];
+  const staticPaths = ['/', '/docs/', '/search/', '/categories/', '/tags/', '/archive/', '/rss.xml'];
   const urls = [
     ...staticPaths.map((path) => createUrl(baseUrl, path)),
     ...categories.map((category) => createUrl(baseUrl, `/categories/${category.slug}/`)),

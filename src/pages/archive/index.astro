@@ -1,18 +1,33 @@
 ---
 import '../../styles/global.css';
-import { formatDocListTitle, getDocUrl, getPublishedDocs } from '../../lib/content';
+import {
+  buildDocDisplayDateMap,
+  formatDisplayDate,
+  formatDocListTitle,
+  getDocUrl,
+  getPublishedDocs
+} from '../../lib/content';
 import SeoHead from '../../components/SeoHead.astro';
 
-const docs = (await getPublishedDocs()).slice().reverse();
-const archiveMap = new Map();
+const docs = await getPublishedDocs();
+const displayDateMap = buildDocDisplayDateMap(docs);
+const archiveMap = new Map<string, typeof docs>();
 for (const doc of docs) {
-  const date = doc.data.updated ?? doc.data.date ?? new Date();
-  const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const displayDate = displayDateMap.get(doc.id)!;
+  const key = `${displayDate.getUTCFullYear()}-${String(displayDate.getUTCMonth() + 1).padStart(2, '0')}`;
   const group = archiveMap.get(key) ?? [];
   group.push(doc);
   archiveMap.set(key, group);
 }
-const archiveGroups = Array.from(archiveMap.entries());
+const archiveGroups = Array.from(archiveMap.entries())
+  .sort(([monthA], [monthB]) => monthB.localeCompare(monthA))
+  .map(([month, items]) => {
+    const sortedItems = items
+      .slice()
+      .sort((a, b) => displayDateMap.get(b.id)!.getTime() - displayDateMap.get(a.id)!.getTime());
+    const [year, monthNumber] = month.split('-');
+    return [`${year}年${monthNumber}月`, sortedItems] as const;
+  });
 ---
 
 <!doctype html>
@@ -27,7 +42,7 @@ const archiveGroups = Array.from(archiveMap.entries());
         <div class="hero-grid">
           <div>
             <h1>文章归档</h1>
-            <p class="hero-description">按更新时间整理全部文章，方便回顾最近整理和导入的技术笔记。</p>
+            <p class="hero-description">按发布时间整理全部文章，方便按年月回顾技术笔记。</p>
           </div>
           <a class="primary-link" href="/docs/">返回知识库</a>
         </div>
@@ -45,6 +60,7 @@ const archiveGroups = Array.from(archiveMap.entries());
                 {items.map((doc) => (
                   <a href={getDocUrl(doc.id)}>
                     <strong>{formatDocListTitle(doc)}</strong>
+                    <span>{formatDisplayDate(displayDateMap.get(doc.id)!)}</span>
                     <p>{doc.data.description}</p>
                   </a>
                 ))}

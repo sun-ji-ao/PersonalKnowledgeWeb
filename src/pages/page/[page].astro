@@ -1,0 +1,42 @@
+---
+import '../../styles/global.css';
+import {
+  getHomePageUrl,
+  getPaginatedDocsByDisplayDate,
+  getPublishedDocs,
+  groupDocsByCategory
+} from '../../lib/content';
+import HomeArticleFeed from '../../components/HomeArticleFeed.astro';
+import HomeShell from '../../components/HomeShell.astro';
+import SeoHead from '../../components/SeoHead.astro';
+
+export async function getStaticPaths() {
+  const docs = await getPublishedDocs();
+  const { totalPages } = getPaginatedDocsByDisplayDate(docs, 1);
+  return Array.from({ length: Math.max(totalPages - 1, 0) }, (_, index) => ({
+    params: { page: String(index + 2) }
+  }));
+}
+
+const pageNumber = Number(Astro.params.page);
+const docs = await getPublishedDocs();
+const categories = groupDocsByCategory(docs).sort((a, b) => b.items.length - a.items.length);
+const feed = getPaginatedDocsByDisplayDate(docs, pageNumber);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <SeoHead
+      title={`第 ${feed.currentPage} 页`}
+      description="孙计奥 Notes 技术文章列表。"
+      path={getHomePageUrl(feed.currentPage)}
+    />
+  </head>
+  <body class="home-page">
+    <HomeShell categories={categories}>
+      <HomeArticleFeed items={feed.items} currentPage={feed.currentPage} totalPages={feed.totalPages} />
+    </HomeShell>
+    <script is:inline src="/theme-toggle.js"></script>
+  </body>
+</html>
