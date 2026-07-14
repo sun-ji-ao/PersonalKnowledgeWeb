@@ -5,7 +5,13 @@ const sourceRoot = process.env.CONTENT_SOURCE_DIR ?? join(process.cwd(), 'bypass
 const targetRoot = join(process.cwd(), 'src', 'content', 'docs');
 const importedImagesRoot = join(process.cwd(), 'public', 'imported-images');
 const contentRulesPath = join(process.cwd(), 'content_rules.json');
+const contentDatesPath = join(process.cwd(), 'content_dates.json');
 const today = new Date().toISOString().slice(0, 10);
+const defaultContentDates = {
+  realDateSince: '2026-05-01',
+  legacyPlaceholderDate: '2021-01-01',
+  articles: {}
+};
 const defaultContentRules = {
   draftPathPrefixes: [],
   draftPathIncludes: [],
@@ -38,20 +44,34 @@ function getCategory(relativePath) {
   return firstSegment.replace(/^\d+_/, '').replaceAll('_', ' ');
 }
 
-function getOrder(fileName) {
-  const match = fileName.match(/课时(\d+)/);
-  if (!match) {
-    return 0;
+function parseArticleFileName(fileName) {
+  const name = basename(fileName, extname(fileName));
+  if (name.toLowerCase() === 'readme') {
+    return { order: 0, title: '知识库说明' };
   }
-  return Number.parseInt(match[1], 10);
+  const lessonMatch = name.match(/^课时(\d+)_?(.*)$/i);
+  if (lessonMatch) {
+    return {
+      order: Number.parseInt(lessonMatch[1], 10),
+      title: lessonMatch[2].replaceAll('_', ' ')
+    };
+  }
+  const numericMatch = name.match(/^(\d+)_(.+)$/);
+  if (numericMatch) {
+    return {
+      order: Number.parseInt(numericMatch[1], 10),
+      title: numericMatch[2]
+    };
+  }
+  return { order: 0, title: name.replaceAll('_', ' ') };
+}
+
+function getOrder(fileName) {
+  return parseArticleFileName(fileName).order;
 }
 
 function getTitle(fileName) {
-  const name = basename(fileName, extname(fileName));
-  if (name.toLowerCase() === 'readme') {
-    return '知识库说明';
-  }
-  return name.replace(/^课时\d+_?/, '').replaceAll('_', ' ');
+  return parseArticleFileName(fileName).title;
 }
 
 function inferTags(category, title) {
@@ -242,21 +262,10 @@ function rewriteMarkdownImages(content, sourceMarkdownFile) {
     });
 }
 
-function normalizeHeadingText(value) {
-  return value
-    .replace(/^课时\s*\d+\s*[:：_ -]*/i, '')
-    .replace(/[\s:_：-]+/g, '')
-    .toLowerCase();
-}
-
-function removeLeadingTitleHeading(content, title) {
-  const headingPattern = /^(\s*)#\s+(.+?)(?:\r?\n|$)/;
+function removeLeadingTitleHeading(content) {
+  const headingPattern = /^\s*#\s+.+?(?:\r?\n|$)/;
   const match = content.match(headingPattern);
   if (!match) {
-    return content;
-  }
-  const headingText = match[2].replace(/#+\s*$/, '').trim();
-  if (normalizeHeadingText(headingText) !== normalizeHeadingText(title)) {
     return content;
   }
   return content.slice(match[0].length).replace(/^\r?\n/, '');
@@ -331,12 +340,62 @@ function numberMarkdownHeadings(content) {
 
 function normalizeMarkdown(content, sourceMarkdownFile, title) {
   const strippedContent = stripFrontmatter(content).replace(/\u0000/g, '');
-  const contentWithoutDuplicateTitle = removeLeadingTitleHeading(strippedContent, title);
+  const contentWithoutDuplicateTitle = removeLeadingTitleHeading(strippedContent);
   const contentWithNumberedHeadings = numberMarkdownHeadings(contentWithoutDuplicateTitle);
   return normalizeCodeFenceLanguages(rewriteMarkdownImages(contentWithNumberedHeadings, sourceMarkdownFile));
 }
 
-function createFrontmatter({ title, category, tags, order, draft }) {
+function loadContentDates() {
+  if (!existsSync(contentDatesPath)) {
+    return structuredClone(defaultContentDates);
+  }
+  const rawDates = JSON.parse(readFileSync(contentDatesPath, 'utf8'));
+  return {
+    ...defaultContentDates,
+    ...rawDates,
+    articles: {
+      ...defaultContentDates.articles,
+      ...(rawDates.articles ?? {})
+    }
+  };
+}
+
+function saveContentDates(contentDates) {
+  writeFileSync(contentDatesPath, `${JSON.stringify(contentDates, null, 2)}\n`, 'utf8');
+}
+
+function bootstrapLegacyArticles(contentDates, sourceFiles) {
+  if (Object.keys(contentDates.articles).length > 0) {
+    return;
+  }
+  const placeholderDate = contentDates.legacyPlaceholderDate;
+  for (const sourceFile of sourceFiles) {
+    const relativePath = normalizePath(relative(sourceRoot, sourceFile));
+    contentDates.articles[relativePath] = {
+      date: placeholderDate,
+      updated: placeholderDate,
+      useRealDate: false
+    };
+  }
+}
+
+function resolveArticleDates(relativePath, contentDates) {
+  const normalizedPath = normalizePath(relativePath);
+  const existingEntry = contentDates.articles[normalizedPath];
+  if (existingEntry) {
+    return existingEntry;
+  }
+  const useRealDate = today >= contentDates.realDateSince;
+  const entry = {
+    date: today,
+    updated: today,
+    useRealDate
+  };
+  contentDates.articles[normalizedPath] = entry;
+  return entry;
+}
+
+function createFrontmatter({ title, category, tags, order, draft, date, updated, useRealDate }) {
   const tagsYaml = tags.map((tag) => `  - ${escapeYaml(tag)}`).join('\n');
   return [
     '---',
@@ -345,10 +404,11 @@ function createFrontmatter({ title, category, tags, order, draft }) {
     `category: ${escapeYaml(category)}`,
     'tags:',
     tagsYaml,
-    `date: ${today}`,
-    `updated: ${today}`,
+    `date: ${date}`,
+    `updated: ${updated}`,
     `draft: ${draft ? 'true' : 'false'}`,
     `order: ${order}`,
+    `useRealDate: ${useRealDate ? 'true' : 'false'}`,
     '---',
     ''
   ].join('\n');
@@ -359,10 +419,12 @@ function importMarkdownFiles() {
     throw new Error(`源目录不存在：${sourceRoot}`);
   }
   const contentRules = loadContentRules();
+  const contentDates = loadContentDates();
   rmSync(targetRoot, { recursive: true, force: true });
   rmSync(importedImagesRoot, { recursive: true, force: true });
   mkdirSync(targetRoot, { recursive: true });
   const files = listMarkdownFiles(sourceRoot);
+  bootstrapLegacyArticles(contentDates, files);
   for (const sourceFile of files) {
     const relativePath = relative(sourceRoot, sourceFile);
     const targetFile = join(targetRoot, relativePath);
@@ -371,12 +433,23 @@ function importMarkdownFiles() {
     const order = getOrder(sourceFile);
     const tags = inferTags(category, title);
     const draft = shouldMarkDraft({ relativePath, category, title, tags }, contentRules);
+    const articleDates = resolveArticleDates(relativePath, contentDates);
     const rawContent = readFileSync(sourceFile, 'utf8');
     const content = normalizeMarkdown(rawContent, sourceFile, title);
-    const frontmatter = createFrontmatter({ title, category, tags, order, draft });
+    const frontmatter = createFrontmatter({
+      title,
+      category,
+      tags,
+      order,
+      draft,
+      date: articleDates.date,
+      updated: articleDates.updated,
+      useRealDate: articleDates.useRealDate
+    });
     mkdirSync(dirname(targetFile), { recursive: true });
     writeFileSync(targetFile, `${frontmatter}${content.trim()}\n`, 'utf8');
   }
+  saveContentDates(contentDates);
   const assetsSource = join(sourceRoot, 'images');
   const assetsTarget = join(process.cwd(), 'public', 'imported-images');
   if (existsSync(assetsSource)) {

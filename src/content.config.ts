@@ -11,7 +11,8 @@ const docs = defineCollection({
     date: z.coerce.date().optional(),
     updated: z.coerce.date().optional(),
     draft: z.boolean().default(false),
-    order: z.number().default(0)
+    order: z.number().default(0),
+    useRealDate: z.boolean().default(false)
   })
 });
 

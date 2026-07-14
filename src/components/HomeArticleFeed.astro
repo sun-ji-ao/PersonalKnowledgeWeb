@@ -3,6 +3,7 @@ import {
   extractDocExcerpt,
   formatDisplayDate,
   formatDocListTitle,
+  getCategoryUrl,
   getDocUrl,
   getHomePageUrl,
   type DocWithDisplayDate
@@ -35,10 +36,12 @@ const nextPage = currentPage < totalPages ? getHomePageUrl(currentPage + 1) : nu
             {formatDisplayDate(displayDate)}
           </span>
           <span class="paper-meta-item">
-            <svg class="paper-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7h7l3 3h6v7H4V7z" fill="none" stroke="currentcolor" stroke-width="1.6" stroke-linejoin="round" />
-            </svg>
-            {doc.data.category}
+            <a class="paper-meta-link" href={getCategoryUrl(doc.data.category)}>
+              <svg class="paper-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h7l3 3h6v7H4V7z" fill="none" stroke="currentcolor" stroke-width="1.6" stroke-linejoin="round" />
+              </svg>
+              {doc.data.category}
+            </a>
           </span>
         </div>
         <p class="paper-summary">

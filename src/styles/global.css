@@ -1019,6 +1019,18 @@ body.home-page::before {
   font-size: 13px;
 }
 
+.paper-meta-link {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.paper-meta-link:hover {
+  color: #0c89e3;
+}
+
 .paper-icon {
   width: 14px;
   height: 14px;
@@ -1047,6 +1059,10 @@ body.home-page::before {
 :root[data-theme="dark"] .paper-meta-item,
 :root[data-theme="dark"] .paper-summary {
   color: #94a3b8;
+}
+
+:root[data-theme="dark"] .paper-meta-link:hover {
+  color: #38bdf8;
 }
 
 :root[data-theme="dark"] .paper-summary strong {
@@ -1570,8 +1586,19 @@ body.home-page::before {
   font-size: 13px;
 }
 
-.doc-meta-card strong {
+.doc-meta-card strong,
+.doc-meta-link {
   color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.doc-meta-link:hover {
+  color: #0c89e3;
+}
+
+:root[data-theme="dark"] .doc-meta-link:hover {
+  color: #38bdf8;
 }
 
 .doc-side .doc-toc {

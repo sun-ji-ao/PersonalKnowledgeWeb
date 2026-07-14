@@ -1,10 +1,10 @@
 ---
 import '../../styles/global.css';
-import { getPublishedDocs, groupDocsByCategory } from '../../lib/content';
+import { formatDocListTitle, getOrderedCategories, getPublishedDocs } from '../../lib/content';
 import SeoHead from '../../components/SeoHead.astro';
 
 const docs = await getPublishedDocs();
-const categories = groupDocsByCategory(docs).sort((a, b) => b.items.length - a.items.length);
+const categories = getOrderedCategories(docs);
 ---
 
 <!doctype html>
@@ -30,7 +30,7 @@ const categories = groupDocsByCategory(docs).sort((a, b) => b.items.length - a.i
             <a class="taxonomy-card" href={`/categories/${category.slug}/`}>
               <span>{category.items.length} 篇文章</span>
               <strong>{category.name}</strong>
-              <p>{category.items.slice(0, 3).map((doc) => doc.data.title).join(' / ')}</p>
+              <p>{category.items.slice(0, 3).map((doc) => formatDocListTitle(doc)).join(' / ')}</p>
             </a>
           ))
         }

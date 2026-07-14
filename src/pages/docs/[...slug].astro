@@ -1,6 +1,6 @@
 ---
 import '../../styles/global.css';
-import { buildDocDisplayDateMap, formatDisplayDate, getDocUrl, getPublishedDocs } from '../../lib/content';
+import { buildDocDisplayDateMap, formatDisplayDate, formatDocListTitle, getCategoryUrl, getDocUrl, getPublishedDocs } from '../../lib/content';
 import { render } from 'astro:content';
 import SeoHead from '../../components/SeoHead.astro';
 
@@ -20,6 +20,7 @@ export async function getStaticPaths() {
 
 const { doc, previousDoc, nextDoc, displayDate } = Astro.props;
 const { Content, headings } = await render(doc);
+const docListTitle = formatDocListTitle(doc);
 const visibleHeadings = headings.filter((heading) => heading.depth > 1 && heading.depth < 5);
 const displayDateText = formatDisplayDate(displayDate);
 const displayDateIso = displayDate.toISOString().slice(0, 10);
@@ -28,7 +29,7 @@ const displayDateIso = displayDate.toISOString().slice(0, 10);
 <!doctype html>
 <html lang="zh-CN">
   <head>
-    <SeoHead title={doc.data.title} description={doc.data.description} path={getDocUrl(doc.id)} type="article" />
+    <SeoHead title={docListTitle} description={doc.data.description} path={getDocUrl(doc.id)} type="article" />
   </head>
   <body>
     <div class="reading-progress"><span data-reading-progress></span></div>
@@ -41,7 +42,7 @@ const displayDateIso = displayDate.toISOString().slice(0, 10);
           </nav>
           <div class="doc-meta-card">
             <span>分类</span>
-            <strong>{doc.data.category}</strong>
+            <a class="doc-meta-link" href={getCategoryUrl(doc.data.category)}>{doc.data.category}</a>
           </div>
           <div class="doc-meta-card">
             <span>标签</span>
@@ -70,7 +71,7 @@ const displayDateIso = displayDate.toISOString().slice(0, 10);
         <article class="doc-article" data-pagefind-body>
           <header class="doc-header">
             <p>{doc.data.category}</p>
-            <h1>{doc.data.title}</h1>
+            <h1>{docListTitle}</h1>
             <p class="doc-header-date">
               <svg class="doc-header-date-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -88,7 +89,7 @@ const displayDateIso = displayDate.toISOString().slice(0, 10);
               previousDoc ? (
                 <a href={getDocUrl(previousDoc.id)}>
                   <span>上一篇</span>
-                  <strong>{previousDoc.data.title}</strong>
+                  <strong>{formatDocListTitle(previousDoc)}</strong>
                 </a>
               ) : (
                 <span class="disabled">已经是第一篇</span>
@@ -98,7 +99,7 @@ const displayDateIso = displayDate.toISOString().slice(0, 10);
               nextDoc ? (
                 <a href={getDocUrl(nextDoc.id)}>
                   <span>下一篇</span>
-                  <strong>{nextDoc.data.title}</strong>
+                  <strong>{formatDocListTitle(nextDoc)}</strong>
                 </a>
               ) : (
                 <span class="disabled">已经是最后一篇</span>

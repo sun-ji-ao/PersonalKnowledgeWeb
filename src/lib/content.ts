@@ -23,6 +23,10 @@ export function getDocUrl(docId: string): string {
   return `/docs/${docId}/`;
 }
 
+export function getCategoryUrl(categoryName: string): string {
+  return `/categories/${createSlug(categoryName)}/`;
+}
+
 export function formatDocListTitle(doc: PublishedDocs[number]): string {
   if (doc.data.order <= 0) {
     return doc.data.title;
@@ -38,7 +42,21 @@ function hashString(value: string): number {
   return hash;
 }
 
-// 全站展示日期固定范围：2021年11月1日 ～ 2025年10月31日
+// 2026-05-01 及之后首次导入的文章使用真实上传日期展示
+export const REAL_DATE_SINCE_MS = Date.UTC(2026, 4, 1);
+
+export function getDocSourceDate(doc: PublishedDocs[number]): Date {
+  return doc.data.date ?? doc.data.updated ?? new Date(0);
+}
+
+export function usesRealDisplayDate(doc: PublishedDocs[number]): boolean {
+  if (doc.data.useRealDate) {
+    return true;
+  }
+  return getDocSourceDate(doc).getTime() >= REAL_DATE_SINCE_MS;
+}
+
+// 历史文章展示日期固定范围：2021年11月1日 ～ 2025年10月31日
 const DISPLAY_DATE_START_MS = Date.UTC(2021, 10, 1);
 const DISPLAY_DATE_END_MS = Date.UTC(2025, 9, 31);
 const MAX_ARTICLE_GAP_DAYS = 30;
@@ -233,7 +251,7 @@ function percentileToDateMs(percentile: number, seed: string, buckets: MonthBuck
   return Date.UTC(bucket.year, bucket.month - 1, day);
 }
 
-function sortDocsInCategory(items: PublishedDocs): PublishedDocs {
+export function sortDocsInCategory(items: PublishedDocs): PublishedDocs {
   return items.slice().sort((a, b) => {
     const orderCompare = a.data.order - b.data.order;
     if (orderCompare !== 0) {
@@ -248,7 +266,7 @@ function getCategoryOrderFromDocs(items: PublishedDocs): number {
   return match ? Number.parseInt(match[1], 10) : 9999;
 }
 
-function getOrderedCategories(docs: PublishedDocs): ReturnType<typeof groupDocsByCategory> {
+export function getOrderedCategories(docs: PublishedDocs): ReturnType<typeof groupDocsByCategory> {
   return groupDocsByCategory(docs).sort((a, b) => {
     const orderCompare = getCategoryOrderFromDocs(a.items) - getCategoryOrderFromDocs(b.items);
     if (orderCompare !== 0) {
@@ -376,7 +394,7 @@ function assignArticlesInCategory(
   return currentMs;
 }
 
-export function buildDocDisplayDateMap(docs: PublishedDocs): Map<string, Date> {
+function buildLegacyDocDisplayDateMap(docs: PublishedDocs): Map<string, Date> {
   const dateMap = new Map<string, Date>();
   const monthCounts = new Map<string, number>();
   const categories = getOrderedCategories(docs);
@@ -410,6 +428,17 @@ export function buildDocDisplayDateMap(docs: PublishedDocs): Map<string, Date> {
     previousCategoryEndMs = dateMap.get(sortedItems[sortedItems.length - 1].id)!.getTime();
   }
   assignQuarterAnchors(categories, dateMap, monthCounts);
+  return dateMap;
+}
+
+export function buildDocDisplayDateMap(docs: PublishedDocs): Map<string, Date> {
+  const legacyDocs = docs.filter((doc) => !usesRealDisplayDate(doc));
+  const dateMap = buildLegacyDocDisplayDateMap(legacyDocs);
+  for (const doc of docs) {
+    if (usesRealDisplayDate(doc)) {
+      dateMap.set(doc.id, getDocSourceDate(doc));
+    }
+  }
   return dateMap;
 }
 
@@ -551,7 +580,7 @@ export function groupDocsByCategory(docs: Awaited<ReturnType<typeof getPublished
   return Array.from(categoryMap.entries()).map(([name, items]) => ({
     name,
     slug: createSlug(name),
-    items
+    items: sortDocsInCategory(items)
   })).sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
 }
 

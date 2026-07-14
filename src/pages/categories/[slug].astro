@@ -1,11 +1,11 @@
 ---
 import '../../styles/global.css';
-import { formatDocListTitle, getDocUrl, getPublishedDocs, groupDocsByCategory } from '../../lib/content';
+import { formatDocListTitle, getDocUrl, getOrderedCategories, getPublishedDocs } from '../../lib/content';
 import SeoHead from '../../components/SeoHead.astro';
 
 export async function getStaticPaths() {
   const docs = await getPublishedDocs();
-  return groupDocsByCategory(docs).map((category) => ({
+  return getOrderedCategories(docs).map((category) => ({
     params: { slug: category.slug },
     props: { category }
   }));
