@@ -1256,6 +1256,26 @@
       "date": "2026-07-14",
       "updated": "2026-07-14",
       "useRealDate": true
+    },
+    "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md": {
+      "date": "2026-07-15",
+      "updated": "2026-07-15",
+      "useRealDate": true
+    },
+    "15_HOOK专题/09_Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）.md": {
+      "date": "2026-07-15",
+      "updated": "2026-07-15",
+      "useRealDate": true
+    },
+    "15_HOOK专题/10_Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）.md": {
+      "date": "2026-07-15",
+      "updated": "2026-07-15",
+      "useRealDate": true
+    },
+    "15_HOOK专题/11_Windows 全架构 - 硬件固件级 Hook（Ring -2 及以下）.md": {
+      "date": "2026-07-15",
+      "updated": "2026-07-15",
+      "useRealDate": true
     }
   }
 }

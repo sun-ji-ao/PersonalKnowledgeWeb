@@ -1739,6 +1739,21 @@ body.home-page::before {
   position: relative;
 }
 
+.markdown-body .mermaid {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--bg));
+  text-align: center;
+}
+
+.markdown-body .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
 .copy-code-button {
   position: absolute;
   top: 12px;

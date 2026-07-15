@@ -11,9 +11,11 @@
   },
   "dependencies": {
     "@astrojs/check": "latest",
+    "@astrojs/markdown-remark": "^7.2.1",
     "astro": "latest",
+    "mermaid": "^11.16.0",
     "pagefind": "latest",
-    "typescript": "latest"
-  },
-  "devDependencies": {}
+    "typescript": "latest",
+    "unist-util-visit": "^5.1.0"
+  }
 }
