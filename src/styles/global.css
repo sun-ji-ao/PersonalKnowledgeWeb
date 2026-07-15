@@ -1562,6 +1562,9 @@ body.home-page::before {
 .doc-side {
   position: sticky;
   top: 24px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
 }
 
 .doc-side-nav {
@@ -1602,12 +1605,40 @@ body.home-page::before {
 }
 
 .doc-side .doc-toc {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
   padding: 20px 0 0;
   margin-top: 20px;
   border: 0;
   border-top: 1px solid var(--border);
   border-radius: 0;
   background: transparent;
+  overflow: hidden;
+}
+
+.doc-side .doc-toc h2 {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+
+.doc-side .doc-toc nav {
+  display: grid;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.doc-side .doc-toc nav::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .doc-tags {
@@ -2073,6 +2104,11 @@ body.home-page::before {
   .docs-categories,
   .doc-side {
     position: static;
+    max-height: none;
+  }
+
+  .doc-side .doc-toc nav {
+    max-height: min(50vh, 420px);
   }
 
   .nav-links,
