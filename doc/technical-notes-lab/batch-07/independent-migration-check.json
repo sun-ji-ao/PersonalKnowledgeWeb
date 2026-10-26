@@ -1,0 +1,2038 @@
+{
+  "checkedAt": "2026-09-23T12:43:09.211Z",
+  "mode": "read-only-independent-verification",
+  "sourceFiles": 253,
+  "publishedLibraryNotes": 0,
+  "checks": [
+    {
+      "path": "01_C&C++快速入门/课时01_Windows环境配置.md",
+      "id": "812f3b13bee413789ed642acbb26d12c",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时02_Linux环境配置.md",
+      "id": "7236b1c392f9b66abc85392e0610cfca",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时03_第一个C&C++程序.md",
+      "id": "6a0acfcb2ecc1e1513cfc064e72505d3",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时04_进制与位.md",
+      "id": "4c8a9f41c51317abb0552579a47b4c33",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时05_基础数据类型.md",
+      "id": "0a64d951559dbb62822a287df99c3a17",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时06_选择结构.md",
+      "id": "6e6a0a5c24d18f6344e41ce6c86c5360",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时07_位运算.md",
+      "id": "5036e9011a17d8d53106e9f3572318d6",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时08_算术运算符.md",
+      "id": "01e9494f611c4db4026ab7694597d26e",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时09_逻辑运算符.md",
+      "id": "e4dab27061173e958290030154d58c19",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时10_循环结构.md",
+      "id": "f7597be4f4ad4d08d23845133f771b60",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时11_数组与字符串.md",
+      "id": "170183c84c7a9afc1a4c6079623f0759",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时12_指针与内存管理.md",
+      "id": "b892a417a93bf80d79992795f6379c7d",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时13_字符串操作函数.md",
+      "id": "210056057c3d02b9204ea2afd30961b0",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时14_函数与递归.md",
+      "id": "7c1d7041e229b13fdaebc25a96c2753e",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时15_输入输出函数.md",
+      "id": "56e6e66318df20f9b6261ae2aeb3dd4b",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时16_结构体联合体与枚举.md",
+      "id": "1baba8b02bb8c4e2ea008ca0d4f5414b",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时17_有参宏与无参宏.md",
+      "id": "9b30ec88df50f2046c2d59df5b430751",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时18_文件操作C.md",
+      "id": "a1d5c5ddd4d7caff28105f3767b612db",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时19_类和封装.md",
+      "id": "19ba47e3afb84223cc24b17c9ba97951",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时20_运算符重载.md",
+      "id": "efb0b20fd809fd69811140db63c6593d",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时21_多态.md",
+      "id": "d4acb24699e0b6c72d355945b7a16d99",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时22_继承.md",
+      "id": "b0122a7c90b9832b9ac2f446b9463184",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时23_异常.md",
+      "id": "6f2d3233a82db454f593ed5e59ac0b86",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "01_C&C++快速入门/课时24_阶段合集.md",
+      "id": "60ce45e0c35c05f52466c1c4f911e142",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时01_汇编的概念与常用寄存器.md",
+      "id": "b271251fe2acf28eb25a87fd1b9585e5",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时02_x86汇编框架.md",
+      "id": "5323506f5be94d83ff103369110f80d5",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时03_数据类型与整数运算.md",
+      "id": "cb70f5cd908cf7cd8f8257a07f7f6914",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时04_位运算指令.md",
+      "id": "fbaa030294bb407a758e1a70abee9d62",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时05_保护模式下的寻址方式.md",
+      "id": "cad6cf611cc4c71b733a27cf492220da",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时06_EFLAGS标志寄存器.md",
+      "id": "8dc5c5df1a632be71104fd959b38a7a1",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时07_JCC指令.md",
+      "id": "a758d5c525982056e77e3934deaf29f8",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时08_函数与堆栈.md",
+      "id": "eb2ca99469eee0f6998d0a5c9a313e44",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时09_数组与串指令.md",
+      "id": "3e29a5ce9b727cf293173fddb409801a",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时10_结构体与宏.md",
+      "id": "4b869e260ca5df5220ae67694a596272",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时11_x64汇编框架.md",
+      "id": "d514709d7c4a303ba49277775af5c8d1",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时12_内联汇编与混合编程.md",
+      "id": "b2623003e59856aebdbddbdbd98ba42f",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时13_Linux汇编框架与系统调用.md",
+      "id": "de6c1c648a5c9bae564e8d52d6ce6db6",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "02_x86_64架构汇编语言/课时14_阶段合集.md",
+      "id": "ba77c426d5c4b7f9ead061628d1d5dd8",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "03_C&C++软件逆向技术/课时01_分析定位目标功能.md",
+      "id": "804914f5b7148a48fbcc7fc148b8a086",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "03_C&C++软件逆向技术/课时02_函数调用约定.md",
+      "id": "7a21c84636f06f9050b787fb334eb04e",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "03_C&C++软件逆向技术/课时03_ifelse语句识别分析.md",
+      "id": "dc787bf64908ef7a2fccaf595d4e173a",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "03_C&C++软件逆向技术/课时04_switch语句识别分析.md",
+      "id": "dd7e5f34b0640ab93616e6249234f878",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "03_C&C++软件逆向技术/课时05_循环结构识别分析.md",
+      "id": "936d5874673cccbd5334f77e768e41f6",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "03_C&C++软件逆向技术/课时06_数组与指针识别分析.md",
+      "id": "2c36e855159d2b3cc3b1fbdbab513c28",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "03_C&C++软件逆向技术/课时07_类与对象识别分析.md",
+      "id": "691daeb55671cfc628055903b166ebf4",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "03_C&C++软件逆向技术/课时08_构造函数与析构函数识别分析.md",
+      "id": "7ffa03a886ffe84cddb81959f6d63ef4",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "03_C&C++软件逆向技术/课时09_阶段合集.md",
+      "id": "a33693d643bda1b8721c882034397059",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "04_Win32编程/课时01_消息机制.md",
+      "id": "3a522030f72baa363d525847397106a7",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "04_Win32编程/课时02_文件与目录.md",
+      "id": "d0e41ffe997412903a499d51e66e4a1d",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "04_Win32编程/课时03_进程与线程.md",
+      "id": "0162f473bbb5672c39d630a85c405a21",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "04_Win32编程/课时04_线程同步机制.md",
+      "id": "938851ff6ff78c0cd6b43314d4fdd5e0",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "04_Win32编程/课时05_静态库与动态库.md",
+      "id": "9d3749aa2d107935dbeaff927eba8083",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "04_Win32编程/课时06_内存管理.md",
+      "id": "f7429d9731099004619c682ce05fa311",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "04_Win32编程/课时07_异常处理.md",
+      "id": "71d118b446435aa1f21c340435cc15eb",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "04_Win32编程/课时08_TLS机制.md",
+      "id": "465f550c86de2faafcafd9880928f811",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "04_Win32编程/课时09_注册表.md",
+      "id": "a6b66dc26848508582f116bb90a48b16",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "04_Win32编程/课时10_窗口操作.md",
+      "id": "e3035617ec220804275c41a128a25e0a",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "04_Win32编程/课时11_阶段合集.md",
+      "id": "05775040160c344f84dd7834b8b43a72",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "05_进程通信专题/课时01_邮槽.md",
+      "id": "e94ea8f92a9b4f8c0a54ab02e21ccfba",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "05_进程通信专题/课时02_管道.md",
+      "id": "be5cfcb6f942835b0c46db58604144a7",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "05_进程通信专题/课时03_剪切板.md",
+      "id": "178914d7259e7259afa2f84503ec24c6",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "05_进程通信专题/课时04_WM_COPYDATA.md",
+      "id": "a40076dbc2b39861631882780e02e706",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "05_进程通信专题/课时05_文件映射.md",
+      "id": "e6703eaa2daef45ff1af9d820b6e82d6",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "05_进程通信专题/课时06_阶段合集.md",
+      "id": "f29937cf12822bc9c8fd606f4e9bc316",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时01_配置双机调试环境.md",
+      "id": "ac9ba97a7fda58d87d12fed9df0214e3",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时02_第一个驱动程序.md",
+      "id": "044537a43b55c0795efcc6bc4d8d4b6b",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时03_IRQL中断请求级别.md",
+      "id": "b72dcadb3528f6bc489f201d568144c8",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时04_驱动内存管理.md",
+      "id": "f86891b21c50bd4cfe42d09d5c5c8dde",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时05_字符串操作.md",
+      "id": "9a0d1b31d5aa856c45061c61ba644ff1",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时06_链表操作.md",
+      "id": "1d615a993127713d24ed6d7e33169abc",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时07_R3与R0通信.md",
+      "id": "07a305fb8df7add4c4bbe7a0aa535f53",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时08_监控进程与拦截进程.md",
+      "id": "ee36ae89ea998d0e16566e36d95a0299",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时09_线程监控.md",
+      "id": "b32796e639348a7324c17e4b040ec454",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时10_对象监控.md",
+      "id": "49d9edd608bbaff8244b0bef8ffed4a1",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时11_模块监控.md",
+      "id": "e482963ed28d22ff7e807e1c0c6534ed",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时12_监控注册表.md",
+      "id": "688a267beeed8292c72706581bd2116c",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时13_系统调用.md",
+      "id": "dc2fb9d80aa6cb714171d79881ca7990",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时14_SSDT_Hook.md",
+      "id": "455b6764020aa00cd2599d4373c85863",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "06_Windows内核安全/课时15_阶段合集.md",
+      "id": "ab1e0f97d8fb774a4d297d17b25e751b",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时01_主机相关网络信息编程.md",
+      "id": "aee88eda4e01afec51161236f8c70e7b",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时02_TCP套接字编程与主机上线实验.md",
+      "id": "d46b0dacbc4562e18d7cd3b9355613c6",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时03_UDP套接字与原始套接字.md",
+      "id": "e6e0657be64204192ac413c3ae769a3d",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时04_远控添加Client端进程信息获取功能.md",
+      "id": "d45fecdc746f363b0ee5f0eaa3ca2fdb",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时05_WinInet_API基础.md",
+      "id": "9b2a7e0125f1e7d1a32b138884f3e022",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时06_HTTP协议.md",
+      "id": "2727f204c0b291e618a8fa534b508900",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时07_实现简易HTTP服务器完成通信.md",
+      "id": "8289761734369f471e925122a8c3bbac",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时08_实现FTP服务器.md",
+      "id": "eea21382940c13871363d351ed3bba98",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时09_实现FTP客户端并完成通信.md",
+      "id": "18118780af50469da12c112d1fd25c09",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时10_select选择模型.md",
+      "id": "93bdaed1c907b60d95ede706873d947f",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时11_WSAAsyncSelect异步选择模型.md",
+      "id": "6e48132aec47d8f96abd24b0715b91c8",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时12_WSAEventSelect事件选择模型.md",
+      "id": "946a041729b04425cf5e791965ee4d11",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时13_重叠IO模型.md",
+      "id": "46b04234dfac3f681bbb47ace3a5e9e1",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时14_IOCP完成端口.md",
+      "id": "274d2971675068d9cbc501ba61d5ecd0",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "07_Windows网络编程/课时15_阶段合集.md",
+      "id": "8425e1f482fd1d71f22552cc3039b2ec",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "08_Windows_PE结构/课时01_Windows_PE文件基础知识.md",
+      "id": "549b87d931f2b37db9472788333cb31d",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "08_Windows_PE结构/课时02_PE文件头解析.md",
+      "id": "9f486a6ca6409ab3c6cc0fb01fc095f4",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "08_Windows_PE结构/课时03_区段与数据目录表定位.md",
+      "id": "e046425400e5a99e11f6ef9c80f8e687",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "08_Windows_PE结构/课时04_导入表解析.md",
+      "id": "11a9bfd5b93e98a434c658c649a84b57",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "08_Windows_PE结构/课时05_导出表解析.md",
+      "id": "a75213f2b66baf477ca8a6881c6617db",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "08_Windows_PE结构/课时06_资源表解析.md",
+      "id": "27740241e2927b9c4e8cc48d8ba422a5",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "08_Windows_PE结构/课时07_重定位表解析.md",
+      "id": "f35b4d2fe8f6276b2de2d868ec1a601d",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "08_Windows_PE结构/课时08_阶段合集.md",
+      "id": "ee8bdde91958678f32ad87732d8b271f",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "09_加密壳/课时01_加密壳原理.md",
+      "id": "da7fca44c0905137f76b6a431c8e5c87",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "09_加密壳/课时02_动态获取Kernel32的地址.md",
+      "id": "aa859ce4fcac1c5237396bdc89c2c351",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "09_加密壳/课时03_分析导出表获取GetProcAddress的地址.md",
+      "id": "57e911627b981e021b239d1655cb0671",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "09_加密壳/课时04_封装简易验证与解密流程.md",
+      "id": "2174775ccfcef12b216e5cfd8a126e71",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "09_加密壳/课时05_加壳工具初始化PE文件信息.md",
+      "id": "c526efe7b27c4ba3432e6794ee15650c",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "09_加密壳/课时06_获取壳代码段数据并修复重定位.md",
+      "id": "cd166ebd98c9f1e65db84a52f1df21f6",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "09_加密壳/课时07_添加区段完成加壳流程.md",
+      "id": "4b8d82b4f1fc02d3ae8ad23e8d6c5d7a",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "09_加密壳/课时08_阶段合集.md",
+      "id": "6c3d1fb26c46b9d08306ec632e3210c7",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "10_shellcode开发技术/课时01_shellcode的概念.md",
+      "id": "e1208fb63936e5127fe489aa87ce4480",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "10_shellcode开发技术/课时02_动态获取kernel32dll地址.md",
+      "id": "04dcbbf967d1c9889a26ab3c2bf93bab",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "10_shellcode开发技术/课时03_x86shellcode框架.md",
+      "id": "0837a5518c202e1c3815a92a26dc4587",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "10_shellcode开发技术/课时04_shellcode提取与加载.md",
+      "id": "98e87932cc4b77ee28a9705855d8b3d8",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "10_shellcode开发技术/课时05_x64shellcode框架.md",
+      "id": "fb9b93bd4aca55ca6f6e6ddb743a6d28",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "10_shellcode开发技术/课时06_shellcode精简字节数.md",
+      "id": "f60fc0f16ab53ae5d4b76d2d42c3645d",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "10_shellcode开发技术/课时07_阶段合集.md",
+      "id": "a6df2917ff2b25af779117f77bbe78d4",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时01_C++内联汇编实现shellcode_loader.md",
+      "id": "d27650664f03c9e65dbc0dd744e10116",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时02_C++函数指针实现shellcode_loader.md",
+      "id": "a62d109f551d60541c645762c7ef2273",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时03_C++线程和远程线程实现shellcode_loader.md",
+      "id": "db904d3411425b38bad0035704769c6a",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时04_golang实现shellcode_loader.md",
+      "id": "36ef5c189299a30243004008d996f6b3",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时05_Csharp实现shellcode_loader.md",
+      "id": "5ab3d8534c8b119834bb63727898c1df",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时06_Python实现shellcode_loader.md",
+      "id": "22c1014fbeb6a8fb7b505e41112ee6d8",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时07_C++可执行堆实现shellcode_loader.md",
+      "id": "d9c10423bf8c3f8128904de002534212",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时08_C++UserAPC实现shellcode_loader.md",
+      "id": "7366961036edd2bf636cfe14bef12568",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时09_C++线程上下文实现shellcode_loader.md",
+      "id": "0236dca87780ffca99f9f9a9002d3dda",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时10_C++TLS实现shellcode_loader.md",
+      "id": "ed5a809dedae4388d5cb341876068b42",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时11_C++VEH实现shellcode_loader.md",
+      "id": "c7751d51abecd47d2d4b77d2efdc6f7e",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时12_C++Fiber实现shellcode_loader.md",
+      "id": "3610eb94c6f921bc7d33e7ecf690f0c1",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时13_C++SEH实现shellcode_loader.md",
+      "id": "fe8b188b663bc1cee13685645b339737",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时14_C++CallBack实现shellcode_loader.md",
+      "id": "ad2ed99d2fec4aaf30377dc218f99253",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "11_shellcode_loader/课时15_阶段合集.md",
+      "id": "e77b64885ea7ec8daf5862693b2f48fd",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "12_远程控制开发基础/课时01_通信架构与客户端上线功能.md",
+      "id": "ee77e3069f4883f18833100e42f422ae",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "12_远程控制开发基础/课时02_客户端进程信息获取.md",
+      "id": "2fc707a983de3de647874fbd14aa8034",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "12_远程控制开发基础/课时03_客户端硬盘文件信息获取.md",
+      "id": "e68679a7c0d02c0ce5ca1dfecfa53483",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "12_远程控制开发基础/课时04_被控端文件取回服务端.md",
+      "id": "4a7da5b5481d614fb6da2c5132ca8b75",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "12_远程控制开发基础/课时05_主控端文件下发到被控端.md",
+      "id": "491e0581bf01d292d1156be7ceea4275",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "12_远程控制开发基础/课时06_远程SHELL执行并回显.md",
+      "id": "0db26defdc038d36c7fb66bb671be747",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "12_远程控制开发基础/课时07_阶段合集.md",
+      "id": "45ae40a5262e0ff3bcd1b31369abe9d2",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "13_安全开发专题/课时01_自启动.md",
+      "id": "3800233035661aab0dd97f7086c7a05a",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "13_安全开发专题/课时02_自删除.md",
+      "id": "bb67e2eb518789c225db128b36a64494",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "13_安全开发专题/课时03_资源释放.md",
+      "id": "f6874029d7f9f8bf5f758ab0110e2a96",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "13_安全开发专题/课时04_键盘记录.md",
+      "id": "b1624c1830a5684b3a55175274c1a508",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "13_安全开发专题/课时05_屏幕截屏.md",
+      "id": "7e6a8a161567b1bf2ee61bc2629acaaa",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "13_安全开发专题/课时06_令牌提权.md",
+      "id": "451fddefed3bfccdeab7086d35f9e8c0",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "13_安全开发专题/课时07_阶段合集.md",
+      "id": "b29c0752cd266fec644f26ca456ca6ff",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "14_Inject专题/课时01_远程线程注入.md",
+      "id": "6feffe777dfb110300c59aae2cc30268",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "14_Inject专题/课时02_劫持进程注入.md",
+      "id": "6f3506ef20290ec4443e4a642a230d37",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "14_Inject专题/课时03_消息钩子注入.md",
+      "id": "1b7fa90e15b16903793542fd91863b07",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "14_Inject专题/课时04_UserAPC注入.md",
+      "id": "e52a00c346ef40c3b355c9af7aa2dd5e",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "14_Inject专题/课时05_阶段合集.md",
+      "id": "4688d567755b5b77b311eabd46a7300e",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md",
+      "id": "de65af55802d94ec72589cdbcf5fb559",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "15_HOOK专题/09_Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）.md",
+      "id": "5ee71fd87d8d7dc12a3a1c580cf9f85f",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "15_HOOK专题/10_Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）.md",
+      "id": "56500374d69bec9701e08a69afccff82",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "15_HOOK专题/11_Windows 全架构 - 硬件固件级 Hook（Ring -2 及以下）.md",
+      "id": "dfa5c0376891fe5ee673a081d840b5ba",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "15_HOOK专题/课时01_InlineHook.md",
+      "id": "7f99710e988ba6f32e72d87c098d1820",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "15_HOOK专题/课时02_x64InlineHook.md",
+      "id": "a14a217d899b6a0b87402869dd741f09",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "15_HOOK专题/课时03_HotFixHook.md",
+      "id": "7d1c744d6ef0cf9859c27ef7ea63479e",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "15_HOOK专题/课时04_IATHook.md",
+      "id": "a4a5e24ad9c5de7085c4d677d59e0994",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "15_HOOK专题/课时05_VEH_INT3Hook.md",
+      "id": "4916be319840ebfb714109c9ec7e1265",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "15_HOOK专题/课时06_VEH_DRRegHook.md",
+      "id": "0cb5c574891fadab4649c5215b4967c7",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "15_HOOK专题/课时07_阶段合集.md",
+      "id": "4d5eabcf85d81326c7e72db48802bedf",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时01_IsDebuggerPresent.md",
+      "id": "ffe2bb155b8384b1156fd2d77076ffd7",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时02_自实现IsDebuggerPresent.md",
+      "id": "17c587f3fe4d299a1084280f4cdbbc24",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时03_CheckRemoteDebuggerPresent.md",
+      "id": "412a0c5d91a89263b21c626f009db741",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时04_检测PEB结构BeingDebugged.md",
+      "id": "da6787f603b0e37dcd9d73725ba9e9dc",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时05_检测PEB结构NtGlobalFlag.md",
+      "id": "a57114a179e02b3763b6de9e4cd80dca",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时06_检测PEB结构ProcessHeap.md",
+      "id": "9fe96616989764a3f17be4732f4cbf65",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时07_未公开API检测ProcessDebugPort.md",
+      "id": "fe117f900a3227126fb498d269856594",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时08_未公开API检测ProcessDebugFlags.md",
+      "id": "7c5bbd1bdb3c574edc7b67ceeff05476",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时09_未公开API检测ProcessDebugObjectHandle.md",
+      "id": "303f50c68f512571f8fafa8451ec38f6",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时10_未公开API获取PEB检测相关字段.md",
+      "id": "a546f3462e8ce4a098280936706d840b",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时11_遍历进程名检测调试器.md",
+      "id": "b85bd61c959df9f89b950f705c7c6b4f",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时12_遍历窗口名检测调试器.md",
+      "id": "1307cf81b922a54ae00c596fa1bc3238",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时13_遍历顶层窗口检测调试器.md",
+      "id": "1522d29d9d813dc64ba16abb3e1ad153",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时14_基于SEH异常机制检测调试器.md",
+      "id": "0a92e4e0b43227dedd45f4e615233865",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时15_通过CloseHandle检测调试器.md",
+      "id": "6a7e2261766b78e2dcc1a76585d4ba15",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时16_通过NtClose检测调试器.md",
+      "id": "ff2650d1463a01e3712ccf8445d416cd",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时17_通过SetHandleInformation检测调试器.md",
+      "id": "5f28e87db823f8f32c5059e6c9d75ec4",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时18_通过DuplicateHandle检测调试器.md",
+      "id": "46127210e2b017710d350c2e893634d8",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时19_通过ParentProcess检测调试器.md",
+      "id": "95fccb0f5dd574337930d1464731d976",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时20_通过DR_Register检测调试器.md",
+      "id": "cc535e41d63faac0936dead288173cef",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时21_通过API软件断点检测调试器.md",
+      "id": "1d341057d90b31bce2ebc64f8c4c19fd",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时22_通过自调试实现反调试.md",
+      "id": "8e3191bf6a370c8a163d53131535a481",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时23_通过附加调试实现反调试.md",
+      "id": "3e46697952cc67317f8da7e8039a198e",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时24_通过时钟间隔检测调试器.md",
+      "id": "da9bf40070844f58157bca00b5ea2a20",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时25_通过StartupInfo检测调试器.md",
+      "id": "408799a1b4667bee2fc82ab044b00976",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时26_通过注册表检测实时调试器.md",
+      "id": "26d1e32c18ae49eb3c3a49296b2ebace",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时27_通过Crc32校验代码段检测调试器.md",
+      "id": "22ce03b228cdbea2fde5e3b46a8f7e48",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时28_通过Tls机制检测调试器.md",
+      "id": "8e700b59a5045717de2d272fd2c59bc7",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "16_Anti_Debug专题/课时29_阶段合集.md",
+      "id": "79af9e309759595ebf32eb45f83b0236",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "17_Anti_VM专题/课时01_通过Mac地址检测虚拟机.md",
+      "id": "006ed9d7f270f7db3eddc0c4c6708a09",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "17_Anti_VM专题/课时02_通过进程信息检测虚拟机.md",
+      "id": "0700f73ecf656c5190a86ee13ed30ca5",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "17_Anti_VM专题/课时03_通过文件夹信息检测虚拟机.md",
+      "id": "0a211a27c284c19aa9699f811ddd3425",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "17_Anti_VM专题/课时04_通过注册表信息检测虚拟机.md",
+      "id": "49d00e1303dff8d8c850a1c9f1cd7edb",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "17_Anti_VM专题/课时05_通过服务信息检测虚拟机.md",
+      "id": "c9064fa37d6780119b345a131381997c",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "17_Anti_VM专题/课时06_通过IO端口检测虚拟机.md",
+      "id": "233abd102128703219ef12d467aaa585",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "17_Anti_VM专题/课时07_通过社会工程学检测虚拟机.md",
+      "id": "48053b7c57dfd4742e146f7f7ce5e6bf",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "17_Anti_VM专题/课时08_阶段合集.md",
+      "id": "6c0f8c1e9146af578d366274ed041d9b",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "18_CobaltStrike专题/课时01_CobaltStrike的安装与启动.md",
+      "id": "f10539148eed4bb4cff47ec38d3b45cf",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "18_CobaltStrike专题/课时02_CobaltStrike界面介绍.md",
+      "id": "239992170b8ef132fccadabf56540816",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "18_CobaltStrike专题/课时03_创建监听器与Attacks.md",
+      "id": "08022d09bf8cf9cfab23e2fc257b19ac",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "19_提权专题/课时01_Linux内核漏洞提权.md",
+      "id": "dd0fe4c5bc01790a9770b21695f69e65",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "19_提权专题/课时02_SUID提权.md",
+      "id": "b71fbe737a1ab99064fe95bc92a1f4c7",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "19_提权专题/课时03_SUDO提权.md",
+      "id": "4e22a77a96a292969863b178ec5da0b5",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "19_提权专题/课时04_john碰撞密码提权.md",
+      "id": "af9c0eac88ed03c4baccbf333efafe16",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "19_提权专题/课时05_passwd提权.md",
+      "id": "85dcba405573be0a6bf0b82dc0e3ad34",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "19_提权专题/课时06_Windows提权基础.md",
+      "id": "0996bed9a0fee29a4df98ebc5cf4dbfb",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "19_提权专题/课时07_提权信息收集.md",
+      "id": "ac3bbe2a7d48aa07ae6e01497f4a260c",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "19_提权专题/课时08_Windows内核提权.md",
+      "id": "64bde767386bf1d7506681e8ec2f4c59",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "19_提权专题/课时09_Windows_Print_Spooler漏洞提权.md",
+      "id": "bb84ccc2032010488cb562ee1696ea8c",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "19_提权专题/课时10_土豆提权.md",
+      "id": "7f5df6793aac04cbc5e1e9f063f64258",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时01_R3进程伪装.md",
+      "id": "4af89eb79f747fbf0902de46958a5035",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时02_栈溢出调用CALL.md",
+      "id": "d63ee002624717e4f0ff417382432f77",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时03_未导出API执行ShellCode.md",
+      "id": "1f24a19f2c9be31234109ce26d572587",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时04_遍历内存快执行ShellCode.md",
+      "id": "9bf0b4604dbc8cab138118e89599cdad",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时05_重写R3API.md",
+      "id": "1ebbe2ce2bd86c1f4b59a57c8e2938d5",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时06_重载NTDLL.md",
+      "id": "bc812485c7543682f4105877d1418a30",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时07_映射注入执行ShellCode.md",
+      "id": "34f4f91fcb8d7fd65400447947c20d14",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时08_进程挂起注入执行ShellCode.md",
+      "id": "9f3b085986b6571dc6773dd368b48e03",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时09_Windows日志绕过.md",
+      "id": "1edf1ee3dc7d4e5629d7204efe7f848d",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时10_进程镂空.md",
+      "id": "64838b937606b2ea8515814e3d127c88",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时11_模块镂空.md",
+      "id": "cb160ed8aa5e5ab293fb859b84f27915",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时12_Windows策略防止挂钩.md",
+      "id": "8b958708245dbed06bf167ea38028d1a",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时13_Windows策略防止ShellCode.md",
+      "id": "020ba43e4800444278ca8f7b29087dd1",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时14_父进程伪装.md",
+      "id": "eebe3cc22d4e1f5800d44d829535ede8",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时15_利用白名单绕过UAC.md",
+      "id": "8cc9ee1561c19599f51a9fc310f1808a",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时16_代码实现UAC绕过.md",
+      "id": "e0416c049ca272bb349c0adf5287e9b7",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时17_CVE-2019-1388UAC提权.md",
+      "id": "558bc7854f4de8d21efcb1db5ac62d3b",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时18_白名单DLL劫持绕UAC.md",
+      "id": "bab8205db8304909cbe9637063386399",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时19_PPL.md",
+      "id": "3cc755cedb36d224b8a647a7d666ffcf",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时20_查杀原理.md",
+      "id": "692166fe666167d711f5cea4cfff1eb7",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时21_特征码定位原理.md",
+      "id": "fa1cffd1c93e49ae914f75512f32555c",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时22_shellCode加密原理.md",
+      "id": "3bd2040bca154afcc50086c5a478c7eb",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时23_异或和凯撒加密ShellCode.md",
+      "id": "9de9d474e5e6883ba2da82d4b8b29d72",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时24_加密算法加密ShellCode.md",
+      "id": "48ddc30e88003d72708b3522d5badf1e",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时25_补充Shellcode加载方式.md",
+      "id": "df1c99c3727bc2558f09f06abbe2c11a",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时26_非对称加密加密ShellCode.md",
+      "id": "36cb9b00f7ae2023214f99a92a948b88",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时27_花指令.md",
+      "id": "72f01c0de9c4bd7c50716869dec2d616",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时28_花指令的剔除.md",
+      "id": "f2bedf141e035d008baa7bcaf1e467ed",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时29_动态Patch函数.md",
+      "id": "fc61a53e13ce9d7f12234acf346f4aa5",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时30_代码混淆.md",
+      "id": "20664b66d1e167304d32b4bd1a203682",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时31_函数调用序列欺骗.md",
+      "id": "612f056146187d598d7a7265c6593ef3",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时32_函数序列欺骗.md",
+      "id": "7c0803ecf6dc34b40c69aaf0f8f9b1b1",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时33_ShellCode页面反转.md",
+      "id": "7257f7c1cfc13b0a23bf9fa71b5cbf2b",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时34_ETW绕过.md",
+      "id": "222f65dc86373449fd9f4cbf5176231d",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时35_APC注入.md",
+      "id": "ad4a1df910266e7f24b7b31100a44450",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时36_dll劫持.md",
+      "id": "56ff4e77a6d6bd0e38bde7b40f5bc83a",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时37_隐藏模块.md",
+      "id": "01df7d80cfe8d68dc4f3c20faf430aa0",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时38_补充异常ShellCode加载方式.md",
+      "id": "88a0a6fe9d8c07e1223d9d484e790e6d",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时39_补充异常ShellCode加载和反调试方法.md",
+      "id": "65284a0c2b2549d526e2c2dff54c0904",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时40_基础补充ShellCode加载方式.md",
+      "id": "3e022337d5f26e81090c525cbc6403af",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    },
+    {
+      "path": "20_免杀专题/课时41_基础补充ShellCode加载方式.md",
+      "id": "02b887e075c6196eda4dbc0b8e1a8855",
+      "archiveVerified": true,
+      "sourceHashVerified": true,
+      "metadataVerified": true,
+      "legacyUrlVerified": true
+    }
+  ],
+  "mvp": {
+    "legacyRows": 1,
+    "legacyFieldsEqual": true,
+    "htmlNotes": 1,
+    "revisions": 2
+  }
+}

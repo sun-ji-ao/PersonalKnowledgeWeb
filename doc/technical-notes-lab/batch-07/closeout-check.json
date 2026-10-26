@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-09-24T15:45:51.814Z",
+  "legacy": {
+    "count": 253,
+    "changed": []
+  },
+  "originalSite": {
+    "count": 281,
+    "changed": []
+  },
+  "source": {
+    "count": 52,
+    "changed": []
+  },
+  "checkedDocuments": 30,
+  "checkedLinks": 272,
+  "brokenLinks": [],
+  "snapshotSha256": "095a3acaddeebe572d8f0377ec5c2616f54a983d12e593894dcdb044f1ff1126",
+  "browserAcceptance": "completed_2026-09-24_on_isolated_4315_with_synthetic_fixtures_and_five_migrated_samples"
+}

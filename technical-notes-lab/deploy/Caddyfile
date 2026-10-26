@@ -1,0 +1,10 @@
+www.sunjiao.me {
+	redir https://sunjiao.me{uri} permanent
+}
+
+sunjiao.me {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:4310 {
+		header_up X-Real-IP {remote_host}
+	}
+}

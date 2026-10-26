@@ -1,0 +1,10 @@
+{
+  "sourceFiles": 52,
+  "snapshotSha256": "095a3acaddeebe572d8f0377ec5c2616f54a983d12e593894dcdb044f1ff1126",
+  "node": "v24.15.0",
+  "tests": 82,
+  "passed": 82,
+  "failed": 0,
+  "durationMs": 128808.3255,
+  "browser": "prior_batches_pending_explicit_authorization_for_4315"
+}

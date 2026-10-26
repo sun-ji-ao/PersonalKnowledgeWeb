@@ -1,0 +1,43 @@
+{
+  "format": "notes-batch-verification/1",
+  "library": {
+    "notes": 253,
+    "revisions": 253,
+    "unchangedImports": 253,
+    "archivesVerified": 253,
+    "metadataVerified": 253,
+    "published": 0,
+    "legacyUrls": 253,
+    "registeredArchives": 506,
+    "allIdsRouteCompatible": true,
+    "jointRecovery": {
+      "backupDir": "C:\\Users\\17536\\Desktop\\website\\technical-notes-lab\\.test-data\\batch-07-library-final-backup",
+      "restoredDir": "C:\\Users\\17536\\Desktop\\website\\technical-notes-lab\\.test-data\\batch-07-library-final-restored",
+      "integrity": "ok",
+      "notes": 253,
+      "revisions": 253
+    }
+  },
+  "mvp": {
+    "notes": 1,
+    "revisions": 2,
+    "items": [
+      {
+        "id": "32ac3e70-30d3-43d8-afac-3bd1986e34eb",
+        "draftRevision": "54dae424-15c9-47e8-aefc-a35aafe50199",
+        "publishedRevision": "562cc39c-2474-48e4-8d97-ab5148be4f06",
+        "draftTextHash": "cb2c808198046c21ed29c1769cb393750fe18850cde3df929baa9d791dc2deb5",
+        "publishedTextHash": "cb2c808198046c21ed29c1769cb393750fe18850cde3df929baa9d791dc2deb5",
+        "separateSnapshots": true,
+        "archiveProvenance": "UTF-8 encoding of database text, not original upload bytes"
+      }
+    ],
+    "jointRecovery": {
+      "backupDir": "C:\\Users\\17536\\Desktop\\website\\technical-notes-lab\\.test-data\\batch-07-mvp-backup",
+      "restoredDir": "C:\\Users\\17536\\Desktop\\website\\technical-notes-lab\\.test-data\\batch-07-mvp-restored",
+      "integrity": "ok",
+      "notes": 1,
+      "revisions": 2
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "node": "v24.15.0",
+  "sourceFiles": 47,
+  "snapshotSha256": "fbdc2c814e8d0406f0748b0631b15bcca0ef950e8ad6a164fed108a8a759f87e",
+  "tests": 76,
+  "passed": 76,
+  "failed": 0,
+  "durationMs": 120442.7909,
+  "browser": "blocked_by_automatic_approval",
+  "renderer": "2.0.1",
+  "mermaid": "11.16.1"
+}

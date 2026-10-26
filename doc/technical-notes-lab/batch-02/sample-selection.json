@@ -1,0 +1,12 @@
+[
+  "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md",
+  "15_HOOK专题/09_Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）.md",
+  "13_安全开发专题/课时06_令牌提权.md",
+  "06_Windows内核安全/课时15_阶段合集.md",
+  "19_提权专题/课时07_提权信息收集.md",
+  "05_进程通信专题/课时06_阶段合集.md",
+  "12_远程控制开发基础/课时07_阶段合集.md",
+  "16_Anti_Debug专题/课时18_通过DuplicateHandle检测调试器.md",
+  "15_HOOK专题/10_Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）.md",
+  "13_安全开发专题/课时05_屏幕截屏.md"
+]

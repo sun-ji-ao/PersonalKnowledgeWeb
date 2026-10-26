@@ -1,0 +1,55 @@
+{
+  "id": "preview-b3f46e1eb270daed",
+  "path": "missing-media.md",
+  "originalHash": "be5724acb72faf8255d179696b90a120f2b0228c430e09c80294dfc6f2824e61",
+  "bytes": 139,
+  "elapsedMs": 927,
+  "context": {
+    "mediaMap": {},
+    "articleMap": {}
+  },
+  "schemaVersion": "notes-html/1",
+  "versions": {
+    "schema": "notes-html/1",
+    "converter": "2.0.0",
+    "sanitizer": "2.0.0",
+    "renderer": "2.0.0"
+  },
+  "status": "review_required",
+  "htmlSource": "<h2 id=\"section-1\">缺失图片</h2><p><span data-note-kind=\"missing-media\" data-note-path=\"./absent.png\">待补传的截图</span></p><p><a>无法映射的旧文</a></p>",
+  "sourceHash": "9fef437217b472ee20734ddaa64b525f8506bb06ade567aade9b9ebe91c49c3f",
+  "metadata": {
+    "title": "缺失资源不能静默发布",
+    "description": "",
+    "tags": [],
+    "sourceMetadata": {
+      "title": "缺失资源不能静默发布"
+    }
+  },
+  "headings": [
+    {
+      "id": "section-1",
+      "level": 2,
+      "text": "缺失图片"
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "MISSING_MEDIA",
+      "severity": "warning",
+      "blocksPublishing": true,
+      "location": null,
+      "message": "Unresolved resource: ./absent.png"
+    },
+    {
+      "code": "LINK_UNRESOLVED",
+      "severity": "warning",
+      "blocksPublishing": true,
+      "location": null,
+      "message": "Unresolved resource: ./unknown.md"
+    }
+  ],
+  "htmlRendered": "<h2 id=\"section-1\">缺失图片</h2><p><span data-note-kind=\"missing-media\" data-note-path=\"./absent.png\">待补传的截图</span></p><p><a>无法映射的旧文</a></p>",
+  "renderStatus": "ready",
+  "publishable": false
+}

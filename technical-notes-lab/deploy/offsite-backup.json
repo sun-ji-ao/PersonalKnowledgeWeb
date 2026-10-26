@@ -1,0 +1,7 @@
+{
+  "host": "sunjiao@165.154.163.29",
+  "port": 22,
+  "key": "C:\\Users\\17536\\.ssh\\ucloud_deploy",
+  "remoteBase": "/home/sunjiao/technical-notes",
+  "destination": "C:\\Users\\17536\\Desktop\\technical-notes-backups"
+}

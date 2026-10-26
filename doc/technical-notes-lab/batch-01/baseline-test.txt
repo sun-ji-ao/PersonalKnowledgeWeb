@@ -1,0 +1,14 @@
+
+> technical-notes-lab@0.1.0 test
+> node --test test/*.test.mjs
+
+✔ Markdown: 旧frontmatter、代码别名、公式、图表及不可信HTML (289.832ms)
+✔ 端到端：导入→编辑→发布快照→冲突→撤回→重启持久化 (1525.0112ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2314.1665

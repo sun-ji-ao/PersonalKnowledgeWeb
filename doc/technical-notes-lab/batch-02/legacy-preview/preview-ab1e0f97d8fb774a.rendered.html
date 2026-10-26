@@ -1,0 +1,644 @@
+<h1 id="section-1">课时15：Windows内核安全 - 阶段合集</h1><h2 id="section-2">课程目标</h2><ol><li>综合运用内核安全技术</li><li>构建完整的进程保护系统</li><li>实现内核级安全监控框架</li><li>掌握驱动开发最佳实践</li></ol><hr><h2 id="section-3">名词解释</h2><table><thead><tr><th>术语</th><th>解释</th></tr></thead><tbody><tr><td>EDR</td><td>Endpoint Detection and Response终端检测与响应</td></tr><tr><td>内核回调</td><td>内核事件通知机制</td></tr><tr><td>对象监控</td><td>句柄访问控制</td></tr><tr><td>防护驱动</td><td>提供系统保护功能的内核驱动</td></tr></tbody></table><hr><h2 id="section-4">使用工具</h2><table><thead><tr><th>工具</th><th>用途</th></tr></thead><tbody><tr><td>Visual Studio + WDK</td><td>驱动开发</td></tr><tr><td>WinDbg</td><td>内核调试</td></tr><tr><td>Driver Verifier</td><td>驱动验证</td></tr><tr><td>OSR Driver Loader</td><td>驱动加载</td></tr></tbody></table><hr><h2 id="section-5">技术原理</h2><h3 id="section-6">综合防护架构</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span>┌─────────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│                    内核安全防护架构                          │</span></span>
+<span class="line"><span>│                                                             │</span></span>
+<span class="line"><span>│  用户模式 (Ring3)                                          │</span></span>
+<span class="line"><span>│  ┌─────────────────────────────────────────────────────┐   │</span></span>
+<span class="line"><span>│  │  用户界面  │  配置管理  │  日志查看  │  策略引擎   │   │</span></span>
+<span class="line"><span>│  └─────────────────────────────────────────────────────┘   │</span></span>
+<span class="line"><span>│                           │                                 │</span></span>
+<span class="line"><span>│                     DeviceIoControl                         │</span></span>
+<span class="line"><span>│                           ↓                                 │</span></span>
+<span class="line"><span>│  ─────────────────── Ring0/Ring3边界 ───────────────────   │</span></span>
+<span class="line"><span>│                           ↓                                 │</span></span>
+<span class="line"><span>│  内核模式 (Ring0)                                          │</span></span>
+<span class="line"><span>│  ┌─────────────────────────────────────────────────────┐   │</span></span>
+<span class="line"><span>│  │                    主驱动程序                        │   │</span></span>
+<span class="line"><span>│  │  ┌──────────┬──────────┬──────────┬──────────┐     │   │</span></span>
+<span class="line"><span>│  │  │进程监控  │线程监控   │模块监控  │注册表监控│     │   │</span></span>
+<span class="line"><span>│  │  └──────────┴──────────┴──────────┴──────────┘     │   │</span></span>
+<span class="line"><span>│  │  ┌──────────┬──────────┬──────────┬──────────┐     │   │</span></span>
+<span class="line"><span>│  │  │对象监控  │文件监控   │网络监控  │内存监控  │     │   │</span></span>
+<span class="line"><span>│  │  └──────────┴──────────┴──────────┴──────────┘     │   │</span></span>
+<span class="line"><span>│  │                                                     │   │</span></span>
+<span class="line"><span>│  │  ┌─────────────────────────────────────────────┐   │   │</span></span>
+<span class="line"><span>│  │  │              策略执行引擎                    │   │   │</span></span>
+<span class="line"><span>│  │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐       │   │   │</span></span>
+<span class="line"><span>│  │  │  │白名单   │ │黑名单   │ │规则匹配  │       │   │   │</span></span>
+<span class="line"><span>│  │  │  └─────────┘ └─────────┘ └─────────┘       │   │   │</span></span>
+<span class="line"><span>│  │  └─────────────────────────────────────────────┘   │   │</span></span>
+<span class="line"><span>│  └─────────────────────────────────────────────────────┘   │</span></span>
+<span class="line"><span>└─────────────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span></span></span></code></pre><hr><h2 id="section-7">代码实现</h2><h3 id="section-8">项目1：综合安全驱动框架</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// SecurityDriver.h - 安全驱动头文件</span></span>
+<span class="line"><span style="color:#F97583">#ifndef</span><span style="color:#B392F0"> SECURITY_DRIVER_H</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> SECURITY_DRIVER_H</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;ntddk.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;wdm.h></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 设备名称</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> DEVICE_NAME</span><span style="color:#E1E4E8">     L</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">Device</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">SecurityDriver"</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> SYMBOLIC_NAME</span><span style="color:#E1E4E8">   L</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">DosDevices</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">SecurityDriver"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// IOCTL定义</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> IOCTL_ADD_PROTECTED_PID</span><span style="color:#B392F0">     CTL_CODE</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">0x</span><span style="color:#79B8FF">8000</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">800</span><span style="color:#E1E4E8">, METHOD_BUFFERED, FILE_ANY_ACCESS)</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> IOCTL_REMOVE_PROTECTED_PID</span><span style="color:#B392F0">  CTL_CODE</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">0x</span><span style="color:#79B8FF">8000</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">801</span><span style="color:#E1E4E8">, METHOD_BUFFERED, FILE_ANY_ACCESS)</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> IOCTL_ADD_BLOCKED_IMAGE</span><span style="color:#B392F0">     CTL_CODE</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">0x</span><span style="color:#79B8FF">8000</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">802</span><span style="color:#E1E4E8">, METHOD_BUFFERED, FILE_ANY_ACCESS)</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> IOCTL_GET_EVENT_LOG</span><span style="color:#B392F0">         CTL_CODE</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">0x</span><span style="color:#79B8FF">8000</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">803</span><span style="color:#E1E4E8">, METHOD_BUFFERED, FILE_ANY_ACCESS)</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> IOCTL_SET_PROTECTION_MODE</span><span style="color:#B392F0">   CTL_CODE</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">0x</span><span style="color:#79B8FF">8000</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">804</span><span style="color:#E1E4E8">, METHOD_BUFFERED, FILE_ANY_ACCESS)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 保护模式</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> enum</span><span style="color:#E1E4E8"> _PROTECTION_MODE {</span></span>
+<span class="line"><span style="color:#E1E4E8">    MODE_MONITOR_ONLY </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">,</span><span style="color:#6A737D">  // 仅监控</span></span>
+<span class="line"><span style="color:#E1E4E8">    MODE_ALERT,</span><span style="color:#6A737D">             // 监控+告警</span></span>
+<span class="line"><span style="color:#E1E4E8">    MODE_BLOCK</span><span style="color:#6A737D">              // 监控+阻止</span></span>
+<span class="line"><span style="color:#E1E4E8">} PROTECTION_MODE;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 事件类型</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> enum</span><span style="color:#E1E4E8"> _SECURITY_EVENT_TYPE {</span></span>
+<span class="line"><span style="color:#E1E4E8">    EVENT_PROCESS_CREATE </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    EVENT_PROCESS_TERMINATE,</span></span>
+<span class="line"><span style="color:#E1E4E8">    EVENT_THREAD_CREATE_REMOTE,</span></span>
+<span class="line"><span style="color:#E1E4E8">    EVENT_MODULE_LOAD,</span></span>
+<span class="line"><span style="color:#E1E4E8">    EVENT_REGISTRY_MODIFY,</span></span>
+<span class="line"><span style="color:#E1E4E8">    EVENT_HANDLE_OPEN_BLOCKED,</span></span>
+<span class="line"><span style="color:#E1E4E8">    EVENT_IMAGE_BLOCKED</span></span>
+<span class="line"><span style="color:#E1E4E8">} SECURITY_EVENT_TYPE;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 安全事件</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8"> _SECURITY_EVENT {</span></span>
+<span class="line"><span style="color:#E1E4E8">    LARGE_INTEGER       Timestamp;</span></span>
+<span class="line"><span style="color:#E1E4E8">    SECURITY_EVENT_TYPE EventType;</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE              ProcessId;</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE              TargetId;</span></span>
+<span class="line"><span style="color:#E1E4E8">    WCHAR               </span><span style="color:#FFAB70">Details</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">256</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">} SECURITY_EVENT, </span><span style="color:#F97583">*</span><span style="color:#E1E4E8">PSECURITY_EVENT;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 驱动上下文</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8"> _DRIVER_CONTEXT {</span></span>
+<span class="line"><span style="color:#E1E4E8">    PDEVICE_OBJECT      DeviceObject;</span></span>
+<span class="line"><span style="color:#E1E4E8">    PVOID               ProcessCallback;</span></span>
+<span class="line"><span style="color:#E1E4E8">    PVOID               ThreadCallback;</span></span>
+<span class="line"><span style="color:#E1E4E8">    PVOID               ImageCallback;</span></span>
+<span class="line"><span style="color:#E1E4E8">    PVOID               ObjectCallback;</span></span>
+<span class="line"><span style="color:#E1E4E8">    LARGE_INTEGER       RegistryCallback;</span></span>
+<span class="line"><span style="color:#E1E4E8">    PROTECTION_MODE     Mode;</span></span>
+<span class="line"><span style="color:#E1E4E8">    ULONG               </span><span style="color:#FFAB70">ProtectedPids</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">64</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">    ULONG               ProtectedCount;</span></span>
+<span class="line"><span style="color:#E1E4E8">    WCHAR               </span><span style="color:#FFAB70">BlockedImages</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">32</span><span style="color:#E1E4E8">][</span><span style="color:#79B8FF">260</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">    ULONG               BlockedImageCount;</span></span>
+<span class="line"><span style="color:#E1E4E8">    LIST_ENTRY          EventList;</span></span>
+<span class="line"><span style="color:#E1E4E8">    KSPIN_LOCK          EventLock;</span></span>
+<span class="line"><span style="color:#E1E4E8">    ULONG               EventCount;</span></span>
+<span class="line"><span style="color:#E1E4E8">    FAST_MUTEX          ConfigMutex;</span></span>
+<span class="line"><span style="color:#E1E4E8">} DRIVER_CONTEXT, </span><span style="color:#F97583">*</span><span style="color:#E1E4E8">PDRIVER_CONTEXT;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 全局上下文</span></span>
+<span class="line"><span style="color:#F97583">extern</span><span style="color:#E1E4E8"> DRIVER_CONTEXT g_Context;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 函数声明</span></span>
+<span class="line"><span style="color:#E1E4E8">NTSTATUS </span><span style="color:#B392F0">InitializeCallbacks</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">CleanupCallbacks</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">BOOLEAN </span><span style="color:#B392F0">IsProcessProtected</span><span style="color:#E1E4E8">(HANDLE </span><span style="color:#FFAB70">ProcessId</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">BOOLEAN </span><span style="color:#B392F0">IsImageBlocked</span><span style="color:#E1E4E8">(PUNICODE_STRING </span><span style="color:#FFAB70">ImagePath</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">LogSecurityEvent</span><span style="color:#E1E4E8">(SECURITY_EVENT_TYPE </span><span style="color:#FFAB70">Type</span><span style="color:#E1E4E8">, HANDLE </span><span style="color:#FFAB70">ProcessId</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">                      HANDLE </span><span style="color:#FFAB70">TargetId</span><span style="color:#E1E4E8">, PCWSTR </span><span style="color:#FFAB70">Details</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#endif</span></span>
+<span class="line"></span></code></pre><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// SecurityDriver.c - 主驱动文件</span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> "SecurityDriver.h"</span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;ntstrsafe.h></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">DRIVER_CONTEXT g_Context </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 检查进程是否受保护</span></span>
+<span class="line"><span style="color:#E1E4E8">BOOLEAN </span><span style="color:#B392F0">IsProcessProtected</span><span style="color:#E1E4E8">(HANDLE </span><span style="color:#FFAB70">ProcessId</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">    ExAcquireFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> (ULONG i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> g_Context.ProtectedCount; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (g_Context.ProtectedPids[i] </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> (ULONG)(ULONG_PTR)ProcessId) {</span></span>
+<span class="line"><span style="color:#B392F0">            ExReleaseFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> TRUE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    ExReleaseFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 检查镜像是否被阻止</span></span>
+<span class="line"><span style="color:#E1E4E8">BOOLEAN </span><span style="color:#B392F0">IsImageBlocked</span><span style="color:#E1E4E8">(PUNICODE_STRING </span><span style="color:#FFAB70">ImagePath</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">ImagePath </span><span style="color:#F97583">||</span><span style="color:#F97583"> !</span><span style="color:#E1E4E8">ImagePath->Buffer) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    ExAcquireFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> (ULONG i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> g_Context.BlockedImageCount; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        UNICODE_STRING blocked;</span></span>
+<span class="line"><span style="color:#B392F0">        RtlInitUnicodeString</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">blocked, g_Context.BlockedImages[i]);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 后缀匹配</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (ImagePath->Length </span><span style="color:#F97583">>=</span><span style="color:#E1E4E8"> blocked.Length) {</span></span>
+<span class="line"><span style="color:#E1E4E8">            UNICODE_STRING suffix;</span></span>
+<span class="line"><span style="color:#E1E4E8">            suffix.Buffer </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ImagePath->Buffer </span><span style="color:#F97583">+</span><span style="color:#E1E4E8"> </span></span>
+<span class="line"><span style="color:#E1E4E8">                           (ImagePath->Length </span><span style="color:#F97583">-</span><span style="color:#E1E4E8"> blocked.Length) </span><span style="color:#F97583">/</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(WCHAR);</span></span>
+<span class="line"><span style="color:#E1E4E8">            suffix.Length </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> blocked.Length;</span></span>
+<span class="line"><span style="color:#E1E4E8">            suffix.MaximumLength </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> blocked.Length;</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">RtlEqualUnicodeString</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">suffix, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">blocked, </span><span style="color:#79B8FF">TRUE</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#B392F0">                ExReleaseFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#79B8FF"> TRUE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    ExReleaseFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 记录安全事件</span></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">LogSecurityEvent</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">    SECURITY_EVENT_TYPE </span><span style="color:#FFAB70">Type</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE </span><span style="color:#FFAB70">ProcessId</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE </span><span style="color:#FFAB70">TargetId</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    PCWSTR Details</span></span>
+<span class="line"><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    KIRQL oldIrql;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    PSECURITY_EVENT event </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PSECURITY_EVENT)</span><span style="color:#B392F0">ExAllocatePoolWithTag</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">        NonPagedPool, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(SECURITY_EVENT), </span><span style="color:#9ECBFF">'tnvE'</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">event) </span><span style="color:#F97583">return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    KeQuerySystemTime</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">event->Timestamp);</span></span>
+<span class="line"><span style="color:#E1E4E8">    event->EventType </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> Type;</span></span>
+<span class="line"><span style="color:#E1E4E8">    event->ProcessId </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ProcessId;</span></span>
+<span class="line"><span style="color:#E1E4E8">    event->TargetId </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> TargetId;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (Details) {</span></span>
+<span class="line"><span style="color:#B392F0">        RtlStringCbCopyW</span><span style="color:#E1E4E8">(event->Details, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(event->Details), Details);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    KeAcquireSpinLock</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.EventLock, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">oldIrql);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 限制事件数量</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (g_Context.EventCount </span><span style="color:#F97583">>=</span><span style="color:#79B8FF"> 10000</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        PLIST_ENTRY oldest </span><span style="color:#F97583">=</span><span style="color:#B392F0"> RemoveHeadList</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.EventList);</span></span>
+<span class="line"><span style="color:#E1E4E8">        PSECURITY_EVENT oldEvent </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CONTAINING_RECORD</span><span style="color:#E1E4E8">(oldest, SECURITY_EVENT, </span></span>
+<span class="line"><span style="color:#F97583">            *</span><span style="color:#E1E4E8">(PLIST_ENTRY)((PUCHAR)oldest </span><span style="color:#F97583">-</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(LIST_ENTRY)));</span></span>
+<span class="line"><span style="color:#B392F0">        ExFreePoolWithTag</span><span style="color:#E1E4E8">(oldEvent, </span><span style="color:#9ECBFF">'tnvE'</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        g_Context.EventCount</span><span style="color:#F97583">--</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    InsertTailList</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.EventList, (PLIST_ENTRY)event);</span></span>
+<span class="line"><span style="color:#E1E4E8">    g_Context.EventCount</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    KeReleaseSpinLock</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.EventLock, oldIrql);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    DbgPrint</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Security] Event: Type=</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">, PID=</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">, Target=</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">, </span><span style="color:#FDAEB7;font-style:italic">%</span><span style="color:#9ECBFF">ws</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">             Type, (ULONG)(ULONG_PTR)ProcessId, </span></span>
+<span class="line"><span style="color:#E1E4E8">             (ULONG)(ULONG_PTR)TargetId, Details </span><span style="color:#F97583">?</span><span style="color:#E1E4E8"> Details </span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> L</span><span style="color:#9ECBFF">""</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 进程创建回调</span></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">ProcessNotifyCallback</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">    PEPROCESS </span><span style="color:#FFAB70">Process</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE </span><span style="color:#FFAB70">ProcessId</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    PPS_CREATE_NOTIFY_INFO CreateInfo</span></span>
+<span class="line"><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">    UNREFERENCED_PARAMETER</span><span style="color:#E1E4E8">(Process);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (CreateInfo) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 进程创建</span></span>
+<span class="line"><span style="color:#E1E4E8">        WCHAR </span><span style="color:#FFAB70">details</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">256</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (CreateInfo->ImageFileName) {</span></span>
+<span class="line"><span style="color:#B392F0">            RtlStringCbPrintfW</span><span style="color:#E1E4E8">(details, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(details), </span></span>
+<span class="line"><span style="color:#E1E4E8">                L</span><span style="color:#9ECBFF">"Image: </span><span style="color:#FDAEB7;font-style:italic">%</span><span style="color:#9ECBFF">wZ"</span><span style="color:#E1E4E8">, CreateInfo->ImageFileName);</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#6A737D">            // 检查是否需要阻止</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (g_Context.Mode </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> MODE_BLOCK </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#E1E4E8"> </span></span>
+<span class="line"><span style="color:#B392F0">                IsImageBlocked</span><span style="color:#E1E4E8">(CreateInfo->ImageFileName)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#B392F0">                LogSecurityEvent</span><span style="color:#E1E4E8">(EVENT_IMAGE_BLOCKED, </span></span>
+<span class="line"><span style="color:#E1E4E8">                    CreateInfo->ParentProcessId, ProcessId, details);</span></span>
+<span class="line"><span style="color:#E1E4E8">                CreateInfo->CreationStatus </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> STATUS_ACCESS_DENIED;</span></span>
+<span class="line"><span style="color:#F97583">                return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        LogSecurityEvent</span><span style="color:#E1E4E8">(EVENT_PROCESS_CREATE, </span></span>
+<span class="line"><span style="color:#E1E4E8">            CreateInfo->ParentProcessId, ProcessId, details);</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#6A737D">        // 进程退出</span></span>
+<span class="line"><span style="color:#B392F0">        LogSecurityEvent</span><span style="color:#E1E4E8">(EVENT_PROCESS_TERMINATE, ProcessId, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 从保护列表移除</span></span>
+<span class="line"><span style="color:#B392F0">        ExAcquireFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> (ULONG i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> g_Context.ProtectedCount; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (g_Context.ProtectedPids[i] </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> (ULONG)(ULONG_PTR)ProcessId) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                g_Context.ProtectedPids[i] </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> </span></span>
+<span class="line"><span style="color:#E1E4E8">                    g_Context.ProtectedPids[</span><span style="color:#F97583">--</span><span style="color:#E1E4E8">g_Context.ProtectedCount];</span></span>
+<span class="line"><span style="color:#F97583">                break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#B392F0">        ExReleaseFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 线程创建回调</span></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">ThreadNotifyCallback</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE </span><span style="color:#FFAB70">ProcessId</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE </span><span style="color:#FFAB70">ThreadId</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    BOOLEAN Create</span></span>
+<span class="line"><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">Create) </span><span style="color:#F97583">return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE currentPid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> PsGetCurrentProcessId</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 检测远程线程</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (currentPid </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> ProcessId </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#E1E4E8"> ProcessId </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> (HANDLE)</span><span style="color:#79B8FF">4</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        WCHAR </span><span style="color:#FFAB70">details</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">256</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#B392F0">        RtlStringCbPrintfW</span><span style="color:#E1E4E8">(details, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(details),</span></span>
+<span class="line"><span style="color:#E1E4E8">            L</span><span style="color:#9ECBFF">"Remote thread from PID </span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, (ULONG)(ULONG_PTR)currentPid);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        LogSecurityEvent</span><span style="color:#E1E4E8">(EVENT_THREAD_CREATE_REMOTE, currentPid, ProcessId, details);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 模块加载回调</span></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">ImageLoadCallback</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">    PUNICODE_STRING </span><span style="color:#FFAB70">FullImageName</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE </span><span style="color:#FFAB70">ProcessId</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    PIMAGE_INFO ImageInfo</span></span>
+<span class="line"><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (ImageInfo->SystemModeImage) </span><span style="color:#F97583">return</span><span style="color:#E1E4E8">;</span><span style="color:#6A737D">  // 忽略内核模块</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    WCHAR </span><span style="color:#FFAB70">details</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">256</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#B392F0">    RtlStringCbPrintfW</span><span style="color:#E1E4E8">(details, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(details), L</span><span style="color:#9ECBFF">"</span><span style="color:#FDAEB7;font-style:italic">%</span><span style="color:#9ECBFF">wZ"</span><span style="color:#E1E4E8">, FullImageName);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    LogSecurityEvent</span><span style="color:#E1E4E8">(EVENT_MODULE_LOAD, ProcessId, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, details);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 对象回调</span></span>
+<span class="line"><span style="color:#E1E4E8">OB_PREOP_CALLBACK_STATUS </span><span style="color:#B392F0">ObjectPreCallback</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">    PVOID </span><span style="color:#FFAB70">RegistrationContext</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    POB_PRE_OPERATION_INFORMATION OperationInfo</span></span>
+<span class="line"><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">    UNREFERENCED_PARAMETER</span><span style="color:#E1E4E8">(RegistrationContext);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (OperationInfo->ObjectType </span><span style="color:#F97583">!=</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8">PsProcessType </span><span style="color:#F97583">&#x26;&#x26;</span></span>
+<span class="line"><span style="color:#E1E4E8">        OperationInfo->ObjectType </span><span style="color:#F97583">!=</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8">PsThreadType) {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> OB_PREOP_SUCCESS;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE targetPid;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (OperationInfo->ObjectType </span><span style="color:#F97583">==</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8">PsProcessType) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        targetPid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> PsGetProcessId</span><span style="color:#E1E4E8">((PEPROCESS)OperationInfo->Object);</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        targetPid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> PsGetThreadProcessId</span><span style="color:#E1E4E8">((PETHREAD)OperationInfo->Object);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE currentPid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> PsGetCurrentProcessId</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 检查是否访问受保护进程</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (targetPid </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> currentPid </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#B392F0"> IsProcessProtected</span><span style="color:#E1E4E8">(targetPid)) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 不限制受保护进程自己</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">IsProcessProtected</span><span style="color:#E1E4E8">(currentPid)) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (OperationInfo->Operation </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> OB_OPERATION_HANDLE_CREATE) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                ACCESS_MASK denyMask </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> PROCESS_TERMINATE </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> PROCESS_VM_WRITE </span><span style="color:#F97583">|</span></span>
+<span class="line"><span style="color:#E1E4E8">                    PROCESS_VM_OPERATION </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> PROCESS_CREATE_THREAD </span><span style="color:#F97583">|</span></span>
+<span class="line"><span style="color:#E1E4E8">                    THREAD_TERMINATE </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> THREAD_SUSPEND_RESUME </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> THREAD_SET_CONTEXT;</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#E1E4E8">                ACCESS_MASK original </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> </span></span>
+<span class="line"><span style="color:#E1E4E8">                    OperationInfo->Parameters->CreateHandleInformation.DesiredAccess;</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#E1E4E8">                OperationInfo->Parameters->CreateHandleInformation.DesiredAccess </span><span style="color:#F97583">&#x26;=</span><span style="color:#F97583"> ~</span><span style="color:#E1E4E8">denyMask;</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (original </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> OperationInfo->Parameters->CreateHandleInformation.DesiredAccess) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                    WCHAR </span><span style="color:#FFAB70">details</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">256</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#B392F0">                    RtlStringCbPrintfW</span><span style="color:#E1E4E8">(details, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(details),</span></span>
+<span class="line"><span style="color:#E1E4E8">                        L</span><span style="color:#9ECBFF">"Access 0x</span><span style="color:#79B8FF">%X</span><span style="color:#9ECBFF"> blocked for PID </span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">                        original </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8"> denyMask, (ULONG)(ULONG_PTR)targetPid);</span></span>
+<span class="line"><span style="color:#E1E4E8">                    </span></span>
+<span class="line"><span style="color:#B392F0">                    LogSecurityEvent</span><span style="color:#E1E4E8">(EVENT_HANDLE_OPEN_BLOCKED, currentPid, targetPid, details);</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> OB_PREOP_SUCCESS;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 注册表回调</span></span>
+<span class="line"><span style="color:#E1E4E8">NTSTATUS </span><span style="color:#B392F0">RegistryCallback</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">    PVOID </span><span style="color:#FFAB70">CallbackContext</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    PVOID </span><span style="color:#FFAB70">Argument1</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    PVOID Argument2</span></span>
+<span class="line"><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">    UNREFERENCED_PARAMETER</span><span style="color:#E1E4E8">(CallbackContext);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    REG_NOTIFY_CLASS notifyClass </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (REG_NOTIFY_CLASS)(ULONG_PTR)Argument1;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (notifyClass </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> RegNtPreSetValueKey </span><span style="color:#F97583">||</span><span style="color:#E1E4E8"> </span></span>
+<span class="line"><span style="color:#E1E4E8">        notifyClass </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> RegNtPreDeleteValueKey) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        LogSecurityEvent</span><span style="color:#E1E4E8">(EVENT_REGISTRY_MODIFY, </span></span>
+<span class="line"><span style="color:#B392F0">            PsGetCurrentProcessId</span><span style="color:#E1E4E8">(), </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, L</span><span style="color:#9ECBFF">"Registry modification"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> STATUS_SUCCESS;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 初始化回调</span></span>
+<span class="line"><span style="color:#E1E4E8">NTSTATUS </span><span style="color:#B392F0">InitializeCallbacks</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#E1E4E8">    NTSTATUS status;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 进程回调</span></span>
+<span class="line"><span style="color:#E1E4E8">    status </span><span style="color:#F97583">=</span><span style="color:#B392F0"> PsSetCreateProcessNotifyRoutineEx</span><span style="color:#E1E4E8">(ProcessNotifyCallback, </span><span style="color:#79B8FF">FALSE</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">NT_SUCCESS</span><span style="color:#E1E4E8">(status)) {</span></span>
+<span class="line"><span style="color:#B392F0">        DbgPrint</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Security] Failed to register process callback: 0x</span><span style="color:#79B8FF">%X\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, status);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> status;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 线程回调</span></span>
+<span class="line"><span style="color:#E1E4E8">    status </span><span style="color:#F97583">=</span><span style="color:#B392F0"> PsSetCreateThreadNotifyRoutine</span><span style="color:#E1E4E8">(ThreadNotifyCallback);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">NT_SUCCESS</span><span style="color:#E1E4E8">(status)) {</span></span>
+<span class="line"><span style="color:#B392F0">        PsSetCreateProcessNotifyRoutineEx</span><span style="color:#E1E4E8">(ProcessNotifyCallback, </span><span style="color:#79B8FF">TRUE</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> status;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 模块回调</span></span>
+<span class="line"><span style="color:#E1E4E8">    status </span><span style="color:#F97583">=</span><span style="color:#B392F0"> PsSetLoadImageNotifyRoutine</span><span style="color:#E1E4E8">(ImageLoadCallback);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">NT_SUCCESS</span><span style="color:#E1E4E8">(status)) {</span></span>
+<span class="line"><span style="color:#B392F0">        PsSetCreateProcessNotifyRoutineEx</span><span style="color:#E1E4E8">(ProcessNotifyCallback, </span><span style="color:#79B8FF">TRUE</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        PsRemoveCreateThreadNotifyRoutine</span><span style="color:#E1E4E8">(ThreadNotifyCallback);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#E1E4E8"> status;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 对象回调</span></span>
+<span class="line"><span style="color:#E1E4E8">    OB_OPERATION_REGISTRATION </span><span style="color:#FFAB70">opReg</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">] </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        { PsProcessType, OB_OPERATION_HANDLE_CREATE, ObjectPreCallback, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8"> },</span></span>
+<span class="line"><span style="color:#E1E4E8">        { PsThreadType, OB_OPERATION_HANDLE_CREATE, ObjectPreCallback, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8"> }</span></span>
+<span class="line"><span style="color:#E1E4E8">    };</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    UNICODE_STRING altitude;</span></span>
+<span class="line"><span style="color:#B392F0">    RtlInitUnicodeString</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">altitude, L</span><span style="color:#9ECBFF">"321000"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    OB_CALLBACK_REGISTRATION callbackReg </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        OB_FLT_REGISTRATION_VERSION, </span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">, altitude, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, opReg</span></span>
+<span class="line"><span style="color:#E1E4E8">    };</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    status </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ObRegisterCallbacks</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">callbackReg, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ObjectCallback);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">NT_SUCCESS</span><span style="color:#E1E4E8">(status)) {</span></span>
+<span class="line"><span style="color:#B392F0">        DbgPrint</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Security] Failed to register object callback: 0x</span><span style="color:#79B8FF">%X\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, status);</span></span>
+<span class="line"><span style="color:#6A737D">        // 继续，对象回调可选</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 注册表回调</span></span>
+<span class="line"><span style="color:#B392F0">    RtlInitUnicodeString</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">altitude, L</span><span style="color:#9ECBFF">"320000"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    status </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CmRegisterCallbackEx</span><span style="color:#E1E4E8">(RegistryCallback, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">altitude, </span></span>
+<span class="line"><span style="color:#79B8FF">        NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.RegistryCallback, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    DbgPrint</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Security] Callbacks initialized</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> STATUS_SUCCESS;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 清理回调</span></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">CleanupCallbacks</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    PsSetCreateProcessNotifyRoutineEx</span><span style="color:#E1E4E8">(ProcessNotifyCallback, </span><span style="color:#79B8FF">TRUE</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    PsRemoveCreateThreadNotifyRoutine</span><span style="color:#E1E4E8">(ThreadNotifyCallback);</span></span>
+<span class="line"><span style="color:#B392F0">    PsRemoveLoadImageNotifyRoutine</span><span style="color:#E1E4E8">(ImageLoadCallback);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (g_Context.ObjectCallback) {</span></span>
+<span class="line"><span style="color:#B392F0">        ObUnRegisterCallbacks</span><span style="color:#E1E4E8">(g_Context.ObjectCallback);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (g_Context.RegistryCallback.QuadPart) {</span></span>
+<span class="line"><span style="color:#B392F0">        CmUnRegisterCallback</span><span style="color:#E1E4E8">(g_Context.RegistryCallback);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    DbgPrint</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Security] Callbacks cleaned up</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-9">项目2：用户模式控制程序</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// SecurityClient.c - 用户模式控制程序</span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> DEVICE_NAME</span><span style="color:#9ECBFF"> "</span><span style="color:#79B8FF">\\\\</span><span style="color:#9ECBFF">.</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">SecurityDriver"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// IOCTL定义（与驱动一致）</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> IOCTL_ADD_PROTECTED_PID</span><span style="color:#B392F0">     CTL_CODE</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">0x</span><span style="color:#79B8FF">8000</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">800</span><span style="color:#E1E4E8">, METHOD_BUFFERED, FILE_ANY_ACCESS)</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> IOCTL_REMOVE_PROTECTED_PID</span><span style="color:#B392F0">  CTL_CODE</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">0x</span><span style="color:#79B8FF">8000</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">801</span><span style="color:#E1E4E8">, METHOD_BUFFERED, FILE_ANY_ACCESS)</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> IOCTL_ADD_BLOCKED_IMAGE</span><span style="color:#B392F0">     CTL_CODE</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">0x</span><span style="color:#79B8FF">8000</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">802</span><span style="color:#E1E4E8">, METHOD_BUFFERED, FILE_ANY_ACCESS)</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> IOCTL_GET_EVENT_LOG</span><span style="color:#B392F0">         CTL_CODE</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">0x</span><span style="color:#79B8FF">8000</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">803</span><span style="color:#E1E4E8">, METHOD_BUFFERED, FILE_ANY_ACCESS)</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> IOCTL_SET_PROTECTION_MODE</span><span style="color:#B392F0">   CTL_CODE</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">0x</span><span style="color:#79B8FF">8000</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">804</span><span style="color:#E1E4E8">, METHOD_BUFFERED, FILE_ANY_ACCESS)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8"> _SECURITY_CLIENT {</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE hDevice;</span></span>
+<span class="line"><span style="color:#E1E4E8">} SECURITY_CLIENT, </span><span style="color:#F97583">*</span><span style="color:#E1E4E8">PSECURITY_CLIENT;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">SecurityClient_Connect</span><span style="color:#E1E4E8">(PSECURITY_CLIENT </span><span style="color:#FFAB70">client</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    client->hDevice </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateFileA</span><span style="color:#E1E4E8">(DEVICE_NAME,</span></span>
+<span class="line"><span style="color:#E1E4E8">        GENERIC_READ </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> GENERIC_WRITE, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, OPEN_EXISTING, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> client->hDevice </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> SecurityClient_Disconnect</span><span style="color:#E1E4E8">(PSECURITY_CLIENT </span><span style="color:#FFAB70">client</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (client->hDevice </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(client->hDevice);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">SecurityClient_ProtectPid</span><span style="color:#E1E4E8">(PSECURITY_CLIENT </span><span style="color:#FFAB70">client</span><span style="color:#E1E4E8">, DWORD </span><span style="color:#FFAB70">pid</span><span style="color:#E1E4E8">, BOOL </span><span style="color:#FFAB70">protect</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD bytesReturned;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD ioctl </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> protect </span><span style="color:#F97583">?</span><span style="color:#E1E4E8"> IOCTL_ADD_PROTECTED_PID </span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> IOCTL_REMOVE_PROTECTED_PID;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#B392F0"> DeviceIoControl</span><span style="color:#E1E4E8">(client->hDevice, ioctl,</span></span>
+<span class="line"><span style="color:#F97583">        &#x26;</span><span style="color:#E1E4E8">pid, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(pid), </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bytesReturned, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">SecurityClient_BlockImage</span><span style="color:#E1E4E8">(PSECURITY_CLIENT </span><span style="color:#FFAB70">client</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#E1E4E8"> WCHAR</span><span style="color:#F97583">*</span><span style="color:#FFAB70"> imageName</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD bytesReturned;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD len </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (DWORD)(</span><span style="color:#B392F0">wcslen</span><span style="color:#E1E4E8">(imageName) </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">*</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(WCHAR);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#B392F0"> DeviceIoControl</span><span style="color:#E1E4E8">(client->hDevice, IOCTL_ADD_BLOCKED_IMAGE,</span></span>
+<span class="line"><span style="color:#E1E4E8">        (PVOID)imageName, len, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bytesReturned, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">SecurityClient_SetMode</span><span style="color:#E1E4E8">(PSECURITY_CLIENT </span><span style="color:#FFAB70">client</span><span style="color:#E1E4E8">, DWORD </span><span style="color:#FFAB70">mode</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD bytesReturned;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#B392F0"> DeviceIoControl</span><span style="color:#E1E4E8">(client->hDevice, IOCTL_SET_PROTECTION_MODE,</span></span>
+<span class="line"><span style="color:#F97583">        &#x26;</span><span style="color:#E1E4E8">mode, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(mode), </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">bytesReturned, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> PrintUsage</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> name</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Usage:</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  </span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF"> protect &#x3C;pid>      - Protect a process</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, name);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  </span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF"> unprotect &#x3C;pid>    - Remove protection</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, name);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  </span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF"> block &#x3C;name.exe>   - Block an image</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, name);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  </span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF"> mode &#x3C;0|1|2>       - Set protection mode</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, name);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"                          0=Monitor, 1=Alert, 2=Block</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">int</span><span style="color:#B392F0"> main</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">int</span><span style="color:#FFAB70"> argc</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">char*</span><span style="color:#FFAB70"> argv</span><span style="color:#F97583">[]</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    SECURITY_CLIENT client </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Security Driver Client ===</span><span style="color:#79B8FF">\n\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">SecurityClient_Connect</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">client)) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Failed to connect to driver. Error: </span><span style="color:#79B8FF">%d\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">GetLastError</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Make sure the driver is loaded.</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Connected to security driver.</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (argc </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 2</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">        PrintUsage</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">]);</span></span>
+<span class="line"><span style="color:#B392F0">        SecurityClient_Disconnect</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">client);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strcmp</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">], </span><span style="color:#9ECBFF">"protect"</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> argc </span><span style="color:#F97583">>=</span><span style="color:#79B8FF"> 3</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD pid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> atoi</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">]);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">SecurityClient_ProtectPid</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">client, pid, </span><span style="color:#79B8FF">TRUE</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Process </span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF"> is now protected.</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, pid);</span></span>
+<span class="line"><span style="color:#E1E4E8">        } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Failed to protect process. Error: </span><span style="color:#79B8FF">%d\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">GetLastError</span><span style="color:#E1E4E8">());</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strcmp</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">], </span><span style="color:#9ECBFF">"unprotect"</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> argc </span><span style="color:#F97583">>=</span><span style="color:#79B8FF"> 3</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD pid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> atoi</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">]);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">SecurityClient_ProtectPid</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">client, pid, </span><span style="color:#79B8FF">FALSE</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Process </span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF"> protection removed.</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, pid);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strcmp</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">], </span><span style="color:#9ECBFF">"block"</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> argc </span><span style="color:#F97583">>=</span><span style="color:#79B8FF"> 3</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        WCHAR </span><span style="color:#FFAB70">imageName</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">260</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#B392F0">        MultiByteToWideChar</span><span style="color:#E1E4E8">(CP_ACP, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">], </span><span style="color:#F97583">-</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">, imageName, </span><span style="color:#79B8FF">260</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">SecurityClient_BlockImage</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">client, imageName)) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Image '</span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF">' is now blocked.</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">]);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strcmp</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">], </span><span style="color:#9ECBFF">"mode"</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> argc </span><span style="color:#F97583">>=</span><span style="color:#79B8FF"> 3</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD mode </span><span style="color:#F97583">=</span><span style="color:#B392F0"> atoi</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">]);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">SecurityClient_SetMode</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">client, mode)) {</span></span>
+<span class="line"><span style="color:#F97583">            const</span><span style="color:#F97583"> char*</span><span style="color:#E1E4E8"> modeNames</span><span style="color:#F97583">[]</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> {</span><span style="color:#9ECBFF">"Monitor Only"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"Alert"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"Block"</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Protection mode set to: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span><span style="color:#FFAB70">modeNames</span><span style="color:#E1E4E8">[mode]);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strcmp</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">], </span><span style="color:#9ECBFF">"self"</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 保护当前进程</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD pid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetCurrentProcessId</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">SecurityClient_ProtectPid</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">client, pid, </span><span style="color:#79B8FF">TRUE</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Current process (</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">) is now protected.</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, pid);</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Try to kill this process with Task Manager...</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Press Enter to exit and remove protection.</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">            getchar</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">        PrintUsage</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">argv</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">]);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    SecurityClient_Disconnect</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">client);</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-10">项目3：驱动IOCTL处理</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// SecurityIoctl.c - IOCTL处理</span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> "SecurityDriver.h"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">NTSTATUS </span><span style="color:#B392F0">DispatchDeviceControl</span><span style="color:#E1E4E8">(PDEVICE_OBJECT </span><span style="color:#FFAB70">DeviceObject</span><span style="color:#E1E4E8">, PIRP </span><span style="color:#FFAB70">Irp</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">    UNREFERENCED_PARAMETER</span><span style="color:#E1E4E8">(DeviceObject);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    PIO_STACK_LOCATION irpStack </span><span style="color:#F97583">=</span><span style="color:#B392F0"> IoGetCurrentIrpStackLocation</span><span style="color:#E1E4E8">(Irp);</span></span>
+<span class="line"><span style="color:#E1E4E8">    PVOID buffer </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> Irp->AssociatedIrp.SystemBuffer;</span></span>
+<span class="line"><span style="color:#E1E4E8">    ULONG inputLen </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> irpStack->Parameters.DeviceIoControl.InputBufferLength;</span></span>
+<span class="line"><span style="color:#E1E4E8">    ULONG outputLen </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> irpStack->Parameters.DeviceIoControl.OutputBufferLength;</span></span>
+<span class="line"><span style="color:#E1E4E8">    NTSTATUS status </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> STATUS_SUCCESS;</span></span>
+<span class="line"><span style="color:#E1E4E8">    ULONG bytesReturned </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    switch</span><span style="color:#E1E4E8"> (irpStack->Parameters.DeviceIoControl.IoControlCode) {</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IOCTL_ADD_PROTECTED_PID: {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (inputLen </span><span style="color:#F97583">>=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(ULONG)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                ULONG pid </span><span style="color:#F97583">=</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8">(PULONG)buffer;</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#B392F0">                ExAcquireFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (g_Context.ProtectedCount </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 64</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                    g_Context.ProtectedPids[g_Context.ProtectedCount</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">] </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> pid;</span></span>
+<span class="line"><span style="color:#B392F0">                    DbgPrint</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Security] Protected PID: </span><span style="color:#79B8FF">%d\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, pid);</span></span>
+<span class="line"><span style="color:#E1E4E8">                } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">                    status </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> STATUS_INSUFFICIENT_RESOURCES;</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#B392F0">                ExReleaseFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IOCTL_REMOVE_PROTECTED_PID: {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (inputLen </span><span style="color:#F97583">>=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(ULONG)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                ULONG pid </span><span style="color:#F97583">=</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8">(PULONG)buffer;</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#B392F0">                ExAcquireFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#F97583">                for</span><span style="color:#E1E4E8"> (ULONG i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> g_Context.ProtectedCount; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">                    if</span><span style="color:#E1E4E8"> (g_Context.ProtectedPids[i] </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> pid) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                        g_Context.ProtectedPids[i] </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> </span></span>
+<span class="line"><span style="color:#E1E4E8">                            g_Context.ProtectedPids[</span><span style="color:#F97583">--</span><span style="color:#E1E4E8">g_Context.ProtectedCount];</span></span>
+<span class="line"><span style="color:#B392F0">                        DbgPrint</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Security] Unprotected PID: </span><span style="color:#79B8FF">%d\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, pid);</span></span>
+<span class="line"><span style="color:#F97583">                        break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">                    }</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#B392F0">                ExReleaseFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IOCTL_ADD_BLOCKED_IMAGE: {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (inputLen </span><span style="color:#F97583">></span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> buffer) {</span></span>
+<span class="line"><span style="color:#B392F0">                ExAcquireFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (g_Context.BlockedImageCount </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 32</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">                    RtlCopyMemory</span><span style="color:#E1E4E8">(g_Context.BlockedImages[g_Context.BlockedImageCount],</span></span>
+<span class="line"><span style="color:#E1E4E8">                                  buffer, </span><span style="color:#B392F0">min</span><span style="color:#E1E4E8">(inputLen, </span><span style="color:#79B8FF">260</span><span style="color:#F97583"> *</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(WCHAR)));</span></span>
+<span class="line"><span style="color:#E1E4E8">                    g_Context.BlockedImageCount</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">                    DbgPrint</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Security] Blocked image added</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#B392F0">                ExReleaseFastMutex</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.ConfigMutex);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IOCTL_SET_PROTECTION_MODE: {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (inputLen </span><span style="color:#F97583">>=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(ULONG)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                ULONG mode </span><span style="color:#F97583">=</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8">(PULONG)buffer;</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (mode </span><span style="color:#F97583">&#x3C;=</span><span style="color:#E1E4E8"> MODE_BLOCK) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                    g_Context.Mode </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PROTECTION_MODE)mode;</span></span>
+<span class="line"><span style="color:#B392F0">                    DbgPrint</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Security] Mode set to: </span><span style="color:#79B8FF">%d\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, mode);</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IOCTL_GET_EVENT_LOG: {</span></span>
+<span class="line"><span style="color:#6A737D">            // 返回事件日志</span></span>
+<span class="line"><span style="color:#E1E4E8">            KIRQL oldIrql;</span></span>
+<span class="line"><span style="color:#B392F0">            KeAcquireSpinLock</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.EventLock, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">oldIrql);</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#6A737D">            // 实现事件导出...</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#B392F0">            KeReleaseSpinLock</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">g_Context.EventLock, oldIrql);</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        default</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">            status </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> STATUS_INVALID_DEVICE_REQUEST;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    Irp->IoStatus.Status </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> status;</span></span>
+<span class="line"><span style="color:#E1E4E8">    Irp->IoStatus.Information </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> bytesReturned;</span></span>
+<span class="line"><span style="color:#B392F0">    IoCompleteRequest</span><span style="color:#E1E4E8">(Irp, IO_NO_INCREMENT);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> status;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><hr><h2 id="section-11">课后作业</h2><ol><li>扩展驱动添加文件系统监控</li><li>实现事件日志的持久化存储</li><li>添加网络连接监控功能</li><li>实现规则配置文件的加载</li></ol><hr><h2 id="section-12">最佳实践</h2><ol><li><p><strong>安全编码</strong></p><ul><li>所有用户输入必须验证</li><li>使用安全的字符串函数</li><li>正确处理异常</li></ul></li><li><p><strong>性能优化</strong></p><ul><li>避免在回调中执行耗时操作</li><li>使用工作项处理复杂任务</li><li>合理使用缓存</li></ul></li><li><p><strong>稳定性</strong></p><ul><li>充分测试各种边界条件</li><li>使用Driver Verifier</li><li>正确处理卸载</li></ul></li><li><p><strong>兼容性</strong></p><ul><li>测试多个Windows版本</li><li>考虑32/64位兼容</li><li>处理版本差异</li></ul></li></ol><hr><h2 id="section-13">扩展阅读</h2><ul><li>Windows驱动开发最佳实践</li><li>EDR产品架构分析</li><li>内核安全对抗技术</li></ul>

@@ -1,0 +1,72 @@
+[
+  {
+    "path": ".gitignore",
+    "bytes": 31,
+    "sha256": "7e232ce36725a31f4542855511a8ce99786575582c553afaf9bbc067500cd42e"
+  },
+  {
+    "path": "example.md",
+    "bytes": 1792,
+    "sha256": "7fbccc0f349768732a7d891a3fe49c0c88ce9534111b8917c96fe766c340adeb"
+  },
+  {
+    "path": "lib/content.mjs",
+    "bytes": 4153,
+    "sha256": "0c557a117aecc29773442e9d22215a6478886be93ea618352e6a7bb4c8b35868"
+  },
+  {
+    "path": "lib/store.mjs",
+    "bytes": 3024,
+    "sha256": "d29dc827169b0a6aafff90412945d2bf2ec617e7a161673df2dc3e9ae7ea4cf7"
+  },
+  {
+    "path": "lib/views.mjs",
+    "bytes": 6792,
+    "sha256": "96b139eb1b3dc8b2e775d481b01eb73b3ed3baaca8b4fa08ce7c1d88db2bd53c"
+  },
+  {
+    "path": "package-lock.json",
+    "bytes": 110611,
+    "sha256": "fa8534318a15529390041037759f36b4759f0a378bbeb0ad0b47e8b5dab685fb"
+  },
+  {
+    "path": "package.json",
+    "bytes": 576,
+    "sha256": "3870912c87ea8a2ffa5a7db27a3c8e97b0a6e2393dc4bfc2c65e4e9dfbf5b8d6"
+  },
+  {
+    "path": "public/editor.js",
+    "bytes": 8236,
+    "sha256": "1542d54d674abb74a5a435cb800df59e5606b8a62dbd558b5c2e98589cf94386"
+  },
+  {
+    "path": "public/favicon.svg",
+    "bytes": 285,
+    "sha256": "45ca2c3ec1c2e8b2cf11907b4fafbbbb47dc301923f6543b952c2ac87625920e"
+  },
+  {
+    "path": "public/reader.js",
+    "bytes": 800,
+    "sha256": "8f07453af1704e552c56688dfa06942baea4aea05c1d08475a79e3d05b549f22"
+  },
+  {
+    "path": "public/styles.css",
+    "bytes": 12206,
+    "sha256": "8b3bb4a880d2f131c42ba65967f5d0224a980ba39a1826a5fb2ba527fc9bcd03"
+  },
+  {
+    "path": "scripts/import.mjs",
+    "bytes": 1433,
+    "sha256": "fae212ddda972fa754b7a3675a24665aa98ca77c36af42e2de8ecdce05fe029f"
+  },
+  {
+    "path": "server.mjs",
+    "bytes": 10218,
+    "sha256": "12b041d21bb0118acb346403ffac49f93534c260f17c62463e9da144fc414247"
+  },
+  {
+    "path": "test/workflow.test.mjs",
+    "bytes": 7317,
+    "sha256": "3ec0bfe54e6917326b02cc61779cfa3eabba65bf3fc1e6e484508a944930c4b7"
+  }
+]

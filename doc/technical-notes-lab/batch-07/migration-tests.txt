@@ -1,0 +1,13 @@
+✔ library inventory, two-phase links, old metadata, rejection archives, resume conflicts and joint recovery (3052.7066ms)
+✔ migration refuses source overlap, existing unmanaged directory and default data (6.5361ms)
+✔ catalog collisions and stale original hashes are rejected without discarding original bytes (326.8706ms)
+✔ resume rejects directory junction escape before opening the database (5.6477ms)
+✔ target import failure creates a blocked new revision and consistent item report (3183.7119ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6697.0793

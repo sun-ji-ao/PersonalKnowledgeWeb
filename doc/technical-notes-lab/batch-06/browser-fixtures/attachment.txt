@@ -1,0 +1,3 @@
+第 6 批合成附件。
+仅用于上传、私有读取、发布引用与撤回验收。
+attachment-key: bamboo-transaction

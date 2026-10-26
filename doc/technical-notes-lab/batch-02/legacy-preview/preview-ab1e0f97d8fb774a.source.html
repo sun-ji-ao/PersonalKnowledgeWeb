@@ -1,0 +1,644 @@
+<h1 id="section-1">课时15：Windows内核安全 - 阶段合集</h1><h2 id="section-2">课程目标</h2><ol><li>综合运用内核安全技术</li><li>构建完整的进程保护系统</li><li>实现内核级安全监控框架</li><li>掌握驱动开发最佳实践</li></ol><hr><h2 id="section-3">名词解释</h2><table><thead><tr><th>术语</th><th>解释</th></tr></thead><tbody><tr><td>EDR</td><td>Endpoint Detection and Response终端检测与响应</td></tr><tr><td>内核回调</td><td>内核事件通知机制</td></tr><tr><td>对象监控</td><td>句柄访问控制</td></tr><tr><td>防护驱动</td><td>提供系统保护功能的内核驱动</td></tr></tbody></table><hr><h2 id="section-4">使用工具</h2><table><thead><tr><th>工具</th><th>用途</th></tr></thead><tbody><tr><td>Visual Studio + WDK</td><td>驱动开发</td></tr><tr><td>WinDbg</td><td>内核调试</td></tr><tr><td>Driver Verifier</td><td>驱动验证</td></tr><tr><td>OSR Driver Loader</td><td>驱动加载</td></tr></tbody></table><hr><h2 id="section-5">技术原理</h2><h3 id="section-6">综合防护架构</h3><pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│                    内核安全防护架构                          │
+│                                                             │
+│  用户模式 (Ring3)                                          │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  用户界面  │  配置管理  │  日志查看  │  策略引擎   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                           │                                 │
+│                     DeviceIoControl                         │
+│                           ↓                                 │
+│  ─────────────────── Ring0/Ring3边界 ───────────────────   │
+│                           ↓                                 │
+│  内核模式 (Ring0)                                          │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │                    主驱动程序                        │   │
+│  │  ┌──────────┬──────────┬──────────┬──────────┐     │   │
+│  │  │进程监控  │线程监控   │模块监控  │注册表监控│     │   │
+│  │  └──────────┴──────────┴──────────┴──────────┘     │   │
+│  │  ┌──────────┬──────────┬──────────┬──────────┐     │   │
+│  │  │对象监控  │文件监控   │网络监控  │内存监控  │     │   │
+│  │  └──────────┴──────────┴──────────┴──────────┘     │   │
+│  │                                                     │   │
+│  │  ┌─────────────────────────────────────────────┐   │   │
+│  │  │              策略执行引擎                    │   │   │
+│  │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐       │   │   │
+│  │  │  │白名单   │ │黑名单   │ │规则匹配  │       │   │   │
+│  │  │  └─────────┘ └─────────┘ └─────────┘       │   │   │
+│  │  └─────────────────────────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+</code></pre><hr><h2 id="section-7">代码实现</h2><h3 id="section-8">项目1：综合安全驱动框架</h3><pre><code class="language-c">// SecurityDriver.h - 安全驱动头文件
+#ifndef SECURITY_DRIVER_H
+#define SECURITY_DRIVER_H
+
+#include &lt;ntddk.h&gt;
+#include &lt;wdm.h&gt;
+
+// 设备名称
+#define DEVICE_NAME     L"\\Device\\SecurityDriver"
+#define SYMBOLIC_NAME   L"\\DosDevices\\SecurityDriver"
+
+// IOCTL定义
+#define IOCTL_ADD_PROTECTED_PID     CTL_CODE(0x8000, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_REMOVE_PROTECTED_PID  CTL_CODE(0x8000, 0x801, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_ADD_BLOCKED_IMAGE     CTL_CODE(0x8000, 0x802, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_GET_EVENT_LOG         CTL_CODE(0x8000, 0x803, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_SET_PROTECTION_MODE   CTL_CODE(0x8000, 0x804, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+// 保护模式
+typedef enum _PROTECTION_MODE {
+    MODE_MONITOR_ONLY = 0,  // 仅监控
+    MODE_ALERT,             // 监控+告警
+    MODE_BLOCK              // 监控+阻止
+} PROTECTION_MODE;
+
+// 事件类型
+typedef enum _SECURITY_EVENT_TYPE {
+    EVENT_PROCESS_CREATE = 1,
+    EVENT_PROCESS_TERMINATE,
+    EVENT_THREAD_CREATE_REMOTE,
+    EVENT_MODULE_LOAD,
+    EVENT_REGISTRY_MODIFY,
+    EVENT_HANDLE_OPEN_BLOCKED,
+    EVENT_IMAGE_BLOCKED
+} SECURITY_EVENT_TYPE;
+
+// 安全事件
+typedef struct _SECURITY_EVENT {
+    LARGE_INTEGER       Timestamp;
+    SECURITY_EVENT_TYPE EventType;
+    HANDLE              ProcessId;
+    HANDLE              TargetId;
+    WCHAR               Details[256];
+} SECURITY_EVENT, *PSECURITY_EVENT;
+
+// 驱动上下文
+typedef struct _DRIVER_CONTEXT {
+    PDEVICE_OBJECT      DeviceObject;
+    PVOID               ProcessCallback;
+    PVOID               ThreadCallback;
+    PVOID               ImageCallback;
+    PVOID               ObjectCallback;
+    LARGE_INTEGER       RegistryCallback;
+    PROTECTION_MODE     Mode;
+    ULONG               ProtectedPids[64];
+    ULONG               ProtectedCount;
+    WCHAR               BlockedImages[32][260];
+    ULONG               BlockedImageCount;
+    LIST_ENTRY          EventList;
+    KSPIN_LOCK          EventLock;
+    ULONG               EventCount;
+    FAST_MUTEX          ConfigMutex;
+} DRIVER_CONTEXT, *PDRIVER_CONTEXT;
+
+// 全局上下文
+extern DRIVER_CONTEXT g_Context;
+
+// 函数声明
+NTSTATUS InitializeCallbacks();
+VOID CleanupCallbacks();
+BOOLEAN IsProcessProtected(HANDLE ProcessId);
+BOOLEAN IsImageBlocked(PUNICODE_STRING ImagePath);
+VOID LogSecurityEvent(SECURITY_EVENT_TYPE Type, HANDLE ProcessId, 
+                      HANDLE TargetId, PCWSTR Details);
+
+#endif
+</code></pre><pre><code class="language-c">// SecurityDriver.c - 主驱动文件
+#include "SecurityDriver.h"
+#include &lt;ntstrsafe.h&gt;
+
+DRIVER_CONTEXT g_Context = {0};
+
+// 检查进程是否受保护
+BOOLEAN IsProcessProtected(HANDLE ProcessId) {
+    ExAcquireFastMutex(&amp;g_Context.ConfigMutex);
+    
+    for (ULONG i = 0; i &lt; g_Context.ProtectedCount; i++) {
+        if (g_Context.ProtectedPids[i] == (ULONG)(ULONG_PTR)ProcessId) {
+            ExReleaseFastMutex(&amp;g_Context.ConfigMutex);
+            return TRUE;
+        }
+    }
+    
+    ExReleaseFastMutex(&amp;g_Context.ConfigMutex);
+    return FALSE;
+}
+
+// 检查镜像是否被阻止
+BOOLEAN IsImageBlocked(PUNICODE_STRING ImagePath) {
+    if (!ImagePath || !ImagePath-&gt;Buffer) return FALSE;
+    
+    ExAcquireFastMutex(&amp;g_Context.ConfigMutex);
+    
+    for (ULONG i = 0; i &lt; g_Context.BlockedImageCount; i++) {
+        UNICODE_STRING blocked;
+        RtlInitUnicodeString(&amp;blocked, g_Context.BlockedImages[i]);
+        
+        // 后缀匹配
+        if (ImagePath-&gt;Length &gt;= blocked.Length) {
+            UNICODE_STRING suffix;
+            suffix.Buffer = ImagePath-&gt;Buffer + 
+                           (ImagePath-&gt;Length - blocked.Length) / sizeof(WCHAR);
+            suffix.Length = blocked.Length;
+            suffix.MaximumLength = blocked.Length;
+            
+            if (RtlEqualUnicodeString(&amp;suffix, &amp;blocked, TRUE)) {
+                ExReleaseFastMutex(&amp;g_Context.ConfigMutex);
+                return TRUE;
+            }
+        }
+    }
+    
+    ExReleaseFastMutex(&amp;g_Context.ConfigMutex);
+    return FALSE;
+}
+
+// 记录安全事件
+VOID LogSecurityEvent(
+    SECURITY_EVENT_TYPE Type,
+    HANDLE ProcessId,
+    HANDLE TargetId,
+    PCWSTR Details
+) {
+    KIRQL oldIrql;
+    
+    PSECURITY_EVENT event = (PSECURITY_EVENT)ExAllocatePoolWithTag(
+        NonPagedPool, sizeof(SECURITY_EVENT), 'tnvE');
+    
+    if (!event) return;
+    
+    KeQuerySystemTime(&amp;event-&gt;Timestamp);
+    event-&gt;EventType = Type;
+    event-&gt;ProcessId = ProcessId;
+    event-&gt;TargetId = TargetId;
+    
+    if (Details) {
+        RtlStringCbCopyW(event-&gt;Details, sizeof(event-&gt;Details), Details);
+    }
+    
+    KeAcquireSpinLock(&amp;g_Context.EventLock, &amp;oldIrql);
+    
+    // 限制事件数量
+    if (g_Context.EventCount &gt;= 10000) {
+        PLIST_ENTRY oldest = RemoveHeadList(&amp;g_Context.EventList);
+        PSECURITY_EVENT oldEvent = CONTAINING_RECORD(oldest, SECURITY_EVENT, 
+            *(PLIST_ENTRY)((PUCHAR)oldest - sizeof(LIST_ENTRY)));
+        ExFreePoolWithTag(oldEvent, 'tnvE');
+        g_Context.EventCount--;
+    }
+    
+    InsertTailList(&amp;g_Context.EventList, (PLIST_ENTRY)event);
+    g_Context.EventCount++;
+    
+    KeReleaseSpinLock(&amp;g_Context.EventLock, oldIrql);
+    
+    DbgPrint("[Security] Event: Type=%d, PID=%d, Target=%d, %ws\n",
+             Type, (ULONG)(ULONG_PTR)ProcessId, 
+             (ULONG)(ULONG_PTR)TargetId, Details ? Details : L"");
+}
+
+// 进程创建回调
+VOID ProcessNotifyCallback(
+    PEPROCESS Process,
+    HANDLE ProcessId,
+    PPS_CREATE_NOTIFY_INFO CreateInfo
+) {
+    UNREFERENCED_PARAMETER(Process);
+    
+    if (CreateInfo) {
+        // 进程创建
+        WCHAR details[256];
+        
+        if (CreateInfo-&gt;ImageFileName) {
+            RtlStringCbPrintfW(details, sizeof(details), 
+                L"Image: %wZ", CreateInfo-&gt;ImageFileName);
+            
+            // 检查是否需要阻止
+            if (g_Context.Mode == MODE_BLOCK &amp;&amp; 
+                IsImageBlocked(CreateInfo-&gt;ImageFileName)) {
+                
+                LogSecurityEvent(EVENT_IMAGE_BLOCKED, 
+                    CreateInfo-&gt;ParentProcessId, ProcessId, details);
+                CreateInfo-&gt;CreationStatus = STATUS_ACCESS_DENIED;
+                return;
+            }
+        }
+        
+        LogSecurityEvent(EVENT_PROCESS_CREATE, 
+            CreateInfo-&gt;ParentProcessId, ProcessId, details);
+    } else {
+        // 进程退出
+        LogSecurityEvent(EVENT_PROCESS_TERMINATE, ProcessId, NULL, NULL);
+        
+        // 从保护列表移除
+        ExAcquireFastMutex(&amp;g_Context.ConfigMutex);
+        for (ULONG i = 0; i &lt; g_Context.ProtectedCount; i++) {
+            if (g_Context.ProtectedPids[i] == (ULONG)(ULONG_PTR)ProcessId) {
+                g_Context.ProtectedPids[i] = 
+                    g_Context.ProtectedPids[--g_Context.ProtectedCount];
+                break;
+            }
+        }
+        ExReleaseFastMutex(&amp;g_Context.ConfigMutex);
+    }
+}
+
+// 线程创建回调
+VOID ThreadNotifyCallback(
+    HANDLE ProcessId,
+    HANDLE ThreadId,
+    BOOLEAN Create
+) {
+    if (!Create) return;
+    
+    HANDLE currentPid = PsGetCurrentProcessId();
+    
+    // 检测远程线程
+    if (currentPid != ProcessId &amp;&amp; ProcessId != (HANDLE)4) {
+        WCHAR details[256];
+        RtlStringCbPrintfW(details, sizeof(details),
+            L"Remote thread from PID %d", (ULONG)(ULONG_PTR)currentPid);
+        
+        LogSecurityEvent(EVENT_THREAD_CREATE_REMOTE, currentPid, ProcessId, details);
+    }
+}
+
+// 模块加载回调
+VOID ImageLoadCallback(
+    PUNICODE_STRING FullImageName,
+    HANDLE ProcessId,
+    PIMAGE_INFO ImageInfo
+) {
+    if (ImageInfo-&gt;SystemModeImage) return;  // 忽略内核模块
+    
+    WCHAR details[256];
+    RtlStringCbPrintfW(details, sizeof(details), L"%wZ", FullImageName);
+    
+    LogSecurityEvent(EVENT_MODULE_LOAD, ProcessId, NULL, details);
+}
+
+// 对象回调
+OB_PREOP_CALLBACK_STATUS ObjectPreCallback(
+    PVOID RegistrationContext,
+    POB_PRE_OPERATION_INFORMATION OperationInfo
+) {
+    UNREFERENCED_PARAMETER(RegistrationContext);
+    
+    if (OperationInfo-&gt;ObjectType != *PsProcessType &amp;&amp;
+        OperationInfo-&gt;ObjectType != *PsThreadType) {
+        return OB_PREOP_SUCCESS;
+    }
+    
+    HANDLE targetPid;
+    
+    if (OperationInfo-&gt;ObjectType == *PsProcessType) {
+        targetPid = PsGetProcessId((PEPROCESS)OperationInfo-&gt;Object);
+    } else {
+        targetPid = PsGetThreadProcessId((PETHREAD)OperationInfo-&gt;Object);
+    }
+    
+    HANDLE currentPid = PsGetCurrentProcessId();
+    
+    // 检查是否访问受保护进程
+    if (targetPid != currentPid &amp;&amp; IsProcessProtected(targetPid)) {
+        // 不限制受保护进程自己
+        if (!IsProcessProtected(currentPid)) {
+            if (OperationInfo-&gt;Operation == OB_OPERATION_HANDLE_CREATE) {
+                ACCESS_MASK denyMask = PROCESS_TERMINATE | PROCESS_VM_WRITE |
+                    PROCESS_VM_OPERATION | PROCESS_CREATE_THREAD |
+                    THREAD_TERMINATE | THREAD_SUSPEND_RESUME | THREAD_SET_CONTEXT;
+                
+                ACCESS_MASK original = 
+                    OperationInfo-&gt;Parameters-&gt;CreateHandleInformation.DesiredAccess;
+                
+                OperationInfo-&gt;Parameters-&gt;CreateHandleInformation.DesiredAccess &amp;= ~denyMask;
+                
+                if (original != OperationInfo-&gt;Parameters-&gt;CreateHandleInformation.DesiredAccess) {
+                    WCHAR details[256];
+                    RtlStringCbPrintfW(details, sizeof(details),
+                        L"Access 0x%X blocked for PID %d", 
+                        original &amp; denyMask, (ULONG)(ULONG_PTR)targetPid);
+                    
+                    LogSecurityEvent(EVENT_HANDLE_OPEN_BLOCKED, currentPid, targetPid, details);
+                }
+            }
+        }
+    }
+    
+    return OB_PREOP_SUCCESS;
+}
+
+// 注册表回调
+NTSTATUS RegistryCallback(
+    PVOID CallbackContext,
+    PVOID Argument1,
+    PVOID Argument2
+) {
+    UNREFERENCED_PARAMETER(CallbackContext);
+    
+    REG_NOTIFY_CLASS notifyClass = (REG_NOTIFY_CLASS)(ULONG_PTR)Argument1;
+    
+    if (notifyClass == RegNtPreSetValueKey || 
+        notifyClass == RegNtPreDeleteValueKey) {
+        
+        LogSecurityEvent(EVENT_REGISTRY_MODIFY, 
+            PsGetCurrentProcessId(), NULL, L"Registry modification");
+    }
+    
+    return STATUS_SUCCESS;
+}
+
+// 初始化回调
+NTSTATUS InitializeCallbacks() {
+    NTSTATUS status;
+    
+    // 进程回调
+    status = PsSetCreateProcessNotifyRoutineEx(ProcessNotifyCallback, FALSE);
+    if (!NT_SUCCESS(status)) {
+        DbgPrint("[Security] Failed to register process callback: 0x%X\n", status);
+        return status;
+    }
+    
+    // 线程回调
+    status = PsSetCreateThreadNotifyRoutine(ThreadNotifyCallback);
+    if (!NT_SUCCESS(status)) {
+        PsSetCreateProcessNotifyRoutineEx(ProcessNotifyCallback, TRUE);
+        return status;
+    }
+    
+    // 模块回调
+    status = PsSetLoadImageNotifyRoutine(ImageLoadCallback);
+    if (!NT_SUCCESS(status)) {
+        PsSetCreateProcessNotifyRoutineEx(ProcessNotifyCallback, TRUE);
+        PsRemoveCreateThreadNotifyRoutine(ThreadNotifyCallback);
+        return status;
+    }
+    
+    // 对象回调
+    OB_OPERATION_REGISTRATION opReg[2] = {
+        { PsProcessType, OB_OPERATION_HANDLE_CREATE, ObjectPreCallback, NULL },
+        { PsThreadType, OB_OPERATION_HANDLE_CREATE, ObjectPreCallback, NULL }
+    };
+    
+    UNICODE_STRING altitude;
+    RtlInitUnicodeString(&amp;altitude, L"321000");
+    
+    OB_CALLBACK_REGISTRATION callbackReg = {
+        OB_FLT_REGISTRATION_VERSION, 2, altitude, NULL, opReg
+    };
+    
+    status = ObRegisterCallbacks(&amp;callbackReg, &amp;g_Context.ObjectCallback);
+    if (!NT_SUCCESS(status)) {
+        DbgPrint("[Security] Failed to register object callback: 0x%X\n", status);
+        // 继续，对象回调可选
+    }
+    
+    // 注册表回调
+    RtlInitUnicodeString(&amp;altitude, L"320000");
+    status = CmRegisterCallbackEx(RegistryCallback, &amp;altitude, 
+        NULL, NULL, &amp;g_Context.RegistryCallback, NULL);
+    
+    DbgPrint("[Security] Callbacks initialized\n");
+    
+    return STATUS_SUCCESS;
+}
+
+// 清理回调
+VOID CleanupCallbacks() {
+    PsSetCreateProcessNotifyRoutineEx(ProcessNotifyCallback, TRUE);
+    PsRemoveCreateThreadNotifyRoutine(ThreadNotifyCallback);
+    PsRemoveLoadImageNotifyRoutine(ImageLoadCallback);
+    
+    if (g_Context.ObjectCallback) {
+        ObUnRegisterCallbacks(g_Context.ObjectCallback);
+    }
+    
+    if (g_Context.RegistryCallback.QuadPart) {
+        CmUnRegisterCallback(g_Context.RegistryCallback);
+    }
+    
+    DbgPrint("[Security] Callbacks cleaned up\n");
+}
+</code></pre><h3 id="section-9">项目2：用户模式控制程序</h3><pre><code class="language-c">// SecurityClient.c - 用户模式控制程序
+#include &lt;windows.h&gt;
+#include &lt;stdio.h&gt;
+
+#define DEVICE_NAME "\\\\.\\SecurityDriver"
+
+// IOCTL定义（与驱动一致）
+#define IOCTL_ADD_PROTECTED_PID     CTL_CODE(0x8000, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_REMOVE_PROTECTED_PID  CTL_CODE(0x8000, 0x801, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_ADD_BLOCKED_IMAGE     CTL_CODE(0x8000, 0x802, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_GET_EVENT_LOG         CTL_CODE(0x8000, 0x803, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_SET_PROTECTION_MODE   CTL_CODE(0x8000, 0x804, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+typedef struct _SECURITY_CLIENT {
+    HANDLE hDevice;
+} SECURITY_CLIENT, *PSECURITY_CLIENT;
+
+BOOL SecurityClient_Connect(PSECURITY_CLIENT client) {
+    client-&gt;hDevice = CreateFileA(DEVICE_NAME,
+        GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    
+    return client-&gt;hDevice != INVALID_HANDLE_VALUE;
+}
+
+void SecurityClient_Disconnect(PSECURITY_CLIENT client) {
+    if (client-&gt;hDevice != INVALID_HANDLE_VALUE) {
+        CloseHandle(client-&gt;hDevice);
+    }
+}
+
+BOOL SecurityClient_ProtectPid(PSECURITY_CLIENT client, DWORD pid, BOOL protect) {
+    DWORD bytesReturned;
+    DWORD ioctl = protect ? IOCTL_ADD_PROTECTED_PID : IOCTL_REMOVE_PROTECTED_PID;
+    
+    return DeviceIoControl(client-&gt;hDevice, ioctl,
+        &amp;pid, sizeof(pid), NULL, 0, &amp;bytesReturned, NULL);
+}
+
+BOOL SecurityClient_BlockImage(PSECURITY_CLIENT client, const WCHAR* imageName) {
+    DWORD bytesReturned;
+    DWORD len = (DWORD)(wcslen(imageName) + 1) * sizeof(WCHAR);
+    
+    return DeviceIoControl(client-&gt;hDevice, IOCTL_ADD_BLOCKED_IMAGE,
+        (PVOID)imageName, len, NULL, 0, &amp;bytesReturned, NULL);
+}
+
+BOOL SecurityClient_SetMode(PSECURITY_CLIENT client, DWORD mode) {
+    DWORD bytesReturned;
+    
+    return DeviceIoControl(client-&gt;hDevice, IOCTL_SET_PROTECTION_MODE,
+        &amp;mode, sizeof(mode), NULL, 0, &amp;bytesReturned, NULL);
+}
+
+void PrintUsage(const char* name) {
+    printf("Usage:\n");
+    printf("  %s protect &lt;pid&gt;      - Protect a process\n", name);
+    printf("  %s unprotect &lt;pid&gt;    - Remove protection\n", name);
+    printf("  %s block &lt;name.exe&gt;   - Block an image\n", name);
+    printf("  %s mode &lt;0|1|2&gt;       - Set protection mode\n", name);
+    printf("                          0=Monitor, 1=Alert, 2=Block\n");
+}
+
+int main(int argc, char* argv[]) {
+    SECURITY_CLIENT client = {0};
+    
+    printf("=== Security Driver Client ===\n\n");
+    
+    if (!SecurityClient_Connect(&amp;client)) {
+        printf("Failed to connect to driver. Error: %d\n", GetLastError());
+        printf("Make sure the driver is loaded.\n");
+        return 1;
+    }
+    
+    printf("Connected to security driver.\n");
+    
+    if (argc &lt; 2) {
+        PrintUsage(argv[0]);
+        SecurityClient_Disconnect(&amp;client);
+        return 0;
+    }
+    
+    if (strcmp(argv[1], "protect") == 0 &amp;&amp; argc &gt;= 3) {
+        DWORD pid = atoi(argv[2]);
+        if (SecurityClient_ProtectPid(&amp;client, pid, TRUE)) {
+            printf("Process %d is now protected.\n", pid);
+        } else {
+            printf("Failed to protect process. Error: %d\n", GetLastError());
+        }
+    }
+    else if (strcmp(argv[1], "unprotect") == 0 &amp;&amp; argc &gt;= 3) {
+        DWORD pid = atoi(argv[2]);
+        if (SecurityClient_ProtectPid(&amp;client, pid, FALSE)) {
+            printf("Process %d protection removed.\n", pid);
+        }
+    }
+    else if (strcmp(argv[1], "block") == 0 &amp;&amp; argc &gt;= 3) {
+        WCHAR imageName[260];
+        MultiByteToWideChar(CP_ACP, 0, argv[2], -1, imageName, 260);
+        
+        if (SecurityClient_BlockImage(&amp;client, imageName)) {
+            printf("Image '%s' is now blocked.\n", argv[2]);
+        }
+    }
+    else if (strcmp(argv[1], "mode") == 0 &amp;&amp; argc &gt;= 3) {
+        DWORD mode = atoi(argv[2]);
+        if (SecurityClient_SetMode(&amp;client, mode)) {
+            const char* modeNames[] = {"Monitor Only", "Alert", "Block"};
+            printf("Protection mode set to: %s\n", modeNames[mode]);
+        }
+    }
+    else if (strcmp(argv[1], "self") == 0) {
+        // 保护当前进程
+        DWORD pid = GetCurrentProcessId();
+        if (SecurityClient_ProtectPid(&amp;client, pid, TRUE)) {
+            printf("Current process (%d) is now protected.\n", pid);
+            printf("Try to kill this process with Task Manager...\n");
+            printf("Press Enter to exit and remove protection.\n");
+            getchar();
+        }
+    }
+    else {
+        PrintUsage(argv[0]);
+    }
+    
+    SecurityClient_Disconnect(&amp;client);
+    return 0;
+}
+</code></pre><h3 id="section-10">项目3：驱动IOCTL处理</h3><pre><code class="language-c">// SecurityIoctl.c - IOCTL处理
+#include "SecurityDriver.h"
+
+NTSTATUS DispatchDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp) {
+    UNREFERENCED_PARAMETER(DeviceObject);
+    
+    PIO_STACK_LOCATION irpStack = IoGetCurrentIrpStackLocation(Irp);
+    PVOID buffer = Irp-&gt;AssociatedIrp.SystemBuffer;
+    ULONG inputLen = irpStack-&gt;Parameters.DeviceIoControl.InputBufferLength;
+    ULONG outputLen = irpStack-&gt;Parameters.DeviceIoControl.OutputBufferLength;
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG bytesReturned = 0;
+    
+    switch (irpStack-&gt;Parameters.DeviceIoControl.IoControlCode) {
+        case IOCTL_ADD_PROTECTED_PID: {
+            if (inputLen &gt;= sizeof(ULONG)) {
+                ULONG pid = *(PULONG)buffer;
+                
+                ExAcquireFastMutex(&amp;g_Context.ConfigMutex);
+                if (g_Context.ProtectedCount &lt; 64) {
+                    g_Context.ProtectedPids[g_Context.ProtectedCount++] = pid;
+                    DbgPrint("[Security] Protected PID: %d\n", pid);
+                } else {
+                    status = STATUS_INSUFFICIENT_RESOURCES;
+                }
+                ExReleaseFastMutex(&amp;g_Context.ConfigMutex);
+            }
+            break;
+        }
+        
+        case IOCTL_REMOVE_PROTECTED_PID: {
+            if (inputLen &gt;= sizeof(ULONG)) {
+                ULONG pid = *(PULONG)buffer;
+                
+                ExAcquireFastMutex(&amp;g_Context.ConfigMutex);
+                for (ULONG i = 0; i &lt; g_Context.ProtectedCount; i++) {
+                    if (g_Context.ProtectedPids[i] == pid) {
+                        g_Context.ProtectedPids[i] = 
+                            g_Context.ProtectedPids[--g_Context.ProtectedCount];
+                        DbgPrint("[Security] Unprotected PID: %d\n", pid);
+                        break;
+                    }
+                }
+                ExReleaseFastMutex(&amp;g_Context.ConfigMutex);
+            }
+            break;
+        }
+        
+        case IOCTL_ADD_BLOCKED_IMAGE: {
+            if (inputLen &gt; 0 &amp;&amp; buffer) {
+                ExAcquireFastMutex(&amp;g_Context.ConfigMutex);
+                if (g_Context.BlockedImageCount &lt; 32) {
+                    RtlCopyMemory(g_Context.BlockedImages[g_Context.BlockedImageCount],
+                                  buffer, min(inputLen, 260 * sizeof(WCHAR)));
+                    g_Context.BlockedImageCount++;
+                    DbgPrint("[Security] Blocked image added\n");
+                }
+                ExReleaseFastMutex(&amp;g_Context.ConfigMutex);
+            }
+            break;
+        }
+        
+        case IOCTL_SET_PROTECTION_MODE: {
+            if (inputLen &gt;= sizeof(ULONG)) {
+                ULONG mode = *(PULONG)buffer;
+                if (mode &lt;= MODE_BLOCK) {
+                    g_Context.Mode = (PROTECTION_MODE)mode;
+                    DbgPrint("[Security] Mode set to: %d\n", mode);
+                }
+            }
+            break;
+        }
+        
+        case IOCTL_GET_EVENT_LOG: {
+            // 返回事件日志
+            KIRQL oldIrql;
+            KeAcquireSpinLock(&amp;g_Context.EventLock, &amp;oldIrql);
+            
+            // 实现事件导出...
+            
+            KeReleaseSpinLock(&amp;g_Context.EventLock, oldIrql);
+            break;
+        }
+        
+        default:
+            status = STATUS_INVALID_DEVICE_REQUEST;
+    }
+    
+    Irp-&gt;IoStatus.Status = status;
+    Irp-&gt;IoStatus.Information = bytesReturned;
+    IoCompleteRequest(Irp, IO_NO_INCREMENT);
+    
+    return status;
+}
+</code></pre><hr><h2 id="section-11">课后作业</h2><ol><li>扩展驱动添加文件系统监控</li><li>实现事件日志的持久化存储</li><li>添加网络连接监控功能</li><li>实现规则配置文件的加载</li></ol><hr><h2 id="section-12">最佳实践</h2><ol><li><p><strong>安全编码</strong></p><ul><li>所有用户输入必须验证</li><li>使用安全的字符串函数</li><li>正确处理异常</li></ul></li><li><p><strong>性能优化</strong></p><ul><li>避免在回调中执行耗时操作</li><li>使用工作项处理复杂任务</li><li>合理使用缓存</li></ul></li><li><p><strong>稳定性</strong></p><ul><li>充分测试各种边界条件</li><li>使用Driver Verifier</li><li>正确处理卸载</li></ul></li><li><p><strong>兼容性</strong></p><ul><li>测试多个Windows版本</li><li>考虑32/64位兼容</li><li>处理版本差异</li></ul></li></ol><hr><h2 id="section-13">扩展阅读</h2><ul><li>Windows驱动开发最佳实践</li><li>EDR产品架构分析</li><li>内核安全对抗技术</li></ul>

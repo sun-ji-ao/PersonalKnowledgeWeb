@@ -1,0 +1,2 @@
+@reboot /bin/sh /home/sunjiao/technical-notes/releases/b8/deploy/private-preview.sh start >> /home/sunjiao/technical-notes/runtime/cron.log 2>&1
+15 3 * * * /bin/sh /home/sunjiao/technical-notes/releases/b8/deploy/private-backup.sh >> /home/sunjiao/technical-notes/runtime/backup.log 2>&1

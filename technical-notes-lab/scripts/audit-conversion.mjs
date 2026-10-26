@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import { readFile, writeFile, realpath } from 'node:fs/promises';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { parseArgs } from 'node:util';
+import { unified } from 'unified';
+import remarkParse from 'remark-parse';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import { parseFragment } from 'parse5';
+import { normalizeHtml } from '../lib/html-content.mjs';
+const { values } = parseArgs({ options: { root: { type: 'string' }, report: { type: 'string' }, output: { type: 'string' } } });
+if (!values.root || !values.report || !values.output) throw new Error('--root, --report and --output are required.');
+const root = await realpath(values.root); const reportRoot = await realpath(values.report);
+const report = JSON.parse(await readFile(path.join(reportRoot, 'report.json'), 'utf8'));
+const results = [];
+const hash = b => createHash('sha256').update(b).digest('hex');
+const text = n => n.nodeName === '#text' ? n.value : (n.childNodes || []).map(text).join('');
+for (const item of report.items) {
+  const filename = await realpath(path.join(root, item.path)); const relative = path.relative(root, filename);
+  assert.ok(!relative.startsWith('..') && !path.isAbsolute(relative));
+  const bytes = await readFile(filename); assert.equal(hash(bytes), item.originalHash);
+  const converted = JSON.parse(await readFile(path.join(reportRoot, item.file), 'utf8'));
+  assert.notEqual(converted.htmlSource, null);
+  const markdown = new TextDecoder('utf-8', { fatal: true }).decode(bytes).replace(/\r\n?/g, '\n').replace(/^---\n[\s\S]*?\n---(?:\n|$)/, '');
+  const md = unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(markdown);
+  const expected = { code: [], math: [], mermaid: [] };
+  const visit = n => { if (n.type === 'code') expected[n.lang === 'mermaid' ? 'mermaid' : 'code'].push(n.value + '\n'); if (['math','inlineMath'].includes(n.type)) expected.math.push(n.value); for (const c of n.children || []) visit(c); }; visit(md);
+  const actual = { code: [], math: [], mermaid: [] };
+  const scan = n => {
+    const kind = n.attrs?.find(a => a.name === 'data-note-kind')?.value;
+    if (n.tagName === 'pre' && !kind) actual.code.push(text(n));
+    if (kind === 'mermaid') actual.mermaid.push(text(n));
+    if (kind === 'math-block' || kind === 'math-inline') actual.math.push(text(n));
+    for (const c of n.childNodes || []) scan(c);
+  }; scan(parseFragment(converted.htmlSource));
+  assert.deepEqual(actual, expected, `Complex source mismatch: ${item.path}`);
+  const normalized = await normalizeHtml(converted.htmlSource); assert.equal(normalized.htmlSource, converted.htmlSource);
+  assert.equal(hash(converted.htmlSource), converted.sourceHash);
+  results.push({ path: item.path, originalHash: item.originalHash, sourceUnchanged: true, canonicalIdempotent: true, codeBlocks: actual.code.length, formulas: actual.math.length, mermaidBlocks: actual.mermaid.length, conversionStatus: item.status, renderStatus: item.renderStatus });
+}
+const audit = { automatedSemanticAudit: true, browserVisualInspection: false, count: results.length, items: results };
+await writeFile(values.output, JSON.stringify(audit, null, 2), { flag: 'wx' });
+console.log(JSON.stringify({ count: results.length, codeBlocks: results.reduce((n,r) => n+r.codeBlocks,0), formulas: results.reduce((n,r) => n+r.formulas,0), mermaidBlocks: results.reduce((n,r) => n+r.mermaidBlocks,0), sourceHashesAndSemantics: 'pass', browserVisualInspection: false }));

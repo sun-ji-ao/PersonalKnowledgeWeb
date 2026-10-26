@@ -1,0 +1,5225 @@
+{
+  "checkedAt": "2026-09-24T14:08:06.301Z",
+  "method": "read-only HTML structure inspection; browser visual check pending",
+  "totals": {
+    "notes": 253,
+    "published": 0,
+    "publishable": 253,
+    "sourceBytes": 3619427,
+    "renderedBytes": 15271794,
+    "headings": 4662,
+    "code": 1714,
+    "math": 0,
+    "mermaid": 36,
+    "tables": 445,
+    "details": 0,
+    "images": 0,
+    "links": 48
+  },
+  "representatives": [
+    {
+      "id": "de65af55802d94ec72589cdbcf5fb559",
+      "path": "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md",
+      "title": "Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3)",
+      "sourceBytes": 126215,
+      "counts": {
+        "headings": 122,
+        "code": 22,
+        "math": 0,
+        "mermaid": 13,
+        "tables": 12,
+        "details": 0,
+        "images": 0,
+        "links": 8
+      }
+    },
+    {
+      "id": "5ee71fd87d8d7dc12a3a1c580cf9f85f",
+      "path": "15_HOOK专题/09_Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）.md",
+      "title": "Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）",
+      "sourceBytes": 89302,
+      "counts": {
+        "headings": 96,
+        "code": 21,
+        "math": 0,
+        "mermaid": 12,
+        "tables": 24,
+        "details": 0,
+        "images": 0,
+        "links": 1
+      }
+    },
+    {
+      "id": "56500374d69bec9701e08a69afccff82",
+      "path": "15_HOOK专题/10_Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）.md",
+      "title": "Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）",
+      "sourceBytes": 36009,
+      "counts": {
+        "headings": 45,
+        "code": 8,
+        "math": 0,
+        "mermaid": 6,
+        "tables": 14,
+        "details": 0,
+        "images": 0,
+        "links": 5
+      }
+    },
+    {
+      "id": "451fddefed3bfccdeab7086d35f9e8c0",
+      "path": "13_安全开发专题/课时06_令牌提权.md",
+      "title": "令牌提权",
+      "sourceBytes": 33691,
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "5ee71fd87d8d7dc12a3a1c580cf9f85f",
+      "path": "15_HOOK专题/09_Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）.md",
+      "title": "Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）",
+      "sourceBytes": 89302,
+      "counts": {
+        "headings": 96,
+        "code": 21,
+        "math": 0,
+        "mermaid": 12,
+        "tables": 24,
+        "details": 0,
+        "images": 0,
+        "links": 1
+      }
+    },
+    {
+      "id": "1ebbe2ce2bd86c1f4b59a57c8e2938d5",
+      "path": "20_免杀专题/课时05_重写R3API.md",
+      "title": "重写R3API",
+      "sourceBytes": 9893,
+      "counts": {
+        "headings": 23,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "dfa5c0376891fe5ee673a081d840b5ba",
+      "path": "15_HOOK专题/11_Windows 全架构 - 硬件固件级 Hook（Ring -2 及以下）.md",
+      "title": "Windows 全架构 - 硬件固件级 Hook（Ring -2 及以下）",
+      "sourceBytes": 22135,
+      "counts": {
+        "headings": 37,
+        "code": 8,
+        "math": 0,
+        "mermaid": 5,
+        "tables": 13,
+        "details": 0,
+        "images": 0,
+        "links": 5
+      }
+    },
+    {
+      "id": "006ed9d7f270f7db3eddc0c4c6708a09",
+      "path": "17_Anti_VM专题/课时01_通过Mac地址检测虚拟机.md",
+      "title": "通过Mac地址检测虚拟机",
+      "sourceBytes": 21866,
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    }
+  ],
+  "articles": [
+    {
+      "id": "006ed9d7f270f7db3eddc0c4c6708a09",
+      "path": "17_Anti_VM专题/课时01_通过Mac地址检测虚拟机.md",
+      "title": "通过Mac地址检测虚拟机",
+      "category": "Anti VM专题",
+      "revisionId": "f6ee8e05-c84a-46d2-8a1e-2cc08ca39c29",
+      "sourceBytes": 21866,
+      "renderedBytes": 104536,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "0162f473bbb5672c39d630a85c405a21",
+      "path": "04_Win32编程/课时03_进程与线程.md",
+      "title": "进程与线程",
+      "category": "Win32编程",
+      "revisionId": "9e5c32a8-13bb-4dca-ab6b-87ded547fa75",
+      "sourceBytes": 6700,
+      "renderedBytes": 29125,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "01df7d80cfe8d68dc4f3c20faf430aa0",
+      "path": "20_免杀专题/课时37_隐藏模块.md",
+      "title": "隐藏模块",
+      "category": "免杀专题",
+      "revisionId": "1db74a46-4dd6-4b6a-8038-40cdd8fc85ea",
+      "sourceBytes": 3734,
+      "renderedBytes": 12282,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "01e9494f611c4db4026ab7694597d26e",
+      "path": "01_C&C++快速入门/课时08_算术运算符.md",
+      "title": "算术运算符",
+      "category": "C&C++快速入门",
+      "revisionId": "c837d987-d2a3-495a-8a8d-21017fe315c1",
+      "sourceBytes": 6536,
+      "renderedBytes": 39069,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "020ba43e4800444278ca8f7b29087dd1",
+      "path": "20_免杀专题/课时13_Windows策略防止ShellCode.md",
+      "title": "Windows策略防止ShellCode",
+      "category": "免杀专题",
+      "revisionId": "f971e080-4a05-4ee8-a323-39fa62b879b3",
+      "sourceBytes": 13219,
+      "renderedBytes": 42082,
+      "diagnostics": [],
+      "counts": {
+        "headings": 25,
+        "code": 11,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "0236dca87780ffca99f9f9a9002d3dda",
+      "path": "11_shellcode_loader/课时09_C++线程上下文实现shellcode_loader.md",
+      "title": "C++线程上下文实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "20667afc-1dee-4ca2-b5f1-f8c887130baf",
+      "sourceBytes": 6703,
+      "renderedBytes": 33033,
+      "diagnostics": [],
+      "counts": {
+        "headings": 7,
+        "code": 1,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "02b887e075c6196eda4dbc0b8e1a8855",
+      "path": "20_免杀专题/课时41_基础补充ShellCode加载方式.md",
+      "title": "基础补充ShellCode加载方式",
+      "category": "免杀专题",
+      "revisionId": "f7914acd-ac0e-40a1-acac-dfb9bd656b36",
+      "sourceBytes": 4992,
+      "renderedBytes": 15486,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "044537a43b55c0795efcc6bc4d8d4b6b",
+      "path": "06_Windows内核安全/课时02_第一个驱动程序.md",
+      "title": "第一个驱动程序",
+      "category": "Windows内核安全",
+      "revisionId": "0cbd8a57-38f9-4dd1-afb8-458b01820bbb",
+      "sourceBytes": 16702,
+      "renderedBytes": 64176,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "04dcbbf967d1c9889a26ab3c2bf93bab",
+      "path": "10_shellcode开发技术/课时02_动态获取kernel32dll地址.md",
+      "title": "动态获取kernel32dll地址",
+      "category": "shellcode开发技术",
+      "revisionId": "23c91504-517c-42aa-96e3-3c5f4eaf6fd8",
+      "sourceBytes": 20926,
+      "renderedBytes": 98319,
+      "diagnostics": [],
+      "counts": {
+        "headings": 19,
+        "code": 9,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "05775040160c344f84dd7834b8b43a72",
+      "path": "04_Win32编程/课时11_阶段合集.md",
+      "title": "阶段合集",
+      "category": "Win32编程",
+      "revisionId": "5b3449d9-f1bf-4ee6-bb3d-e934168bb01c",
+      "sourceBytes": 7480,
+      "renderedBytes": 26257,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 5,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "0700f73ecf656c5190a86ee13ed30ca5",
+      "path": "17_Anti_VM专题/课时02_通过进程信息检测虚拟机.md",
+      "title": "通过进程信息检测虚拟机",
+      "category": "Anti VM专题",
+      "revisionId": "01d4fba9-3e11-4eb8-8579-117d5e39d45c",
+      "sourceBytes": 20252,
+      "renderedBytes": 87821,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "07a305fb8df7add4c4bbe7a0aa535f53",
+      "path": "06_Windows内核安全/课时07_R3与R0通信.md",
+      "title": "R3与R0通信",
+      "category": "Windows内核安全",
+      "revisionId": "64a0b249-cab0-4095-a160-fd848e4eaf55",
+      "sourceBytes": 19828,
+      "renderedBytes": 82546,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "08022d09bf8cf9cfab23e2fc257b19ac",
+      "path": "18_CobaltStrike专题/课时03_创建监听器与Attacks.md",
+      "title": "创建监听器与Attacks",
+      "category": "CobaltStrike专题",
+      "revisionId": "f5098106-5a00-4411-b96e-9caa20baccd9",
+      "sourceBytes": 16636,
+      "renderedBytes": 45019,
+      "diagnostics": [
+        "UNKNOWN_CODE_LANGUAGE",
+        "UNKNOWN_CODE_LANGUAGE"
+      ],
+      "counts": {
+        "headings": 79,
+        "code": 25,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "0837a5518c202e1c3815a92a26dc4587",
+      "path": "10_shellcode开发技术/课时03_x86shellcode框架.md",
+      "title": "x86shellcode框架",
+      "category": "shellcode开发技术",
+      "revisionId": "f59ba8d0-ab64-43cd-b0e3-00026e8da7fd",
+      "sourceBytes": 23016,
+      "renderedBytes": 109240,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "0996bed9a0fee29a4df98ebc5cf4dbfb",
+      "path": "19_提权专题/课时06_Windows提权基础.md",
+      "title": "Windows提权基础",
+      "category": "提权专题",
+      "revisionId": "dd58d5b0-fc22-42fd-80bc-05d1225436e3",
+      "sourceBytes": 25102,
+      "renderedBytes": 74859,
+      "diagnostics": [],
+      "counts": {
+        "headings": 86,
+        "code": 38,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "0a211a27c284c19aa9699f811ddd3425",
+      "path": "17_Anti_VM专题/课时03_通过文件夹信息检测虚拟机.md",
+      "title": "通过文件夹信息检测虚拟机",
+      "category": "Anti VM专题",
+      "revisionId": "9413c621-3472-49ad-bd66-a6b2722f0b22",
+      "sourceBytes": 20641,
+      "renderedBytes": 91628,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "0a64d951559dbb62822a287df99c3a17",
+      "path": "01_C&C++快速入门/课时05_基础数据类型.md",
+      "title": "基础数据类型",
+      "category": "C&C++快速入门",
+      "revisionId": "67c912ed-725a-4bd3-a84b-0f8a800fbf27",
+      "sourceBytes": 7634,
+      "renderedBytes": 38882,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "0a92e4e0b43227dedd45f4e615233865",
+      "path": "16_Anti_Debug专题/课时14_基于SEH异常机制检测调试器.md",
+      "title": "基于SEH异常机制检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "91345885-6268-425f-a039-376fa18eb5ed",
+      "sourceBytes": 21410,
+      "renderedBytes": 94202,
+      "diagnostics": [],
+      "counts": {
+        "headings": 18,
+        "code": 10,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "0cb5c574891fadab4649c5215b4967c7",
+      "path": "15_HOOK专题/课时06_VEH_DRRegHook.md",
+      "title": "VEH DRRegHook",
+      "category": "HOOK专题",
+      "revisionId": "1dee955d-ab00-4b67-91f3-76b63e0c3782",
+      "sourceBytes": 16081,
+      "renderedBytes": 63511,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "0db26defdc038d36c7fb66bb671be747",
+      "path": "12_远程控制开发基础/课时06_远程SHELL执行并回显.md",
+      "title": "远程SHELL执行并回显",
+      "category": "远程控制开发基础",
+      "revisionId": "0ae5fef8-0433-444b-8b8a-9da4749a290f",
+      "sourceBytes": 21102,
+      "renderedBytes": 110904,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "11a9bfd5b93e98a434c658c649a84b57",
+      "path": "08_Windows_PE结构/课时04_导入表解析.md",
+      "title": "导入表解析",
+      "category": "Windows PE结构",
+      "revisionId": "724057f2-bcac-4071-96f1-bb49e4048c91",
+      "sourceBytes": 17646,
+      "renderedBytes": 70010,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "1307cf81b922a54ae00c596fa1bc3238",
+      "path": "16_Anti_Debug专题/课时12_遍历窗口名检测调试器.md",
+      "title": "遍历窗口名检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "6f95da8f-135f-42e0-8224-fed0c5db2122",
+      "sourceBytes": 21953,
+      "renderedBytes": 101704,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "1522d29d9d813dc64ba16abb3e1ad153",
+      "path": "16_Anti_Debug专题/课时13_遍历顶层窗口检测调试器.md",
+      "title": "遍历顶层窗口检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "b43d4d77-8bcc-4042-b432-ac107abf0d88",
+      "sourceBytes": 26658,
+      "renderedBytes": 122283,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "170183c84c7a9afc1a4c6079623f0759",
+      "path": "01_C&C++快速入门/课时11_数组与字符串.md",
+      "title": "数组与字符串",
+      "category": "C&C++快速入门",
+      "revisionId": "f9da69f9-3b9c-43c5-9ee9-7b509437b028",
+      "sourceBytes": 5573,
+      "renderedBytes": 33399,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "178914d7259e7259afa2f84503ec24c6",
+      "path": "05_进程通信专题/课时03_剪切板.md",
+      "title": "剪切板",
+      "category": "进程通信专题",
+      "revisionId": "68a01d70-7441-41f4-9822-47a1dbfebe2e",
+      "sourceBytes": 4048,
+      "renderedBytes": 16889,
+      "diagnostics": [],
+      "counts": {
+        "headings": 9,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "17c587f3fe4d299a1084280f4cdbbc24",
+      "path": "16_Anti_Debug专题/课时02_自实现IsDebuggerPresent.md",
+      "title": "自实现IsDebuggerPresent",
+      "category": "Anti Debug专题",
+      "revisionId": "d852f38a-8c34-421b-864e-5831e9865e6b",
+      "sourceBytes": 12866,
+      "renderedBytes": 53677,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "18118780af50469da12c112d1fd25c09",
+      "path": "07_Windows网络编程/课时09_实现FTP客户端并完成通信.md",
+      "title": "实现FTP客户端并完成通信",
+      "category": "Windows网络编程",
+      "revisionId": "0f855b89-c0e2-4122-8070-6dcdd6e57876",
+      "sourceBytes": 23685,
+      "renderedBytes": 123128,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 10,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "19ba47e3afb84223cc24b17c9ba97951",
+      "path": "01_C&C++快速入门/课时19_类和封装.md",
+      "title": "类和封装",
+      "category": "C&C++快速入门",
+      "revisionId": "958aefa0-5ae0-4d4a-bded-e6b7872693a6",
+      "sourceBytes": 5364,
+      "renderedBytes": 27283,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "1b7fa90e15b16903793542fd91863b07",
+      "path": "14_Inject专题/课时03_消息钩子注入.md",
+      "title": "消息钩子注入",
+      "category": "Inject专题",
+      "revisionId": "0687878a-55b9-4e16-a881-9fabfbada60b",
+      "sourceBytes": 20362,
+      "renderedBytes": 75115,
+      "diagnostics": [],
+      "counts": {
+        "headings": 25,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "1baba8b02bb8c4e2ea008ca0d4f5414b",
+      "path": "01_C&C++快速入门/课时16_结构体联合体与枚举.md",
+      "title": "结构体联合体与枚举",
+      "category": "C&C++快速入门",
+      "revisionId": "59aabda3-0433-4434-b778-0cd704a1f732",
+      "sourceBytes": 3599,
+      "renderedBytes": 19753,
+      "diagnostics": [],
+      "counts": {
+        "headings": 11,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "1d341057d90b31bce2ebc64f8c4c19fd",
+      "path": "16_Anti_Debug专题/课时21_通过API软件断点检测调试器.md",
+      "title": "通过API软件断点检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "b38eb237-0c88-4d68-b244-10701146f7c7",
+      "sourceBytes": 27344,
+      "renderedBytes": 127991,
+      "diagnostics": [],
+      "counts": {
+        "headings": 18,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "1d615a993127713d24ed6d7e33169abc",
+      "path": "06_Windows内核安全/课时06_链表操作.md",
+      "title": "链表操作",
+      "category": "Windows内核安全",
+      "revisionId": "834eaec1-600a-4a12-9e99-d44db9849017",
+      "sourceBytes": 16455,
+      "renderedBytes": 64720,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "1ebbe2ce2bd86c1f4b59a57c8e2938d5",
+      "path": "20_免杀专题/课时05_重写R3API.md",
+      "title": "重写R3API",
+      "category": "免杀专题",
+      "revisionId": "2e516e9e-3ef8-43a0-b079-bb581ee3a774",
+      "sourceBytes": 9893,
+      "renderedBytes": 39929,
+      "diagnostics": [],
+      "counts": {
+        "headings": 23,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "1edf1ee3dc7d4e5629d7204efe7f848d",
+      "path": "20_免杀专题/课时09_Windows日志绕过.md",
+      "title": "Windows日志绕过",
+      "category": "免杀专题",
+      "revisionId": "a18606ad-9e46-454a-bf95-1dfdb1894c0f",
+      "sourceBytes": 5998,
+      "renderedBytes": 23421,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "1f24a19f2c9be31234109ce26d572587",
+      "path": "20_免杀专题/课时03_未导出API执行ShellCode.md",
+      "title": "未导出API执行ShellCode",
+      "category": "免杀专题",
+      "revisionId": "2fbae461-d160-491d-8663-7dcf536c21a9",
+      "sourceBytes": 13325,
+      "renderedBytes": 48198,
+      "diagnostics": [],
+      "counts": {
+        "headings": 30,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 2
+      }
+    },
+    {
+      "id": "20664b66d1e167304d32b4bd1a203682",
+      "path": "20_免杀专题/课时30_代码混淆.md",
+      "title": "代码混淆",
+      "category": "免杀专题",
+      "revisionId": "450c4e4e-645b-4a37-b801-a8c831fcbad7",
+      "sourceBytes": 2860,
+      "renderedBytes": 13239,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "210056057c3d02b9204ea2afd30961b0",
+      "path": "01_C&C++快速入门/课时13_字符串操作函数.md",
+      "title": "字符串操作函数",
+      "category": "C&C++快速入门",
+      "revisionId": "3a283be4-4605-416c-85f0-8fe01b4e025d",
+      "sourceBytes": 5592,
+      "renderedBytes": 33290,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "2174775ccfcef12b216e5cfd8a126e71",
+      "path": "09_加密壳/课时04_封装简易验证与解密流程.md",
+      "title": "封装简易验证与解密流程",
+      "category": "加密壳",
+      "revisionId": "6ed65f7d-797c-44cb-ba68-1d71d4ef1fb2",
+      "sourceBytes": 11522,
+      "renderedBytes": 58663,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "222f65dc86373449fd9f4cbf5176231d",
+      "path": "20_免杀专题/课时34_ETW绕过.md",
+      "title": "ETW绕过",
+      "category": "免杀专题",
+      "revisionId": "3fda9691-f323-4724-af11-fa4715bf2cda",
+      "sourceBytes": 3155,
+      "renderedBytes": 12102,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "22c1014fbeb6a8fb7b505e41112ee6d8",
+      "path": "11_shellcode_loader/课时06_Python实现shellcode_loader.md",
+      "title": "Python实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "49fb0bb7-dd06-466d-bdda-1a0a168c9d8c",
+      "sourceBytes": 9569,
+      "renderedBytes": 50145,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 2,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "22ce03b228cdbea2fde5e3b46a8f7e48",
+      "path": "16_Anti_Debug专题/课时27_通过Crc32校验代码段检测调试器.md",
+      "title": "通过Crc32校验代码段检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "9a05a131-bd3c-449e-b726-2dc3988c1833",
+      "sourceBytes": 23416,
+      "renderedBytes": 110957,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "233abd102128703219ef12d467aaa585",
+      "path": "17_Anti_VM专题/课时06_通过IO端口检测虚拟机.md",
+      "title": "通过IO端口检测虚拟机",
+      "category": "Anti VM专题",
+      "revisionId": "3ad7563f-84bc-4051-8ac7-ab2ce0ee24f0",
+      "sourceBytes": 21549,
+      "renderedBytes": 97949,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "239992170b8ef132fccadabf56540816",
+      "path": "18_CobaltStrike专题/课时02_CobaltStrike界面介绍.md",
+      "title": "CobaltStrike界面介绍",
+      "category": "CobaltStrike专题",
+      "revisionId": "53177442-5e44-41ba-9171-fb76a17850f7",
+      "sourceBytes": 15141,
+      "renderedBytes": 17651,
+      "diagnostics": [],
+      "counts": {
+        "headings": 96,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "26d1e32c18ae49eb3c3a49296b2ebace",
+      "path": "16_Anti_Debug专题/课时26_通过注册表检测实时调试器.md",
+      "title": "通过注册表检测实时调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "7dee1bd2-0220-4565-8029-973d47851bf4",
+      "sourceBytes": 24629,
+      "renderedBytes": 108098,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "2727f204c0b291e618a8fa534b508900",
+      "path": "07_Windows网络编程/课时06_HTTP协议.md",
+      "title": "HTTP协议",
+      "category": "Windows网络编程",
+      "revisionId": "9dff36e2-0b55-4753-955c-a322706e8baa",
+      "sourceBytes": 9408,
+      "renderedBytes": 48610,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "274d2971675068d9cbc501ba61d5ecd0",
+      "path": "07_Windows网络编程/课时14_IOCP完成端口.md",
+      "title": "IOCP完成端口",
+      "category": "Windows网络编程",
+      "revisionId": "da7d20a7-c708-4e81-957d-d8c6785e3e4c",
+      "sourceBytes": 19560,
+      "renderedBytes": 86817,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 10,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "27740241e2927b9c4e8cc48d8ba422a5",
+      "path": "08_Windows_PE结构/课时06_资源表解析.md",
+      "title": "资源表解析",
+      "category": "Windows PE结构",
+      "revisionId": "2fe790df-0062-42dd-953a-0ad9860c540d",
+      "sourceBytes": 17623,
+      "renderedBytes": 79242,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "2c36e855159d2b3cc3b1fbdbab513c28",
+      "path": "03_C&C++软件逆向技术/课时06_数组与指针识别分析.md",
+      "title": "数组与指针识别分析",
+      "category": "C&C++软件逆向技术",
+      "revisionId": "1565ecf8-2866-4eeb-baeb-5073539e3d21",
+      "sourceBytes": 5592,
+      "renderedBytes": 18065,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 9,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "2fc707a983de3de647874fbd14aa8034",
+      "path": "12_远程控制开发基础/课时02_客户端进程信息获取.md",
+      "title": "客户端进程信息获取",
+      "category": "远程控制开发基础",
+      "revisionId": "fecc7d4f-d5da-458b-a950-5a66f1a82834",
+      "sourceBytes": 18399,
+      "renderedBytes": 89793,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "303f50c68f512571f8fafa8451ec38f6",
+      "path": "16_Anti_Debug专题/课时09_未公开API检测ProcessDebugObjectHandle.md",
+      "title": "未公开API检测ProcessDebugObjectHandle",
+      "category": "Anti Debug专题",
+      "revisionId": "2cba4a34-ddf2-4aec-b00b-f5e39e29ce0e",
+      "sourceBytes": 21769,
+      "renderedBytes": 90984,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "34f4f91fcb8d7fd65400447947c20d14",
+      "path": "20_免杀专题/课时07_映射注入执行ShellCode.md",
+      "title": "映射注入执行ShellCode",
+      "category": "免杀专题",
+      "revisionId": "2d79ee55-ee44-46bb-965a-6678d7fa0656",
+      "sourceBytes": 6101,
+      "renderedBytes": 25610,
+      "diagnostics": [],
+      "counts": {
+        "headings": 11,
+        "code": 2,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "3610eb94c6f921bc7d33e7ecf690f0c1",
+      "path": "11_shellcode_loader/课时12_C++Fiber实现shellcode_loader.md",
+      "title": "C++Fiber实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "8346d5d5-83bc-460b-ac51-7208e5ded53c",
+      "sourceBytes": 6116,
+      "renderedBytes": 33496,
+      "diagnostics": [],
+      "counts": {
+        "headings": 7,
+        "code": 1,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "36cb9b00f7ae2023214f99a92a948b88",
+      "path": "20_免杀专题/课时26_非对称加密加密ShellCode.md",
+      "title": "非对称加密加密ShellCode",
+      "category": "免杀专题",
+      "revisionId": "0eec85ae-f992-432b-8cdc-7b865329c9fb",
+      "sourceBytes": 3324,
+      "renderedBytes": 13419,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "36ef5c189299a30243004008d996f6b3",
+      "path": "11_shellcode_loader/课时04_golang实现shellcode_loader.md",
+      "title": "golang实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "cc6dee56-4b12-4fc0-8482-c0e0215e3aef",
+      "sourceBytes": 12937,
+      "renderedBytes": 78369,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "3800233035661aab0dd97f7086c7a05a",
+      "path": "13_安全开发专题/课时01_自启动.md",
+      "title": "自启动",
+      "category": "安全开发专题",
+      "revisionId": "91a1c4ba-a01a-4af0-8b64-1033bbad2a40",
+      "sourceBytes": 21912,
+      "renderedBytes": 114412,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "3a522030f72baa363d525847397106a7",
+      "path": "04_Win32编程/课时01_消息机制.md",
+      "title": "消息机制",
+      "category": "Win32编程",
+      "revisionId": "ceb54ba6-639e-47da-8961-0c2cc43d7074",
+      "sourceBytes": 6019,
+      "renderedBytes": 24290,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "3bd2040bca154afcc50086c5a478c7eb",
+      "path": "20_免杀专题/课时22_shellCode加密原理.md",
+      "title": "shellCode加密原理",
+      "category": "免杀专题",
+      "revisionId": "bafc9e60-6b37-4919-90fd-e13a3ff1868a",
+      "sourceBytes": 10186,
+      "renderedBytes": 39947,
+      "diagnostics": [],
+      "counts": {
+        "headings": 23,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "3cc755cedb36d224b8a647a7d666ffcf",
+      "path": "20_免杀专题/课时19_PPL.md",
+      "title": "PPL",
+      "category": "免杀专题",
+      "revisionId": "ff6d05ef-dbd7-478c-ba08-3b4daf5e91c3",
+      "sourceBytes": 12657,
+      "renderedBytes": 39414,
+      "diagnostics": [],
+      "counts": {
+        "headings": 29,
+        "code": 13,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "3e022337d5f26e81090c525cbc6403af",
+      "path": "20_免杀专题/课时40_基础补充ShellCode加载方式.md",
+      "title": "基础补充ShellCode加载方式",
+      "category": "免杀专题",
+      "revisionId": "d98c7c16-0361-48ce-8a8b-15d7e03bb9b1",
+      "sourceBytes": 3569,
+      "renderedBytes": 13789,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "3e29a5ce9b727cf293173fddb409801a",
+      "path": "02_x86_64架构汇编语言/课时09_数组与串指令.md",
+      "title": "数组与串指令",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "42d1661e-6db2-4f7e-96ed-f04e0fabeddc",
+      "sourceBytes": 7463,
+      "renderedBytes": 31272,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 4,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "3e46697952cc67317f8da7e8039a198e",
+      "path": "16_Anti_Debug专题/课时23_通过附加调试实现反调试.md",
+      "title": "通过附加调试实现反调试",
+      "category": "Anti Debug专题",
+      "revisionId": "ee0a60b1-bfbe-47b1-a963-3e2348517f80",
+      "sourceBytes": 22262,
+      "renderedBytes": 92719,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "408799a1b4667bee2fc82ab044b00976",
+      "path": "16_Anti_Debug专题/课时25_通过StartupInfo检测调试器.md",
+      "title": "通过StartupInfo检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "f06c03d7-0bcf-4331-b8d7-2ab324e57f87",
+      "sourceBytes": 22462,
+      "renderedBytes": 102792,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "412a0c5d91a89263b21c626f009db741",
+      "path": "16_Anti_Debug专题/课时03_CheckRemoteDebuggerPresent.md",
+      "title": "CheckRemoteDebuggerPresent",
+      "category": "Anti Debug专题",
+      "revisionId": "c9bb111a-e711-49e4-b78c-fffd46702f2c",
+      "sourceBytes": 16331,
+      "renderedBytes": 61307,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "451fddefed3bfccdeab7086d35f9e8c0",
+      "path": "13_安全开发专题/课时06_令牌提权.md",
+      "title": "令牌提权",
+      "category": "安全开发专题",
+      "revisionId": "38564e9d-caa5-4559-8ddb-ac65bc6fcd5c",
+      "sourceBytes": 33691,
+      "renderedBytes": 156230,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "455b6764020aa00cd2599d4373c85863",
+      "path": "06_Windows内核安全/课时14_SSDT_Hook.md",
+      "title": "SSDT Hook",
+      "category": "Windows内核安全",
+      "revisionId": "cd871c05-50cb-44ea-bb80-dc038b4cf34b",
+      "sourceBytes": 17979,
+      "renderedBytes": 77332,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "45ae40a5262e0ff3bcd1b31369abe9d2",
+      "path": "12_远程控制开发基础/课时07_阶段合集.md",
+      "title": "阶段合集",
+      "category": "远程控制开发基础",
+      "revisionId": "0f538c3d-ccf5-4425-935c-ade902d2279d",
+      "sourceBytes": 28594,
+      "renderedBytes": 147672,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "46127210e2b017710d350c2e893634d8",
+      "path": "16_Anti_Debug专题/课时18_通过DuplicateHandle检测调试器.md",
+      "title": "通过DuplicateHandle检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "2c21c10b-888a-4e36-9f56-e4d464c56530",
+      "sourceBytes": 28143,
+      "renderedBytes": 126140,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 9,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "465f550c86de2faafcafd9880928f811",
+      "path": "04_Win32编程/课时08_TLS机制.md",
+      "title": "TLS机制",
+      "category": "Win32编程",
+      "revisionId": "f09cfcb2-3712-4a63-9808-68c990088362",
+      "sourceBytes": 3076,
+      "renderedBytes": 14272,
+      "diagnostics": [],
+      "counts": {
+        "headings": 8,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "4688d567755b5b77b311eabd46a7300e",
+      "path": "14_Inject专题/课时05_阶段合集.md",
+      "title": "阶段合集",
+      "category": "Inject专题",
+      "revisionId": "c0a1af0f-49a6-457a-9b0b-de423858a287",
+      "sourceBytes": 23232,
+      "renderedBytes": 99978,
+      "diagnostics": [],
+      "counts": {
+        "headings": 19,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "46b04234dfac3f681bbb47ace3a5e9e1",
+      "path": "07_Windows网络编程/课时13_重叠IO模型.md",
+      "title": "重叠IO模型",
+      "category": "Windows网络编程",
+      "revisionId": "49923f91-b15a-4aaf-83eb-955a3c850964",
+      "sourceBytes": 19068,
+      "renderedBytes": 86249,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "48053b7c57dfd4742e146f7f7ce5e6bf",
+      "path": "17_Anti_VM专题/课时07_通过社会工程学检测虚拟机.md",
+      "title": "通过社会工程学检测虚拟机",
+      "category": "Anti VM专题",
+      "revisionId": "325a88f9-c541-4752-86b4-3058a795915f",
+      "sourceBytes": 22687,
+      "renderedBytes": 98309,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "48ddc30e88003d72708b3522d5badf1e",
+      "path": "20_免杀专题/课时24_加密算法加密ShellCode.md",
+      "title": "加密算法加密ShellCode",
+      "category": "免杀专题",
+      "revisionId": "ba300ef2-f998-42bc-8c27-3c2f9405c113",
+      "sourceBytes": 6134,
+      "renderedBytes": 31805,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "4916be319840ebfb714109c9ec7e1265",
+      "path": "15_HOOK专题/课时05_VEH_INT3Hook.md",
+      "title": "VEH INT3Hook",
+      "category": "HOOK专题",
+      "revisionId": "2d241ce1-59ef-43ad-b4a6-bb4ae43c11d5",
+      "sourceBytes": 14722,
+      "renderedBytes": 50692,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "491e0581bf01d292d1156be7ceea4275",
+      "path": "12_远程控制开发基础/课时05_主控端文件下发到被控端.md",
+      "title": "主控端文件下发到被控端",
+      "category": "远程控制开发基础",
+      "revisionId": "bdc94e4d-cf27-4916-9571-a6541954fa57",
+      "sourceBytes": 22151,
+      "renderedBytes": 111291,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "49d00e1303dff8d8c850a1c9f1cd7edb",
+      "path": "17_Anti_VM专题/课时04_通过注册表信息检测虚拟机.md",
+      "title": "通过注册表信息检测虚拟机",
+      "category": "Anti VM专题",
+      "revisionId": "b5bc206d-f384-44d0-84a8-80cbddb4b817",
+      "sourceBytes": 19941,
+      "renderedBytes": 90658,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "49d9edd608bbaff8244b0bef8ffed4a1",
+      "path": "06_Windows内核安全/课时10_对象监控.md",
+      "title": "对象监控",
+      "category": "Windows内核安全",
+      "revisionId": "2812b785-055e-4df9-bf58-296087ec363f",
+      "sourceBytes": 22060,
+      "renderedBytes": 85830,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "4a7da5b5481d614fb6da2c5132ca8b75",
+      "path": "12_远程控制开发基础/课时04_被控端文件取回服务端.md",
+      "title": "被控端文件取回服务端",
+      "category": "远程控制开发基础",
+      "revisionId": "0e698b30-be6e-4216-9238-a82009249307",
+      "sourceBytes": 20896,
+      "renderedBytes": 107844,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "4af89eb79f747fbf0902de46958a5035",
+      "path": "20_免杀专题/课时01_R3进程伪装.md",
+      "title": "R3进程伪装",
+      "category": "免杀专题",
+      "revisionId": "d7cb8d7a-f5d6-4c45-a8d9-d77a932e43dc",
+      "sourceBytes": 20302,
+      "renderedBytes": 53120,
+      "diagnostics": [],
+      "counts": {
+        "headings": 53,
+        "code": 19,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 6,
+        "details": 0,
+        "images": 0,
+        "links": 9
+      }
+    },
+    {
+      "id": "4b869e260ca5df5220ae67694a596272",
+      "path": "02_x86_64架构汇编语言/课时10_结构体与宏.md",
+      "title": "结构体与宏",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "4e903bf5-fe53-4033-a2f0-9f10ae0c2c90",
+      "sourceBytes": 7887,
+      "renderedBytes": 34138,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "4b8d82b4f1fc02d3ae8ad23e8d6c5d7a",
+      "path": "09_加密壳/课时07_添加区段完成加壳流程.md",
+      "title": "添加区段完成加壳流程",
+      "category": "加密壳",
+      "revisionId": "dbe9ab10-5dc0-4a7a-b4c1-bdce89529678",
+      "sourceBytes": 12388,
+      "renderedBytes": 54140,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "4c8a9f41c51317abb0552579a47b4c33",
+      "path": "01_C&C++快速入门/课时04_进制与位.md",
+      "title": "进制与位",
+      "category": "C&C++快速入门",
+      "revisionId": "ac42dbc4-68ea-43ca-a081-a4b042cc3cd0",
+      "sourceBytes": 7615,
+      "renderedBytes": 34444,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "4d5eabcf85d81326c7e72db48802bedf",
+      "path": "15_HOOK专题/课时07_阶段合集.md",
+      "title": "阶段合集",
+      "category": "HOOK专题",
+      "revisionId": "1f550976-5da1-43af-88de-90f7d2b58f20",
+      "sourceBytes": 18163,
+      "renderedBytes": 65224,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "4e22a77a96a292969863b178ec5da0b5",
+      "path": "19_提权专题/课时03_SUDO提权.md",
+      "title": "SUDO提权",
+      "category": "提权专题",
+      "revisionId": "b5f43b0b-f1fd-4f1b-9cf9-3f1d9934bca5",
+      "sourceBytes": 20952,
+      "renderedBytes": 78469,
+      "diagnostics": [],
+      "counts": {
+        "headings": 75,
+        "code": 35,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "5036e9011a17d8d53106e9f3572318d6",
+      "path": "01_C&C++快速入门/课时07_位运算.md",
+      "title": "位运算",
+      "category": "C&C++快速入门",
+      "revisionId": "d2ae2040-8b5f-4de7-b753-d2a07d00df9d",
+      "sourceBytes": 8483,
+      "renderedBytes": 51326,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "5323506f5be94d83ff103369110f80d5",
+      "path": "02_x86_64架构汇编语言/课时02_x86汇编框架.md",
+      "title": "x86汇编框架",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "7b7a9354-fb55-4acc-bc7f-d6ef61e9257d",
+      "sourceBytes": 3717,
+      "renderedBytes": 15329,
+      "diagnostics": [],
+      "counts": {
+        "headings": 11,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "549b87d931f2b37db9472788333cb31d",
+      "path": "08_Windows_PE结构/课时01_Windows_PE文件基础知识.md",
+      "title": "Windows PE文件基础知识",
+      "category": "Windows PE结构",
+      "revisionId": "89b11d0d-506f-40e5-96e3-0114017df1a6",
+      "sourceBytes": 13581,
+      "renderedBytes": 58025,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "558bc7854f4de8d21efcb1db5ac62d3b",
+      "path": "20_免杀专题/课时17_CVE-2019-1388UAC提权.md",
+      "title": "CVE-2019-1388UAC提权",
+      "category": "免杀专题",
+      "revisionId": "32822229-2cf0-42f4-8937-8f7e1114e6eb",
+      "sourceBytes": 10941,
+      "renderedBytes": 24342,
+      "diagnostics": [],
+      "counts": {
+        "headings": 27,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "56500374d69bec9701e08a69afccff82",
+      "path": "15_HOOK专题/10_Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）.md",
+      "title": "Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）",
+      "category": "HOOK专题",
+      "revisionId": "cce00a60-7b1a-4dd4-94c1-7a8ef0b19aa0",
+      "sourceBytes": 36009,
+      "renderedBytes": 104608,
+      "diagnostics": [],
+      "counts": {
+        "headings": 45,
+        "code": 8,
+        "math": 0,
+        "mermaid": 6,
+        "tables": 14,
+        "details": 0,
+        "images": 0,
+        "links": 5
+      }
+    },
+    {
+      "id": "56e6e66318df20f9b6261ae2aeb3dd4b",
+      "path": "01_C&C++快速入门/课时15_输入输出函数.md",
+      "title": "输入输出函数",
+      "category": "C&C++快速入门",
+      "revisionId": "d2864cb1-bc8a-4bff-b19a-52f308f83454",
+      "sourceBytes": 3542,
+      "renderedBytes": 17606,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "56ff4e77a6d6bd0e38bde7b40f5bc83a",
+      "path": "20_免杀专题/课时36_dll劫持.md",
+      "title": "dll劫持",
+      "category": "免杀专题",
+      "revisionId": "4e558c39-bffa-464b-afda-ca2ca17ddfd7",
+      "sourceBytes": 2950,
+      "renderedBytes": 9081,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "57e911627b981e021b239d1655cb0671",
+      "path": "09_加密壳/课时03_分析导出表获取GetProcAddress的地址.md",
+      "title": "分析导出表获取GetProcAddress的地址",
+      "category": "加密壳",
+      "revisionId": "5aa6d026-4b04-47ac-b187-e8456dc0245a",
+      "sourceBytes": 10762,
+      "renderedBytes": 44507,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "5ab3d8534c8b119834bb63727898c1df",
+      "path": "11_shellcode_loader/课时05_Csharp实现shellcode_loader.md",
+      "title": "Csharp实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "7677cdff-13c2-45ce-9cd1-c64c3d9e5313",
+      "sourceBytes": 13335,
+      "renderedBytes": 65310,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 2,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "5ee71fd87d8d7dc12a3a1c580cf9f85f",
+      "path": "15_HOOK专题/09_Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）.md",
+      "title": "Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）",
+      "category": "HOOK专题",
+      "revisionId": "10e61f9f-43f5-4643-a197-1fd0d689edf6",
+      "sourceBytes": 89302,
+      "renderedBytes": 274369,
+      "diagnostics": [],
+      "counts": {
+        "headings": 96,
+        "code": 21,
+        "math": 0,
+        "mermaid": 12,
+        "tables": 24,
+        "details": 0,
+        "images": 0,
+        "links": 1
+      }
+    },
+    {
+      "id": "5f28e87db823f8f32c5059e6c9d75ec4",
+      "path": "16_Anti_Debug专题/课时17_通过SetHandleInformation检测调试器.md",
+      "title": "通过SetHandleInformation检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "20d24bcd-e72e-44b7-832d-f01df46dfa69",
+      "sourceBytes": 26233,
+      "renderedBytes": 113020,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 9,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "60ce45e0c35c05f52466c1c4f911e142",
+      "path": "01_C&C++快速入门/课时24_阶段合集.md",
+      "title": "阶段合集",
+      "category": "C&C++快速入门",
+      "revisionId": "adf67454-5115-400c-a96a-951df4b441d5",
+      "sourceBytes": 4863,
+      "renderedBytes": 7629,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "612f056146187d598d7a7265c6593ef3",
+      "path": "20_免杀专题/课时31_函数调用序列欺骗.md",
+      "title": "函数调用序列欺骗",
+      "category": "免杀专题",
+      "revisionId": "22b036b2-e465-4831-a7aa-a50cdcd373b8",
+      "sourceBytes": 2107,
+      "renderedBytes": 5691,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "64838b937606b2ea8515814e3d127c88",
+      "path": "20_免杀专题/课时10_进程镂空.md",
+      "title": "进程镂空",
+      "category": "免杀专题",
+      "revisionId": "d141cb74-c545-4dff-8321-50e4cea875f3",
+      "sourceBytes": 21366,
+      "renderedBytes": 62860,
+      "diagnostics": [],
+      "counts": {
+        "headings": 28,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 6,
+        "details": 0,
+        "images": 0,
+        "links": 1
+      }
+    },
+    {
+      "id": "64bde767386bf1d7506681e8ec2f4c59",
+      "path": "19_提权专题/课时08_Windows内核提权.md",
+      "title": "Windows内核提权",
+      "category": "提权专题",
+      "revisionId": "fb21b813-06c0-4aa1-bdfe-48ba604dc823",
+      "sourceBytes": 5988,
+      "renderedBytes": 8120,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "65284a0c2b2549d526e2c2dff54c0904",
+      "path": "20_免杀专题/课时39_补充异常ShellCode加载和反调试方法.md",
+      "title": "补充异常ShellCode加载和反调试方法",
+      "category": "免杀专题",
+      "revisionId": "aa90932d-72a0-4540-9bb0-4d6c688eaf26",
+      "sourceBytes": 3367,
+      "renderedBytes": 12837,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "688a267beeed8292c72706581bd2116c",
+      "path": "06_Windows内核安全/课时12_监控注册表.md",
+      "title": "监控注册表",
+      "category": "Windows内核安全",
+      "revisionId": "8781f083-0eed-4631-96d1-4f06f52a7d4f",
+      "sourceBytes": 18469,
+      "renderedBytes": 74717,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "691daeb55671cfc628055903b166ebf4",
+      "path": "03_C&C++软件逆向技术/课时07_类与对象识别分析.md",
+      "title": "类与对象识别分析",
+      "category": "C&C++软件逆向技术",
+      "revisionId": "02193aa5-d85c-4157-8100-9aa9fd33a462",
+      "sourceBytes": 5545,
+      "renderedBytes": 19020,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "692166fe666167d711f5cea4cfff1eb7",
+      "path": "20_免杀专题/课时20_查杀原理.md",
+      "title": "查杀原理",
+      "category": "免杀专题",
+      "revisionId": "303c6612-607f-42ba-b212-4533d3ae647a",
+      "sourceBytes": 11468,
+      "renderedBytes": 31825,
+      "diagnostics": [],
+      "counts": {
+        "headings": 29,
+        "code": 13,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "6a0acfcb2ecc1e1513cfc064e72505d3",
+      "path": "01_C&C++快速入门/课时03_第一个C&C++程序.md",
+      "title": "第一个C&C++程序",
+      "category": "C&C++快速入门",
+      "revisionId": "1af9bb06-0c62-445b-b014-d0475d09a92d",
+      "sourceBytes": 9941,
+      "renderedBytes": 43458,
+      "diagnostics": [],
+      "counts": {
+        "headings": 29,
+        "code": 19,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "6a7e2261766b78e2dcc1a76585d4ba15",
+      "path": "16_Anti_Debug专题/课时15_通过CloseHandle检测调试器.md",
+      "title": "通过CloseHandle检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "e7897070-d911-4e6c-9956-c8ebac9f6858",
+      "sourceBytes": 22574,
+      "renderedBytes": 102409,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 9,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "6c0f8c1e9146af578d366274ed041d9b",
+      "path": "17_Anti_VM专题/课时08_阶段合集.md",
+      "title": "阶段合集",
+      "category": "Anti VM专题",
+      "revisionId": "e0d4f848-01db-4d28-abb6-a9dee61f3cb0",
+      "sourceBytes": 15546,
+      "renderedBytes": 36215,
+      "diagnostics": [],
+      "counts": {
+        "headings": 43,
+        "code": 2,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "6c3d1fb26c46b9d08306ec632e3210c7",
+      "path": "09_加密壳/课时08_阶段合集.md",
+      "title": "阶段合集",
+      "category": "加密壳",
+      "revisionId": "ca4ca614-4358-46d7-8a93-1592586d080e",
+      "sourceBytes": 17951,
+      "renderedBytes": 86269,
+      "diagnostics": [],
+      "counts": {
+        "headings": 11,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "6e48132aec47d8f96abd24b0715b91c8",
+      "path": "07_Windows网络编程/课时11_WSAAsyncSelect异步选择模型.md",
+      "title": "WSAAsyncSelect异步选择模型",
+      "category": "Windows网络编程",
+      "revisionId": "1682497e-3029-435b-a12c-8f04b23f85a0",
+      "sourceBytes": 21252,
+      "renderedBytes": 106102,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "6e6a0a5c24d18f6344e41ce6c86c5360",
+      "path": "01_C&C++快速入门/课时06_选择结构.md",
+      "title": "选择结构",
+      "category": "C&C++快速入门",
+      "revisionId": "64ed7745-13d6-4ea9-92c8-23fc5700738e",
+      "sourceBytes": 7260,
+      "renderedBytes": 37262,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "6f2d3233a82db454f593ed5e59ac0b86",
+      "path": "01_C&C++快速入门/课时23_异常.md",
+      "title": "异常",
+      "category": "C&C++快速入门",
+      "revisionId": "09a9ad68-6633-443e-940b-bd4e0894c7f5",
+      "sourceBytes": 4901,
+      "renderedBytes": 24673,
+      "diagnostics": [],
+      "counts": {
+        "headings": 11,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "6f3506ef20290ec4443e4a642a230d37",
+      "path": "14_Inject专题/课时02_劫持进程注入.md",
+      "title": "劫持进程注入",
+      "category": "Inject专题",
+      "revisionId": "5686dba7-6fcc-461a-a1ca-4f73d1d09666",
+      "sourceBytes": 22039,
+      "renderedBytes": 78540,
+      "diagnostics": [],
+      "counts": {
+        "headings": 22,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "6feffe777dfb110300c59aae2cc30268",
+      "path": "14_Inject专题/课时01_远程线程注入.md",
+      "title": "远程线程注入",
+      "category": "Inject专题",
+      "revisionId": "45b20072-fd24-4891-9b3e-a796705dbfdd",
+      "sourceBytes": 19641,
+      "renderedBytes": 74649,
+      "diagnostics": [],
+      "counts": {
+        "headings": 21,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "71d118b446435aa1f21c340435cc15eb",
+      "path": "04_Win32编程/课时07_异常处理.md",
+      "title": "异常处理",
+      "category": "Win32编程",
+      "revisionId": "08469626-3a04-4280-86b8-f91e2b019223",
+      "sourceBytes": 3567,
+      "renderedBytes": 13663,
+      "diagnostics": [],
+      "counts": {
+        "headings": 9,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7236b1c392f9b66abc85392e0610cfca",
+      "path": "01_C&C++快速入门/课时02_Linux环境配置.md",
+      "title": "Linux环境配置",
+      "category": "C&C++快速入门",
+      "revisionId": "3b783364-8657-48c9-8b2c-397d30713fd0",
+      "sourceBytes": 9960,
+      "renderedBytes": 34860,
+      "diagnostics": [
+        "UNKNOWN_CODE_LANGUAGE",
+        "UNKNOWN_CODE_LANGUAGE",
+        "UNKNOWN_CODE_LANGUAGE",
+        "UNKNOWN_CODE_LANGUAGE",
+        "UNKNOWN_CODE_LANGUAGE",
+        "UNKNOWN_CODE_LANGUAGE",
+        "UNKNOWN_CODE_LANGUAGE"
+      ],
+      "counts": {
+        "headings": 34,
+        "code": 22,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7257f7c1cfc13b0a23bf9fa71b5cbf2b",
+      "path": "20_免杀专题/课时33_ShellCode页面反转.md",
+      "title": "ShellCode页面反转",
+      "category": "免杀专题",
+      "revisionId": "2f433b7a-8b1a-42a9-842e-b0e41943d3ff",
+      "sourceBytes": 3839,
+      "renderedBytes": 13092,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "72f01c0de9c4bd7c50716869dec2d616",
+      "path": "20_免杀专题/课时27_花指令.md",
+      "title": "花指令",
+      "category": "免杀专题",
+      "revisionId": "81f8b438-3465-4cfe-bd97-8319f7077716",
+      "sourceBytes": 3860,
+      "renderedBytes": 15810,
+      "diagnostics": [],
+      "counts": {
+        "headings": 19,
+        "code": 9,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7366961036edd2bf636cfe14bef12568",
+      "path": "11_shellcode_loader/课时08_C++UserAPC实现shellcode_loader.md",
+      "title": "C++UserAPC实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "4e7dc7ad-e00f-4419-957d-a0d55447886d",
+      "sourceBytes": 6585,
+      "renderedBytes": 33292,
+      "diagnostics": [],
+      "counts": {
+        "headings": 7,
+        "code": 1,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "79af9e309759595ebf32eb45f83b0236",
+      "path": "16_Anti_Debug专题/课时29_阶段合集.md",
+      "title": "阶段合集",
+      "category": "Anti Debug专题",
+      "revisionId": "fa9abc7b-e829-485f-b697-301197fef6ae",
+      "sourceBytes": 18841,
+      "renderedBytes": 40697,
+      "diagnostics": [],
+      "counts": {
+        "headings": 53,
+        "code": 2,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7a21c84636f06f9050b787fb334eb04e",
+      "path": "03_C&C++软件逆向技术/课时02_函数调用约定.md",
+      "title": "函数调用约定",
+      "category": "C&C++软件逆向技术",
+      "revisionId": "130050f8-7da5-48c3-8854-1f3301e91ea8",
+      "sourceBytes": 6694,
+      "renderedBytes": 21807,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 4,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7c0803ecf6dc34b40c69aaf0f8f9b1b1",
+      "path": "20_免杀专题/课时32_函数序列欺骗.md",
+      "title": "函数序列欺骗",
+      "category": "免杀专题",
+      "revisionId": "fcfced4b-f733-4e57-a3d0-702acd1beb38",
+      "sourceBytes": 2696,
+      "renderedBytes": 8102,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7c1d7041e229b13fdaebc25a96c2753e",
+      "path": "01_C&C++快速入门/课时14_函数与递归.md",
+      "title": "函数与递归",
+      "category": "C&C++快速入门",
+      "revisionId": "a623502b-6374-48ab-9ada-0120c4afdaef",
+      "sourceBytes": 5659,
+      "renderedBytes": 40218,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7c5bbd1bdb3c574edc7b67ceeff05476",
+      "path": "16_Anti_Debug专题/课时08_未公开API检测ProcessDebugFlags.md",
+      "title": "未公开API检测ProcessDebugFlags",
+      "category": "Anti Debug专题",
+      "revisionId": "26b61fa2-46e1-4540-884c-b566eb626433",
+      "sourceBytes": 19386,
+      "renderedBytes": 82177,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7d1c744d6ef0cf9859c27ef7ea63479e",
+      "path": "15_HOOK专题/课时03_HotFixHook.md",
+      "title": "HotFixHook",
+      "category": "HOOK专题",
+      "revisionId": "0c5d678f-37e6-4ae3-905d-3396a7a2204b",
+      "sourceBytes": 13923,
+      "renderedBytes": 53629,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7e6a8a161567b1bf2ee61bc2629acaaa",
+      "path": "13_安全开发专题/课时05_屏幕截屏.md",
+      "title": "屏幕截屏",
+      "category": "安全开发专题",
+      "revisionId": "18af49fa-5291-45fc-8d56-deffecf77493",
+      "sourceBytes": 30834,
+      "renderedBytes": 152430,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7f5df6793aac04cbc5e1e9f063f64258",
+      "path": "19_提权专题/课时10_土豆提权.md",
+      "title": "土豆提权",
+      "category": "提权专题",
+      "revisionId": "024d7a0d-76fc-4687-93e9-26d7751cb4c2",
+      "sourceBytes": 5989,
+      "renderedBytes": 7549,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7f99710e988ba6f32e72d87c098d1820",
+      "path": "15_HOOK专题/课时01_InlineHook.md",
+      "title": "InlineHook",
+      "category": "HOOK专题",
+      "revisionId": "5c3b227d-81e2-481b-bd96-de82aba3b477",
+      "sourceBytes": 9255,
+      "renderedBytes": 30068,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "7ffa03a886ffe84cddb81959f6d63ef4",
+      "path": "03_C&C++软件逆向技术/课时08_构造函数与析构函数识别分析.md",
+      "title": "构造函数与析构函数识别分析",
+      "category": "C&C++软件逆向技术",
+      "revisionId": "99b57f94-2c7c-4959-8d2a-d23921620246",
+      "sourceBytes": 6529,
+      "renderedBytes": 19576,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 4,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "804914f5b7148a48fbcc7fc148b8a086",
+      "path": "03_C&C++软件逆向技术/课时01_分析定位目标功能.md",
+      "title": "分析定位目标功能",
+      "category": "C&C++软件逆向技术",
+      "revisionId": "7e0ecd69-763c-4e84-818c-52ffb489c586",
+      "sourceBytes": 6666,
+      "renderedBytes": 21884,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "812f3b13bee413789ed642acbb26d12c",
+      "path": "01_C&C++快速入门/课时01_Windows环境配置.md",
+      "title": "Windows环境配置",
+      "category": "C&C++快速入门",
+      "revisionId": "1a03c7b5-8b04-49a6-a5a8-83e1f17f4524",
+      "sourceBytes": 21227,
+      "renderedBytes": 47038,
+      "diagnostics": [],
+      "counts": {
+        "headings": 51,
+        "code": 22,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 9,
+        "details": 0,
+        "images": 0,
+        "links": 10
+      }
+    },
+    {
+      "id": "8289761734369f471e925122a8c3bbac",
+      "path": "07_Windows网络编程/课时07_实现简易HTTP服务器完成通信.md",
+      "title": "实现简易HTTP服务器完成通信",
+      "category": "Windows网络编程",
+      "revisionId": "48737652-d7f3-4883-8431-62ddb2deb4e4",
+      "sourceBytes": 10619,
+      "renderedBytes": 60793,
+      "diagnostics": [],
+      "counts": {
+        "headings": 8,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "8425e1f482fd1d71f22552cc3039b2ec",
+      "path": "07_Windows网络编程/课时15_阶段合集.md",
+      "title": "阶段合集",
+      "category": "Windows网络编程",
+      "revisionId": "e13290a0-3a38-411d-bc80-aa849e1f0ec8",
+      "sourceBytes": 24873,
+      "renderedBytes": 125099,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "85dcba405573be0a6bf0b82dc0e3ad34",
+      "path": "19_提权专题/课时05_passwd提权.md",
+      "title": "passwd提权",
+      "category": "提权专题",
+      "revisionId": "0f245767-3e31-456d-8ddf-2c34e34ae9ec",
+      "sourceBytes": 21444,
+      "renderedBytes": 75353,
+      "diagnostics": [],
+      "counts": {
+        "headings": 71,
+        "code": 36,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "88a0a6fe9d8c07e1223d9d484e790e6d",
+      "path": "20_免杀专题/课时38_补充异常ShellCode加载方式.md",
+      "title": "补充异常ShellCode加载方式",
+      "category": "免杀专题",
+      "revisionId": "35fc2c13-bbc6-4634-935e-6ff4e67ba366",
+      "sourceBytes": 3908,
+      "renderedBytes": 14886,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "8b958708245dbed06bf167ea38028d1a",
+      "path": "20_免杀专题/课时12_Windows策略防止挂钩.md",
+      "title": "Windows策略防止挂钩",
+      "category": "免杀专题",
+      "revisionId": "54efbef7-efe1-4128-9b05-f20bde13c340",
+      "sourceBytes": 10207,
+      "renderedBytes": 33235,
+      "diagnostics": [],
+      "counts": {
+        "headings": 18,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "8cc9ee1561c19599f51a9fc310f1808a",
+      "path": "20_免杀专题/课时15_利用白名单绕过UAC.md",
+      "title": "利用白名单绕过UAC",
+      "category": "免杀专题",
+      "revisionId": "eb7b0b9a-1bf3-4211-9897-383242bbebb4",
+      "sourceBytes": 12047,
+      "renderedBytes": 45477,
+      "diagnostics": [],
+      "counts": {
+        "headings": 25,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "8dc5c5df1a632be71104fd959b38a7a1",
+      "path": "02_x86_64架构汇编语言/课时06_EFLAGS标志寄存器.md",
+      "title": "EFLAGS标志寄存器",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "92dca8ef-c796-402d-9f9f-4ce84430930f",
+      "sourceBytes": 3249,
+      "renderedBytes": 13602,
+      "diagnostics": [],
+      "counts": {
+        "headings": 9,
+        "code": 2,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "8e3191bf6a370c8a163d53131535a481",
+      "path": "16_Anti_Debug专题/课时22_通过自调试实现反调试.md",
+      "title": "通过自调试实现反调试",
+      "category": "Anti Debug专题",
+      "revisionId": "f4c6ed08-7cb8-4b73-9402-d0147dc7a7a0",
+      "sourceBytes": 25215,
+      "renderedBytes": 109780,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "8e700b59a5045717de2d272fd2c59bc7",
+      "path": "16_Anti_Debug专题/课时28_通过Tls机制检测调试器.md",
+      "title": "通过Tls机制检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "3eda6c87-8a95-45ed-bdab-1a2fdfcca8ee",
+      "sourceBytes": 25673,
+      "renderedBytes": 117012,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "936d5874673cccbd5334f77e768e41f6",
+      "path": "03_C&C++软件逆向技术/课时05_循环结构识别分析.md",
+      "title": "循环结构识别分析",
+      "category": "C&C++软件逆向技术",
+      "revisionId": "bb93884b-21c1-46f6-854c-f8d43f6be62f",
+      "sourceBytes": 5851,
+      "renderedBytes": 21171,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "938851ff6ff78c0cd6b43314d4fdd5e0",
+      "path": "04_Win32编程/课时04_线程同步机制.md",
+      "title": "线程同步机制",
+      "category": "Win32编程",
+      "revisionId": "01653ee7-e389-4f88-af46-fd374e4fae6d",
+      "sourceBytes": 3772,
+      "renderedBytes": 16792,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "93bdaed1c907b60d95ede706873d947f",
+      "path": "07_Windows网络编程/课时10_select选择模型.md",
+      "title": "select选择模型",
+      "category": "Windows网络编程",
+      "revisionId": "d0bf0b3d-2cec-4878-bdc7-2091a17f378b",
+      "sourceBytes": 18267,
+      "renderedBytes": 87549,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "946a041729b04425cf5e791965ee4d11",
+      "path": "07_Windows网络编程/课时12_WSAEventSelect事件选择模型.md",
+      "title": "WSAEventSelect事件选择模型",
+      "category": "Windows网络编程",
+      "revisionId": "f38dceca-fc19-465b-9e37-1adb0b939ea2",
+      "sourceBytes": 17903,
+      "renderedBytes": 76088,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "95fccb0f5dd574337930d1464731d976",
+      "path": "16_Anti_Debug专题/课时19_通过ParentProcess检测调试器.md",
+      "title": "通过ParentProcess检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "92ba4bd0-0f95-481f-b0d0-e7cde592ca8f",
+      "sourceBytes": 27563,
+      "renderedBytes": 123593,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "98e87932cc4b77ee28a9705855d8b3d8",
+      "path": "10_shellcode开发技术/课时04_shellcode提取与加载.md",
+      "title": "shellcode提取与加载",
+      "category": "shellcode开发技术",
+      "revisionId": "bf04c542-3cdf-4842-9aae-692704bf5057",
+      "sourceBytes": 26286,
+      "renderedBytes": 140668,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "9a0d1b31d5aa856c45061c61ba644ff1",
+      "path": "06_Windows内核安全/课时05_字符串操作.md",
+      "title": "字符串操作",
+      "category": "Windows内核安全",
+      "revisionId": "c7331929-3e2c-4d8d-97f7-13dccfc2c6c8",
+      "sourceBytes": 14584,
+      "renderedBytes": 67585,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "9b2a7e0125f1e7d1a32b138884f3e022",
+      "path": "07_Windows网络编程/课时05_WinInet_API基础.md",
+      "title": "WinInet API基础",
+      "category": "Windows网络编程",
+      "revisionId": "4f1ce4ac-3a45-4a0a-b124-2ab2270f64b0",
+      "sourceBytes": 12835,
+      "renderedBytes": 73107,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "9b30ec88df50f2046c2d59df5b430751",
+      "path": "01_C&C++快速入门/课时17_有参宏与无参宏.md",
+      "title": "有参宏与无参宏",
+      "category": "C&C++快速入门",
+      "revisionId": "1615ca0c-b1b6-45b5-aebe-a4771051b3f8",
+      "sourceBytes": 3794,
+      "renderedBytes": 22396,
+      "diagnostics": [],
+      "counts": {
+        "headings": 11,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "9bf0b4604dbc8cab138118e89599cdad",
+      "path": "20_免杀专题/课时04_遍历内存快执行ShellCode.md",
+      "title": "遍历内存快执行ShellCode",
+      "category": "免杀专题",
+      "revisionId": "83a9874f-e33d-4790-b155-01d9db4bf847",
+      "sourceBytes": 10164,
+      "renderedBytes": 38840,
+      "diagnostics": [],
+      "counts": {
+        "headings": 22,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "9d3749aa2d107935dbeaff927eba8083",
+      "path": "04_Win32编程/课时05_静态库与动态库.md",
+      "title": "静态库与动态库",
+      "category": "Win32编程",
+      "revisionId": "4d6d14f2-7fdd-4126-8db2-dcd326d483c0",
+      "sourceBytes": 4322,
+      "renderedBytes": 18717,
+      "diagnostics": [
+        "UNKNOWN_CODE_LANGUAGE",
+        "UNKNOWN_CODE_LANGUAGE"
+      ],
+      "counts": {
+        "headings": 11,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "9de9d474e5e6883ba2da82d4b8b29d72",
+      "path": "20_免杀专题/课时23_异或和凯撒加密ShellCode.md",
+      "title": "异或和凯撒加密ShellCode",
+      "category": "免杀专题",
+      "revisionId": "7d5c451a-3734-4970-9449-c346d545b58a",
+      "sourceBytes": 6601,
+      "renderedBytes": 39463,
+      "diagnostics": [],
+      "counts": {
+        "headings": 18,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "9f3b085986b6571dc6773dd368b48e03",
+      "path": "20_免杀专题/课时08_进程挂起注入执行ShellCode.md",
+      "title": "进程挂起注入执行ShellCode",
+      "category": "免杀专题",
+      "revisionId": "6225d7fd-c1bc-4940-bc76-458be6e34635",
+      "sourceBytes": 4177,
+      "renderedBytes": 16250,
+      "diagnostics": [],
+      "counts": {
+        "headings": 11,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "9f486a6ca6409ab3c6cc0fb01fc095f4",
+      "path": "08_Windows_PE结构/课时02_PE文件头解析.md",
+      "title": "PE文件头解析",
+      "category": "Windows PE结构",
+      "revisionId": "02ef0375-1965-4a37-af8a-137f55a47780",
+      "sourceBytes": 19908,
+      "renderedBytes": 85121,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "9fe96616989764a3f17be4732f4cbf65",
+      "path": "16_Anti_Debug专题/课时06_检测PEB结构ProcessHeap.md",
+      "title": "检测PEB结构ProcessHeap",
+      "category": "Anti Debug专题",
+      "revisionId": "8deeaebe-3e42-4baf-84a7-c2784192c080",
+      "sourceBytes": 18205,
+      "renderedBytes": 86677,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a14a217d899b6a0b87402869dd741f09",
+      "path": "15_HOOK专题/课时02_x64InlineHook.md",
+      "title": "x64InlineHook",
+      "category": "HOOK专题",
+      "revisionId": "265f752a-c498-4313-a097-b67425832000",
+      "sourceBytes": 11347,
+      "renderedBytes": 39146,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a1d5c5ddd4d7caff28105f3767b612db",
+      "path": "01_C&C++快速入门/课时18_文件操作C.md",
+      "title": "文件操作C",
+      "category": "C&C++快速入门",
+      "revisionId": "d12b475a-4f45-4b0d-8eae-759a3c7ced8f",
+      "sourceBytes": 3198,
+      "renderedBytes": 17060,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a33693d643bda1b8721c882034397059",
+      "path": "03_C&C++软件逆向技术/课时09_阶段合集.md",
+      "title": "阶段合集",
+      "category": "C&C++软件逆向技术",
+      "revisionId": "ff141de4-c9c6-44fe-bae2-1d61085e9e17",
+      "sourceBytes": 6450,
+      "renderedBytes": 21355,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 4,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a40076dbc2b39861631882780e02e706",
+      "path": "05_进程通信专题/课时04_WM_COPYDATA.md",
+      "title": "WM COPYDATA",
+      "category": "进程通信专题",
+      "revisionId": "7ee64624-4b58-421d-9e79-019b762902c0",
+      "sourceBytes": 4555,
+      "renderedBytes": 20886,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a4a5e24ad9c5de7085c4d677d59e0994",
+      "path": "15_HOOK专题/课时04_IATHook.md",
+      "title": "IATHook",
+      "category": "HOOK专题",
+      "revisionId": "b3917126-1e17-4cd9-9841-18ecd353d887",
+      "sourceBytes": 15191,
+      "renderedBytes": 55598,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a546f3462e8ce4a098280936706d840b",
+      "path": "16_Anti_Debug专题/课时10_未公开API获取PEB检测相关字段.md",
+      "title": "未公开API获取PEB检测相关字段",
+      "category": "Anti Debug专题",
+      "revisionId": "9d01b46f-ade4-4f36-9ac7-17f0abebd679",
+      "sourceBytes": 22282,
+      "renderedBytes": 104377,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a57114a179e02b3763b6de9e4cd80dca",
+      "path": "16_Anti_Debug专题/课时05_检测PEB结构NtGlobalFlag.md",
+      "title": "检测PEB结构NtGlobalFlag",
+      "category": "Anti Debug专题",
+      "revisionId": "9b5b1cdd-337a-45dd-9cba-a59ea93e04bb",
+      "sourceBytes": 17859,
+      "renderedBytes": 81761,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a62d109f551d60541c645762c7ef2273",
+      "path": "11_shellcode_loader/课时02_C++函数指针实现shellcode_loader.md",
+      "title": "C++函数指针实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "4a246ac3-e43e-4860-ab34-1e235f159d90",
+      "sourceBytes": 15845,
+      "renderedBytes": 76580,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a6b66dc26848508582f116bb90a48b16",
+      "path": "04_Win32编程/课时09_注册表.md",
+      "title": "注册表",
+      "category": "Win32编程",
+      "revisionId": "826430bd-5d8f-40aa-8daa-6b5a8faf7554",
+      "sourceBytes": 4766,
+      "renderedBytes": 22705,
+      "diagnostics": [],
+      "counts": {
+        "headings": 9,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a6df2917ff2b25af779117f77bbe78d4",
+      "path": "10_shellcode开发技术/课时07_阶段合集.md",
+      "title": "阶段合集",
+      "category": "shellcode开发技术",
+      "revisionId": "8eeb4393-ba8c-44a2-ae26-0efd2be5e6ee",
+      "sourceBytes": 30931,
+      "renderedBytes": 149098,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a75213f2b66baf477ca8a6881c6617db",
+      "path": "08_Windows_PE结构/课时05_导出表解析.md",
+      "title": "导出表解析",
+      "category": "Windows PE结构",
+      "revisionId": "19df3ad4-2a26-4098-bb27-84f19d820f9e",
+      "sourceBytes": 16573,
+      "renderedBytes": 69950,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "a758d5c525982056e77e3934deaf29f8",
+      "path": "02_x86_64架构汇编语言/课时07_JCC指令.md",
+      "title": "JCC指令",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "85ec3c03-1d9a-4493-bee2-a7a20bfd34ac",
+      "sourceBytes": 3140,
+      "renderedBytes": 12418,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "aa859ce4fcac1c5237396bdc89c2c351",
+      "path": "09_加密壳/课时02_动态获取Kernel32的地址.md",
+      "title": "动态获取Kernel32的地址",
+      "category": "加密壳",
+      "revisionId": "4d4279b3-4a18-4681-8af4-63ba351aff5f",
+      "sourceBytes": 11717,
+      "renderedBytes": 47074,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ab1e0f97d8fb774a4d297d17b25e751b",
+      "path": "06_Windows内核安全/课时15_阶段合集.md",
+      "title": "阶段合集",
+      "category": "Windows内核安全",
+      "revisionId": "cda4bb6f-8d03-489b-9395-0571108c119b",
+      "sourceBytes": 27396,
+      "renderedBytes": 110574,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ac3bbe2a7d48aa07ae6e01497f4a260c",
+      "path": "19_提权专题/课时07_提权信息收集.md",
+      "title": "提权信息收集",
+      "category": "提权专题",
+      "revisionId": "caee21c8-70f1-46c8-ae04-85b4b6e6a878",
+      "sourceBytes": 25241,
+      "renderedBytes": 100177,
+      "diagnostics": [],
+      "counts": {
+        "headings": 74,
+        "code": 36,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ac9ba97a7fda58d87d12fed9df0214e3",
+      "path": "06_Windows内核安全/课时01_配置双机调试环境.md",
+      "title": "配置双机调试环境",
+      "category": "Windows内核安全",
+      "revisionId": "f31d327f-deb5-4b48-9008-1f8eadd97352",
+      "sourceBytes": 9654,
+      "renderedBytes": 22231,
+      "diagnostics": [],
+      "counts": {
+        "headings": 19,
+        "code": 9,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ad2ed99d2fec4aaf30377dc218f99253",
+      "path": "11_shellcode_loader/课时14_C++CallBack实现shellcode_loader.md",
+      "title": "C++CallBack实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "31917a0c-a5a5-4004-b991-cc28c48a66a9",
+      "sourceBytes": 8823,
+      "renderedBytes": 39939,
+      "diagnostics": [],
+      "counts": {
+        "headings": 8,
+        "code": 2,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ad4a1df910266e7f24b7b31100a44450",
+      "path": "20_免杀专题/课时35_APC注入.md",
+      "title": "APC注入",
+      "category": "免杀专题",
+      "revisionId": "737bc8b0-8704-43ab-b9b6-02691b32c4e1",
+      "sourceBytes": 4540,
+      "renderedBytes": 18096,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "aee88eda4e01afec51161236f8c70e7b",
+      "path": "07_Windows网络编程/课时01_主机相关网络信息编程.md",
+      "title": "主机相关网络信息编程",
+      "category": "Windows网络编程",
+      "revisionId": "e70f087f-6534-46da-b6fa-696dc36f05b8",
+      "sourceBytes": 17315,
+      "renderedBytes": 84480,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "af9c0eac88ed03c4baccbf333efafe16",
+      "path": "19_提权专题/课时04_john碰撞密码提权.md",
+      "title": "john碰撞密码提权",
+      "category": "提权专题",
+      "revisionId": "b756cc5e-37e1-4fc3-88ff-4c99d84c7337",
+      "sourceBytes": 15983,
+      "renderedBytes": 45479,
+      "diagnostics": [],
+      "counts": {
+        "headings": 74,
+        "code": 36,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "b0122a7c90b9832b9ac2f446b9463184",
+      "path": "01_C&C++快速入门/课时22_继承.md",
+      "title": "继承",
+      "category": "C&C++快速入门",
+      "revisionId": "7080a89c-ae75-4c89-a23d-5fb0bcbc9f30",
+      "sourceBytes": 4636,
+      "renderedBytes": 24113,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "b1624c1830a5684b3a55175274c1a508",
+      "path": "13_安全开发专题/课时04_键盘记录.md",
+      "title": "键盘记录",
+      "category": "安全开发专题",
+      "revisionId": "e42fb2c6-5fcb-4599-b0d5-e916bc2a9686",
+      "sourceBytes": 19080,
+      "renderedBytes": 90229,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "b2623003e59856aebdbddbdbd98ba42f",
+      "path": "02_x86_64架构汇编语言/课时12_内联汇编与混合编程.md",
+      "title": "内联汇编与混合编程",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "d637981a-1dbf-4db1-9136-5371d73cb9bf",
+      "sourceBytes": 8682,
+      "renderedBytes": 44263,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "b271251fe2acf28eb25a87fd1b9585e5",
+      "path": "02_x86_64架构汇编语言/课时01_汇编的概念与常用寄存器.md",
+      "title": "汇编的概念与常用寄存器",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "df92a64d-0c22-4efe-80bd-51e09c9f8dcf",
+      "sourceBytes": 5836,
+      "renderedBytes": 18064,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "b29c0752cd266fec644f26ca456ca6ff",
+      "path": "13_安全开发专题/课时07_阶段合集.md",
+      "title": "阶段合集",
+      "category": "安全开发专题",
+      "revisionId": "05a0bc3b-9341-4702-9e9a-e51f135e3595",
+      "sourceBytes": 29453,
+      "renderedBytes": 148699,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "b32796e639348a7324c17e4b040ec454",
+      "path": "06_Windows内核安全/课时09_线程监控.md",
+      "title": "线程监控",
+      "category": "Windows内核安全",
+      "revisionId": "7aaf056a-836d-4b7e-8c24-9e67662f5ee1",
+      "sourceBytes": 16036,
+      "renderedBytes": 62733,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "b71fbe737a1ab99064fe95bc92a1f4c7",
+      "path": "19_提权专题/课时02_SUID提权.md",
+      "title": "SUID提权",
+      "category": "提权专题",
+      "revisionId": "5369bdea-a143-43d8-8ec2-4544c37c681b",
+      "sourceBytes": 17110,
+      "renderedBytes": 58283,
+      "diagnostics": [],
+      "counts": {
+        "headings": 76,
+        "code": 31,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "b72dcadb3528f6bc489f201d568144c8",
+      "path": "06_Windows内核安全/课时03_IRQL中断请求级别.md",
+      "title": "IRQL中断请求级别",
+      "category": "Windows内核安全",
+      "revisionId": "7ec372aa-736e-4f0c-a5ba-fabfbb9e3a7f",
+      "sourceBytes": 14283,
+      "renderedBytes": 50932,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "b85bd61c959df9f89b950f705c7c6b4f",
+      "path": "16_Anti_Debug专题/课时11_遍历进程名检测调试器.md",
+      "title": "遍历进程名检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "6ace195d-7512-4d2c-86b2-39e7f8d57234",
+      "sourceBytes": 23435,
+      "renderedBytes": 102134,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "b892a417a93bf80d79992795f6379c7d",
+      "path": "01_C&C++快速入门/课时12_指针与内存管理.md",
+      "title": "指针与内存管理",
+      "category": "C&C++快速入门",
+      "revisionId": "ba347a72-ffc6-4a7f-b84a-7ab40b342307",
+      "sourceBytes": 5296,
+      "renderedBytes": 29774,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ba77c426d5c4b7f9ead061628d1d5dd8",
+      "path": "02_x86_64架构汇编语言/课时14_阶段合集.md",
+      "title": "阶段合集",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "1f7220fb-bbc8-4163-bc37-3c2227cdc0aa",
+      "sourceBytes": 10930,
+      "renderedBytes": 47116,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 6,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "bab8205db8304909cbe9637063386399",
+      "path": "20_免杀专题/课时18_白名单DLL劫持绕UAC.md",
+      "title": "白名单DLL劫持绕UAC",
+      "category": "免杀专题",
+      "revisionId": "e904688f-08c3-4f01-8e06-9af5e7cb212e",
+      "sourceBytes": 9718,
+      "renderedBytes": 28432,
+      "diagnostics": [],
+      "counts": {
+        "headings": 27,
+        "code": 10,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "bb67e2eb518789c225db128b36a64494",
+      "path": "13_安全开发专题/课时02_自删除.md",
+      "title": "自删除",
+      "category": "安全开发专题",
+      "revisionId": "bad2e9df-9e6c-40f0-9b36-066519f96888",
+      "sourceBytes": 16964,
+      "renderedBytes": 80773,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "bb84ccc2032010488cb562ee1696ea8c",
+      "path": "19_提权专题/课时09_Windows_Print_Spooler漏洞提权.md",
+      "title": "Windows Print Spooler漏洞提权",
+      "category": "提权专题",
+      "revisionId": "79a74949-086e-4a58-99a3-4921fc287342",
+      "sourceBytes": 5203,
+      "renderedBytes": 7083,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "bc812485c7543682f4105877d1418a30",
+      "path": "20_免杀专题/课时06_重载NTDLL.md",
+      "title": "重载NTDLL",
+      "category": "免杀专题",
+      "revisionId": "078e037d-86f5-48dc-8248-a17e03158644",
+      "sourceBytes": 10177,
+      "renderedBytes": 41861,
+      "diagnostics": [],
+      "counts": {
+        "headings": 20,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "be5cfcb6f942835b0c46db58604144a7",
+      "path": "05_进程通信专题/课时02_管道.md",
+      "title": "管道",
+      "category": "进程通信专题",
+      "revisionId": "e19c4a83-7966-4e63-b50e-b6ca4d07a944",
+      "sourceBytes": 5214,
+      "renderedBytes": 24027,
+      "diagnostics": [],
+      "counts": {
+        "headings": 9,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "c526efe7b27c4ba3432e6794ee15650c",
+      "path": "09_加密壳/课时05_加壳工具初始化PE文件信息.md",
+      "title": "加壳工具初始化PE文件信息",
+      "category": "加密壳",
+      "revisionId": "9f96d2ae-da81-406d-863d-1a32b6fae48a",
+      "sourceBytes": 14021,
+      "renderedBytes": 60156,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "c7751d51abecd47d2d4b77d2efdc6f7e",
+      "path": "11_shellcode_loader/课时11_C++VEH实现shellcode_loader.md",
+      "title": "C++VEH实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "91d22639-f97b-4f42-aed8-be5ff2aacac4",
+      "sourceBytes": 7663,
+      "renderedBytes": 33769,
+      "diagnostics": [],
+      "counts": {
+        "headings": 7,
+        "code": 1,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "c9064fa37d6780119b345a131381997c",
+      "path": "17_Anti_VM专题/课时05_通过服务信息检测虚拟机.md",
+      "title": "通过服务信息检测虚拟机",
+      "category": "Anti VM专题",
+      "revisionId": "ba534d0f-3cde-42d7-89c9-a5ff0e259edf",
+      "sourceBytes": 25474,
+      "renderedBytes": 116359,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "cad6cf611cc4c71b733a27cf492220da",
+      "path": "02_x86_64架构汇编语言/课时05_保护模式下的寻址方式.md",
+      "title": "保护模式下的寻址方式",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "1e94e018-0a58-4e21-9d0f-81ca74e59a9b",
+      "sourceBytes": 3061,
+      "renderedBytes": 12637,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "cb160ed8aa5e5ab293fb859b84f27915",
+      "path": "20_免杀专题/课时11_模块镂空.md",
+      "title": "模块镂空",
+      "category": "免杀专题",
+      "revisionId": "ac77aad1-556d-42c3-a2a5-e76fe631df82",
+      "sourceBytes": 15394,
+      "renderedBytes": 52734,
+      "diagnostics": [],
+      "counts": {
+        "headings": 20,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 4,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "cb70f5cd908cf7cd8f8257a07f7f6914",
+      "path": "02_x86_64架构汇编语言/课时03_数据类型与整数运算.md",
+      "title": "数据类型与整数运算",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "f42a1b18-eff9-43fd-a2a9-651fd23a8d2c",
+      "sourceBytes": 3823,
+      "renderedBytes": 16899,
+      "diagnostics": [],
+      "counts": {
+        "headings": 11,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "cc535e41d63faac0936dead288173cef",
+      "path": "16_Anti_Debug专题/课时20_通过DR_Register检测调试器.md",
+      "title": "通过DR Register检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "2f31a2d6-af9b-4bf1-842e-940363f7e624",
+      "sourceBytes": 23781,
+      "renderedBytes": 112418,
+      "diagnostics": [],
+      "counts": {
+        "headings": 18,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "cd166ebd98c9f1e65db84a52f1df21f6",
+      "path": "09_加密壳/课时06_获取壳代码段数据并修复重定位.md",
+      "title": "获取壳代码段数据并修复重定位",
+      "category": "加密壳",
+      "revisionId": "e16d0e38-3e64-4a3f-964f-b85d1d33d991",
+      "sourceBytes": 12861,
+      "renderedBytes": 55571,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "d0e41ffe997412903a499d51e66e4a1d",
+      "path": "04_Win32编程/课时02_文件与目录.md",
+      "title": "文件与目录",
+      "category": "Win32编程",
+      "revisionId": "ce2049c7-33ba-4d4e-bf9f-ae7e5f19c59f",
+      "sourceBytes": 6464,
+      "renderedBytes": 27502,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "d27650664f03c9e65dbc0dd744e10116",
+      "path": "11_shellcode_loader/课时01_C++内联汇编实现shellcode_loader.md",
+      "title": "C++内联汇编实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "5ab58989-8bf2-4470-8015-5ce65b6fdfb7",
+      "sourceBytes": 15524,
+      "renderedBytes": 67214,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "d45fecdc746f363b0ee5f0eaa3ca2fdb",
+      "path": "07_Windows网络编程/课时04_远控添加Client端进程信息获取功能.md",
+      "title": "远控添加Client端进程信息获取功能",
+      "category": "Windows网络编程",
+      "revisionId": "1a2e6eaf-a893-4df6-9d0f-ff59169bc6e3",
+      "sourceBytes": 12593,
+      "renderedBytes": 66221,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "d46b0dacbc4562e18d7cd3b9355613c6",
+      "path": "07_Windows网络编程/课时02_TCP套接字编程与主机上线实验.md",
+      "title": "TCP套接字编程与主机上线实验",
+      "category": "Windows网络编程",
+      "revisionId": "c671db2a-54a0-4a4e-8903-9f980fc1630d",
+      "sourceBytes": 18970,
+      "renderedBytes": 95158,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "d4acb24699e0b6c72d355945b7a16d99",
+      "path": "01_C&C++快速入门/课时21_多态.md",
+      "title": "多态",
+      "category": "C&C++快速入门",
+      "revisionId": "81762aec-99c6-4340-8836-1ef601deb2f7",
+      "sourceBytes": 4694,
+      "renderedBytes": 24622,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "d514709d7c4a303ba49277775af5c8d1",
+      "path": "02_x86_64架构汇编语言/课时11_x64汇编框架.md",
+      "title": "x64汇编框架",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "f1c8dfae-7f2d-4e8c-bc02-d66735d8cb58",
+      "sourceBytes": 8019,
+      "renderedBytes": 33660,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 4,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "d63ee002624717e4f0ff417382432f77",
+      "path": "20_免杀专题/课时02_栈溢出调用CALL.md",
+      "title": "栈溢出调用CALL",
+      "category": "免杀专题",
+      "revisionId": "74c9da87-1ee1-45cb-bd85-e2832aae3d12",
+      "sourceBytes": 15579,
+      "renderedBytes": 46382,
+      "diagnostics": [],
+      "counts": {
+        "headings": 40,
+        "code": 12,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 7,
+        "details": 0,
+        "images": 0,
+        "links": 7
+      }
+    },
+    {
+      "id": "d9c10423bf8c3f8128904de002534212",
+      "path": "11_shellcode_loader/课时07_C++可执行堆实现shellcode_loader.md",
+      "title": "C++可执行堆实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "ae0b758f-fda6-4e9b-957c-35b67f5f99ec",
+      "sourceBytes": 4121,
+      "renderedBytes": 19656,
+      "diagnostics": [],
+      "counts": {
+        "headings": 7,
+        "code": 1,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "da6787f603b0e37dcd9d73725ba9e9dc",
+      "path": "16_Anti_Debug专题/课时04_检测PEB结构BeingDebugged.md",
+      "title": "检测PEB结构BeingDebugged",
+      "category": "Anti Debug专题",
+      "revisionId": "58b1af74-5cff-44d6-91cd-4164d1c8beaa",
+      "sourceBytes": 15326,
+      "renderedBytes": 70241,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "da7fca44c0905137f76b6a431c8e5c87",
+      "path": "09_加密壳/课时01_加密壳原理.md",
+      "title": "加密壳原理",
+      "category": "加密壳",
+      "revisionId": "f7b01c14-2e00-41d9-8222-a848ade1c21c",
+      "sourceBytes": 10067,
+      "renderedBytes": 39560,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "da9bf40070844f58157bca00b5ea2a20",
+      "path": "16_Anti_Debug专题/课时24_通过时钟间隔检测调试器.md",
+      "title": "通过时钟间隔检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "4a64a72f-630f-46e8-bf4f-188148b836a6",
+      "sourceBytes": 22488,
+      "renderedBytes": 107086,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "db904d3411425b38bad0035704769c6a",
+      "path": "11_shellcode_loader/课时03_C++线程和远程线程实现shellcode_loader.md",
+      "title": "C++线程和远程线程实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "2ae50dec-2f4f-4e27-94f8-d44e4b8a9fd1",
+      "sourceBytes": 18208,
+      "renderedBytes": 76663,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "dc2fb9d80aa6cb714171d79881ca7990",
+      "path": "06_Windows内核安全/课时13_系统调用.md",
+      "title": "系统调用",
+      "category": "Windows内核安全",
+      "revisionId": "59ee3ec2-f9d2-4d5c-9ec3-b35efc08ae1b",
+      "sourceBytes": 14923,
+      "renderedBytes": 59027,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "dc787bf64908ef7a2fccaf595d4e173a",
+      "path": "03_C&C++软件逆向技术/课时03_ifelse语句识别分析.md",
+      "title": "ifelse语句识别分析",
+      "category": "C&C++软件逆向技术",
+      "revisionId": "4e87ac23-58fc-46c1-9c61-585006f519e0",
+      "sourceBytes": 5617,
+      "renderedBytes": 20585,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "dd0fe4c5bc01790a9770b21695f69e65",
+      "path": "19_提权专题/课时01_Linux内核漏洞提权.md",
+      "title": "Linux内核漏洞提权",
+      "category": "提权专题",
+      "revisionId": "1d25e764-06fb-4d93-936d-5a49ec0cc26d",
+      "sourceBytes": 13404,
+      "renderedBytes": 45058,
+      "diagnostics": [],
+      "counts": {
+        "headings": 64,
+        "code": 27,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "dd7e5f34b0640ab93616e6249234f878",
+      "path": "03_C&C++软件逆向技术/课时04_switch语句识别分析.md",
+      "title": "switch语句识别分析",
+      "category": "C&C++软件逆向技术",
+      "revisionId": "4aab6e07-50a6-447a-abdd-138f14ad2258",
+      "sourceBytes": 6064,
+      "renderedBytes": 21674,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "de65af55802d94ec72589cdbcf5fb559",
+      "path": "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md",
+      "title": "Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3)",
+      "category": "HOOK专题",
+      "revisionId": "2d3b621c-0727-4360-9b49-7b1d51bc7ec4",
+      "sourceBytes": 126215,
+      "renderedBytes": 495215,
+      "diagnostics": [],
+      "counts": {
+        "headings": 122,
+        "code": 22,
+        "math": 0,
+        "mermaid": 13,
+        "tables": 12,
+        "details": 0,
+        "images": 0,
+        "links": 8
+      }
+    },
+    {
+      "id": "de6c1c648a5c9bae564e8d52d6ce6db6",
+      "path": "02_x86_64架构汇编语言/课时13_Linux汇编框架与系统调用.md",
+      "title": "Linux汇编框架与系统调用",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "616945ab-1dd0-48ad-8f91-012de4002832",
+      "sourceBytes": 8187,
+      "renderedBytes": 33685,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 4,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "df1c99c3727bc2558f09f06abbe2c11a",
+      "path": "20_免杀专题/课时25_补充Shellcode加载方式.md",
+      "title": "补充Shellcode加载方式",
+      "category": "免杀专题",
+      "revisionId": "ffeb8242-8bb8-44f1-bfcb-67d8060f64a3",
+      "sourceBytes": 3583,
+      "renderedBytes": 12274,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "dfa5c0376891fe5ee673a081d840b5ba",
+      "path": "15_HOOK专题/11_Windows 全架构 - 硬件固件级 Hook（Ring -2 及以下）.md",
+      "title": "Windows 全架构 - 硬件固件级 Hook（Ring -2 及以下）",
+      "category": "HOOK专题",
+      "revisionId": "0dad958d-8de3-4831-9e24-0bd5e587c58b",
+      "sourceBytes": 22135,
+      "renderedBytes": 32200,
+      "diagnostics": [],
+      "counts": {
+        "headings": 37,
+        "code": 8,
+        "math": 0,
+        "mermaid": 5,
+        "tables": 13,
+        "details": 0,
+        "images": 0,
+        "links": 5
+      }
+    },
+    {
+      "id": "e0416c049ca272bb349c0adf5287e9b7",
+      "path": "20_免杀专题/课时16_代码实现UAC绕过.md",
+      "title": "代码实现UAC绕过",
+      "category": "免杀专题",
+      "revisionId": "08d814e0-3138-4176-baba-b4008dcac874",
+      "sourceBytes": 14007,
+      "renderedBytes": 67805,
+      "diagnostics": [],
+      "counts": {
+        "headings": 17,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "e046425400e5a99e11f6ef9c80f8e687",
+      "path": "08_Windows_PE结构/课时03_区段与数据目录表定位.md",
+      "title": "区段与数据目录表定位",
+      "category": "Windows PE结构",
+      "revisionId": "3c635325-0b4e-4623-bbf8-e8e390703318",
+      "sourceBytes": 17241,
+      "renderedBytes": 75233,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "e1208fb63936e5127fe489aa87ce4480",
+      "path": "10_shellcode开发技术/课时01_shellcode的概念.md",
+      "title": "shellcode的概念",
+      "category": "shellcode开发技术",
+      "revisionId": "42887e94-cb10-45a2-8f32-ef1d373d476d",
+      "sourceBytes": 14689,
+      "renderedBytes": 63551,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "e3035617ec220804275c41a128a25e0a",
+      "path": "04_Win32编程/课时10_窗口操作.md",
+      "title": "窗口操作",
+      "category": "Win32编程",
+      "revisionId": "c346e309-1684-4485-95c2-a75c5a251f98",
+      "sourceBytes": 4268,
+      "renderedBytes": 19538,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "e482963ed28d22ff7e807e1c0c6534ed",
+      "path": "06_Windows内核安全/课时11_模块监控.md",
+      "title": "模块监控",
+      "category": "Windows内核安全",
+      "revisionId": "419cd489-8e13-4d29-825c-7fcd7f80749c",
+      "sourceBytes": 16563,
+      "renderedBytes": 66715,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "e4dab27061173e958290030154d58c19",
+      "path": "01_C&C++快速入门/课时09_逻辑运算符.md",
+      "title": "逻辑运算符",
+      "category": "C&C++快速入门",
+      "revisionId": "174ec3b0-3e67-41e1-b1fe-2668fe3ec2ce",
+      "sourceBytes": 7968,
+      "renderedBytes": 47782,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "e52a00c346ef40c3b355c9af7aa2dd5e",
+      "path": "14_Inject专题/课时04_UserAPC注入.md",
+      "title": "UserAPC注入",
+      "category": "Inject专题",
+      "revisionId": "bc445371-4d22-4549-a98f-091fec9ebc16",
+      "sourceBytes": 23468,
+      "renderedBytes": 92309,
+      "diagnostics": [],
+      "counts": {
+        "headings": 22,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "e6703eaa2daef45ff1af9d820b6e82d6",
+      "path": "05_进程通信专题/课时05_文件映射.md",
+      "title": "文件映射",
+      "category": "进程通信专题",
+      "revisionId": "97fe757e-5c91-4517-a04f-9bc671c631a1",
+      "sourceBytes": 17299,
+      "renderedBytes": 77476,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "e68679a7c0d02c0ce5ca1dfecfa53483",
+      "path": "12_远程控制开发基础/课时03_客户端硬盘文件信息获取.md",
+      "title": "客户端硬盘文件信息获取",
+      "category": "远程控制开发基础",
+      "revisionId": "e013db2b-1faf-4c41-995d-4efecdb333fa",
+      "sourceBytes": 23586,
+      "renderedBytes": 125722,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "e6e0657be64204192ac413c3ae769a3d",
+      "path": "07_Windows网络编程/课时03_UDP套接字与原始套接字.md",
+      "title": "UDP套接字与原始套接字",
+      "category": "Windows网络编程",
+      "revisionId": "50b0fde3-390f-4dd5-a8a0-f820e5e2c4e1",
+      "sourceBytes": 14323,
+      "renderedBytes": 70653,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "e77b64885ea7ec8daf5862693b2f48fd",
+      "path": "11_shellcode_loader/课时15_阶段合集.md",
+      "title": "阶段合集",
+      "category": "shellcode loader",
+      "revisionId": "79d8b9ba-39b2-47db-b01f-afc86c05e414",
+      "sourceBytes": 17752,
+      "renderedBytes": 82201,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "e94ea8f92a9b4f8c0a54ab02e21ccfba",
+      "path": "05_进程通信专题/课时01_邮槽.md",
+      "title": "邮槽",
+      "category": "进程通信专题",
+      "revisionId": "e7f57fde-a38c-4455-824b-6a6a09ecd9f6",
+      "sourceBytes": 3813,
+      "renderedBytes": 14289,
+      "diagnostics": [],
+      "counts": {
+        "headings": 10,
+        "code": 3,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "eb2ca99469eee0f6998d0a5c9a313e44",
+      "path": "02_x86_64架构汇编语言/课时08_函数与堆栈.md",
+      "title": "函数与堆栈",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "aeb3c18e-ad0d-46be-bde0-a6b730bcfc35",
+      "sourceBytes": 6290,
+      "renderedBytes": 25123,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ed5a809dedae4388d5cb341876068b42",
+      "path": "11_shellcode_loader/课时10_C++TLS实现shellcode_loader.md",
+      "title": "C++TLS实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "5be2f4c4-baec-47fe-97b7-9fd76f77c26f",
+      "sourceBytes": 4821,
+      "renderedBytes": 21715,
+      "diagnostics": [],
+      "counts": {
+        "headings": 8,
+        "code": 2,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ee36ae89ea998d0e16566e36d95a0299",
+      "path": "06_Windows内核安全/课时08_监控进程与拦截进程.md",
+      "title": "监控进程与拦截进程",
+      "category": "Windows内核安全",
+      "revisionId": "5d2c86ff-c778-4c49-86b3-33cc2b95e5ef",
+      "sourceBytes": 17508,
+      "renderedBytes": 72292,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ee77e3069f4883f18833100e42f422ae",
+      "path": "12_远程控制开发基础/课时01_通信架构与客户端上线功能.md",
+      "title": "通信架构与客户端上线功能",
+      "category": "远程控制开发基础",
+      "revisionId": "2609b41c-48df-46e8-a43f-f049b720fd7e",
+      "sourceBytes": 19329,
+      "renderedBytes": 97639,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ee8bdde91958678f32ad87732d8b271f",
+      "path": "08_Windows_PE结构/课时08_阶段合集.md",
+      "title": "阶段合集",
+      "category": "Windows PE结构",
+      "revisionId": "bc0b3598-da09-404d-bd71-be64a0604536",
+      "sourceBytes": 24413,
+      "renderedBytes": 105958,
+      "diagnostics": [],
+      "counts": {
+        "headings": 12,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "eea21382940c13871363d351ed3bba98",
+      "path": "07_Windows网络编程/课时08_实现FTP服务器.md",
+      "title": "实现FTP服务器",
+      "category": "Windows网络编程",
+      "revisionId": "316b35cc-a81f-4855-85d1-fec095c5e9e2",
+      "sourceBytes": 9934,
+      "renderedBytes": 53034,
+      "diagnostics": [],
+      "counts": {
+        "headings": 7,
+        "code": 1,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "eebe3cc22d4e1f5800d44d829535ede8",
+      "path": "20_免杀专题/课时14_父进程伪装.md",
+      "title": "父进程伪装",
+      "category": "免杀专题",
+      "revisionId": "a8968d30-7aaa-4c91-8c07-9a5bdbed373f",
+      "sourceBytes": 12243,
+      "renderedBytes": 47061,
+      "diagnostics": [],
+      "counts": {
+        "headings": 21,
+        "code": 5,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "efb0b20fd809fd69811140db63c6593d",
+      "path": "01_C&C++快速入门/课时20_运算符重载.md",
+      "title": "运算符重载",
+      "category": "C&C++快速入门",
+      "revisionId": "79a5ee49-9cab-4668-b736-45a2fa6eb034",
+      "sourceBytes": 4096,
+      "renderedBytes": 23045,
+      "diagnostics": [],
+      "counts": {
+        "headings": 9,
+        "code": 2,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "f10539148eed4bb4cff47ec38d3b45cf",
+      "path": "18_CobaltStrike专题/课时01_CobaltStrike的安装与启动.md",
+      "title": "CobaltStrike的安装与启动",
+      "category": "CobaltStrike专题",
+      "revisionId": "ff9caff0-b13f-4610-8e43-a2bd0c1f1540",
+      "sourceBytes": 9112,
+      "renderedBytes": 19261,
+      "diagnostics": [],
+      "counts": {
+        "headings": 34,
+        "code": 14,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "f29937cf12822bc9c8fd606f4e9bc316",
+      "path": "05_进程通信专题/课时06_阶段合集.md",
+      "title": "阶段合集",
+      "category": "进程通信专题",
+      "revisionId": "b48af306-6c91-48b6-92c5-234db5799f75",
+      "sourceBytes": 29021,
+      "renderedBytes": 135066,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 2,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "f2bedf141e035d008baa7bcaf1e467ed",
+      "path": "20_免杀专题/课时28_花指令的剔除.md",
+      "title": "花指令的剔除",
+      "category": "免杀专题",
+      "revisionId": "60e1c485-6158-4449-9831-6ed81bbb45e6",
+      "sourceBytes": 4036,
+      "renderedBytes": 13728,
+      "diagnostics": [],
+      "counts": {
+        "headings": 18,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "f35b4d2fe8f6276b2de2d868ec1a601d",
+      "path": "08_Windows_PE结构/课时07_重定位表解析.md",
+      "title": "重定位表解析",
+      "category": "Windows PE结构",
+      "revisionId": "325176d7-02dc-4c0c-ba5d-f5281a5cabb9",
+      "sourceBytes": 16631,
+      "renderedBytes": 67922,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "f60fc0f16ab53ae5d4b76d2d42c3645d",
+      "path": "10_shellcode开发技术/课时06_shellcode精简字节数.md",
+      "title": "shellcode精简字节数",
+      "category": "shellcode开发技术",
+      "revisionId": "bb15ece7-7f1f-41e4-9285-5a26120659a7",
+      "sourceBytes": 22058,
+      "renderedBytes": 120521,
+      "diagnostics": [],
+      "counts": {
+        "headings": 18,
+        "code": 8,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "f6874029d7f9f8bf5f758ab0110e2a96",
+      "path": "13_安全开发专题/课时03_资源释放.md",
+      "title": "资源释放",
+      "category": "安全开发专题",
+      "revisionId": "d3d02576-a720-4675-ab2a-e478c2d26b4e",
+      "sourceBytes": 18407,
+      "renderedBytes": 92936,
+      "diagnostics": [],
+      "counts": {
+        "headings": 16,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "f7429d9731099004619c682ce05fa311",
+      "path": "04_Win32编程/课时06_内存管理.md",
+      "title": "内存管理",
+      "category": "Win32编程",
+      "revisionId": "608d9a52-63a8-4f62-9d8c-dd371e384892",
+      "sourceBytes": 4179,
+      "renderedBytes": 17158,
+      "diagnostics": [],
+      "counts": {
+        "headings": 9,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "f7597be4f4ad4d08d23845133f771b60",
+      "path": "01_C&C++快速入门/课时10_循环结构.md",
+      "title": "循环结构",
+      "category": "C&C++快速入门",
+      "revisionId": "be270ef0-b371-4d4c-8335-210e81643cfc",
+      "sourceBytes": 7427,
+      "renderedBytes": 50358,
+      "diagnostics": [],
+      "counts": {
+        "headings": 13,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "f86891b21c50bd4cfe42d09d5c5c8dde",
+      "path": "06_Windows内核安全/课时04_驱动内存管理.md",
+      "title": "驱动内存管理",
+      "category": "Windows内核安全",
+      "revisionId": "98a7222d-82c7-460d-8e19-1db5b9882534",
+      "sourceBytes": 15189,
+      "renderedBytes": 58786,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 6,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "fa1cffd1c93e49ae914f75512f32555c",
+      "path": "20_免杀专题/课时21_特征码定位原理.md",
+      "title": "特征码定位原理",
+      "category": "免杀专题",
+      "revisionId": "07bc7452-d16b-4de4-b0eb-ee24473a9e28",
+      "sourceBytes": 12062,
+      "renderedBytes": 45274,
+      "diagnostics": [],
+      "counts": {
+        "headings": 23,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "fb9b93bd4aca55ca6f6e6ddb743a6d28",
+      "path": "10_shellcode开发技术/课时05_x64shellcode框架.md",
+      "title": "x64shellcode框架",
+      "category": "shellcode开发技术",
+      "revisionId": "f8eccda2-0bb1-44de-ab5b-18b57f50c8bf",
+      "sourceBytes": 22218,
+      "renderedBytes": 125161,
+      "diagnostics": [],
+      "counts": {
+        "headings": 18,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 3,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "fbaa030294bb407a758e1a70abee9d62",
+      "path": "02_x86_64架构汇编语言/课时04_位运算指令.md",
+      "title": "位运算指令",
+      "category": "x86 64架构汇编语言",
+      "revisionId": "f6da8dfd-c8c2-4114-9e6c-d1ff92cdfaf8",
+      "sourceBytes": 4070,
+      "renderedBytes": 19530,
+      "diagnostics": [],
+      "counts": {
+        "headings": 11,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "fc61a53e13ce9d7f12234acf346f4aa5",
+      "path": "20_免杀专题/课时29_动态Patch函数.md",
+      "title": "动态Patch函数",
+      "category": "免杀专题",
+      "revisionId": "3399b5d3-9ac5-4fc8-b14d-e14047689aca",
+      "sourceBytes": 4391,
+      "renderedBytes": 16377,
+      "diagnostics": [],
+      "counts": {
+        "headings": 11,
+        "code": 4,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 0,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "fe117f900a3227126fb498d269856594",
+      "path": "16_Anti_Debug专题/课时07_未公开API检测ProcessDebugPort.md",
+      "title": "未公开API检测ProcessDebugPort",
+      "category": "Anti Debug专题",
+      "revisionId": "ade10650-dc1b-4078-8b12-9e1df9b5983d",
+      "sourceBytes": 18972,
+      "renderedBytes": 81820,
+      "diagnostics": [],
+      "counts": {
+        "headings": 15,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "fe8b188b663bc1cee13685645b339737",
+      "path": "11_shellcode_loader/课时13_C++SEH实现shellcode_loader.md",
+      "title": "C++SEH实现shellcode loader",
+      "category": "shellcode loader",
+      "revisionId": "74c400a6-837f-4aca-b369-f744de2c4f68",
+      "sourceBytes": 6015,
+      "renderedBytes": 29452,
+      "diagnostics": [],
+      "counts": {
+        "headings": 7,
+        "code": 1,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ff2650d1463a01e3712ccf8445d416cd",
+      "path": "16_Anti_Debug专题/课时16_通过NtClose检测调试器.md",
+      "title": "通过NtClose检测调试器",
+      "category": "Anti Debug专题",
+      "revisionId": "45034762-7730-4658-ac41-aa431ee5ef6e",
+      "sourceBytes": 23546,
+      "renderedBytes": 109021,
+      "diagnostics": [],
+      "counts": {
+        "headings": 18,
+        "code": 10,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    },
+    {
+      "id": "ffe2bb155b8384b1156fd2d77076ffd7",
+      "path": "16_Anti_Debug专题/课时01_IsDebuggerPresent.md",
+      "title": "IsDebuggerPresent",
+      "category": "Anti Debug专题",
+      "revisionId": "9e0e836a-f2e5-44b1-9eb1-51c22ed47fb8",
+      "sourceBytes": 9121,
+      "renderedBytes": 32856,
+      "diagnostics": [],
+      "counts": {
+        "headings": 14,
+        "code": 7,
+        "math": 0,
+        "mermaid": 0,
+        "tables": 1,
+        "details": 0,
+        "images": 0,
+        "links": 0
+      }
+    }
+  ]
+}

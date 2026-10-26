@@ -1,0 +1,11 @@
+{
+  "node": "v24.15.0",
+  "sourceFiles": 38,
+  "snapshotSha256": "a13aed13e892cbe005f8eb242cb0ae7421a2e49ed3a29a533ae5922740ba25e5",
+  "tests": 64,
+  "passed": 64,
+  "failed": 0,
+  "durationMs": 126363.4565,
+  "renderer": "2.0.1",
+  "mermaid": "11.16.1"
+}

@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "notes-html/1",
+  "purpose": "manually-authored-contract-not-converter-output",
+  "cases": [
+    {
+      "id": "C01-metadata-headings",
+      "entry": "markdown",
+      "filename": "intro.md",
+      "input": "---\ntitle: 技术笔记\ncategory: C语言\ndraft: false\nuseRealDate: false\n---\n# 开始\n\n中文 **重点** 与 `a < b`。\n\n## 开始\n\n[站外](https://example.com)\n",
+      "expected": {
+        "status": "ready",
+        "htmlSource": "<h1 id=\"section-1\">开始</h1><p>中文 <strong>重点</strong> 与 <code>a &lt; b</code>。</p><h2 id=\"section-2\">开始</h2><p><a href=\"https://example.com\">站外</a></p>",
+        "metadataSubset": {"title": "技术笔记", "tags": ["C语言"], "sourceMetadata": {"draft": false, "useRealDate": false}},
+        "diagnosticCodes": []
+      },
+      "acceptance": "元数据不进入正文；来源 draft:false 不授权发布；重复标题获得唯一 ID。"
+    },
+    {
+      "id": "C02-code-escaping",
+      "entry": "markdown",
+      "filename": "code.md",
+      "input": "```c++\nif (a < b && b > 0) {\n  puts(\"<script>\");\n}\n```\n",
+      "expected": {"status": "ready", "htmlSource": "<pre><code class=\"language-cpp\">if (a &lt; b &amp;&amp; b &gt; 0) {\n  puts(\"&lt;script&gt;\");\n}\n</code></pre>", "diagnosticCodes": []},
+      "acceptance": "保留代码换行、缩进、引号和源码；解码后无双重转义；不含高亮 span。"
+    },
+    {
+      "id": "C03-math-mermaid",
+      "entry": "markdown",
+      "filename": "math.md",
+      "input": "行内 $x^2$。\n\n$$\n\\frac{a}{b} + x^2\n$$\n\n```mermaid\nflowchart LR\n A-->B\n```\n",
+      "expected": {"status": "ready", "htmlSource": "<p>行内 <span data-note-kind=\"math-inline\">x^2</span>。</p><div data-note-kind=\"math-block\">\\frac{a}{b} + x^2</div><pre data-note-kind=\"mermaid\"><code>flowchart LR\n A--&gt;B\n</code></pre>", "diagnosticCodes": []},
+      "acceptance": "HTML 真源不含 KaTeX DOM、SVG 或 PNG；重开后 LaTeX 和图表源码仍可编辑。"
+    },
+    {
+      "id": "C04-table-task-quote",
+      "entry": "markdown",
+      "filename": "blocks.md",
+      "input": "> 引用\n\n- [x] 完成\n- [ ] 待做\n\n| 名称 | 值 |\n| :--- | ---: |\n| A | 1 |\n",
+      "expected": {"status": "ready", "htmlSource": "<blockquote><p>引用</p></blockquote><ul><li data-note-checked=\"true\">完成</li><li data-note-checked=\"false\">待做</li></ul><table><thead><tr><th data-note-align=\"left\">名称</th><th data-note-align=\"right\">值</th></tr></thead><tbody><tr><td data-note-align=\"left\">A</td><td data-note-align=\"right\">1</td></tr></tbody></table>", "diagnosticCodes": []},
+      "acceptance": "任务状态和对齐为受控属性，无 input 或内联样式。"
+    },
+    {
+      "id": "C05-safe-html",
+      "entry": "markdown",
+      "filename": "details.md",
+      "input": "<details><summary>说明</summary><p>可保留的 <strong>正文</strong></p></details>\n",
+      "expected": {"status": "ready", "htmlSource": "<details><summary>说明</summary><p>可保留的 <strong>正文</strong></p></details>", "diagnosticCodes": []},
+      "acceptance": "安全内嵌 HTML 不再像旧 renderer 一样静默丢弃。"
+    },
+    {
+      "id": "C06-unsafe-html",
+      "entry": "html",
+      "input": "<p onclick=\"alert(1)\">正文<script>alert(2)</script><a href=\"jav&#x61;script:alert(3)\">链接</a></p>",
+      "expected": {"status": "review_required", "htmlSource": "<p>正文<a>链接</a></p>", "diagnosticCodes": ["UNSAFE_ATTRIBUTE_REMOVED", "UNSAFE_ELEMENT_REMOVED", "UNSAFE_URL_REMOVED"]},
+      "acceptance": "实体解码后检测危险协议，删除脚本和事件且逐项报告，不能直接发布。"
+    },
+    {
+      "id": "C07-unsupported-html",
+      "entry": "html",
+      "input": "<section><p>原始结构</p></section>",
+      "expected": {"status": "review_required", "htmlSource": "<pre data-note-kind=\"unsupported\"><code>&lt;section&gt;&lt;p&gt;原始结构&lt;/p&gt;&lt;/section&gt;</code></pre>", "diagnosticCodes": ["UNSUPPORTED_NODE"]},
+      "acceptance": "安全但未支持的结构保留为转义兼容块；原片段可恢复。"
+    },
+    {
+      "id": "C08-resource-mapping",
+      "entry": "markdown",
+      "filename": "media.md",
+      "input": "![架构](./images/a.png)\n\n[下一篇](./next.md)\n",
+      "context": {"mediaMap": {"./images/a.png": "/media/sample-a"}, "articleMap": {"./next.md": "/notes/sample-next"}},
+      "expected": {"status": "ready", "htmlSource": "<p><img alt=\"架构\" src=\"/media/sample-a\"></p><p><a href=\"/notes/sample-next\">下一篇</a></p>", "diagnosticCodes": []},
+      "acceptance": "映射由入口传入；样例 ID 不代表真实文件，纯转换不访问磁盘或网络。"
+    },
+    {
+      "id": "C09-missing-resources",
+      "entry": "markdown",
+      "filename": "missing.md",
+      "input": "![截图](./missing.png)\n\n[旧文](./unknown.md)\n",
+      "expected": {"status": "review_required", "htmlSource": "<p><span data-note-kind=\"missing-media\" data-note-path=\"./missing.png\">截图</span></p><p><a>旧文</a></p>", "diagnosticCodes": ["MISSING_MEDIA", "LINK_UNRESOLVED"]},
+      "acceptance": "没有假装图片正常；阻止发布并允许补传；不得按此路径读取服务器文件。"
+    },
+    {
+      "id": "C10-bom-crlf",
+      "entry": "markdown",
+      "filename": "encoding.md",
+      "inputHex": "efbbbf2320410d0a0d0a420d0a",
+      "expected": {"status": "ready", "htmlSource": "<h1 id=\"section-1\">A</h1><p>B</p>", "metadataSubset": {"title": "A"}, "diagnosticCodes": []},
+      "acceptance": "输入是真实 BOM/CRLF 字节；归档保留字节，解析正文无 BOM。"
+    },
+    {
+      "id": "C11-invalid-utf8",
+      "entry": "markdown",
+      "filename": "bad-encoding.md",
+      "inputHex": "c328",
+      "expected": {"status": "rejected", "htmlSource": null, "diagnosticCodes": ["INVALID_UTF8"]},
+      "acceptance": "严格解码失败；不以 U+FFFD 继续生成文章。"
+    },
+    {
+      "id": "C12-invalid-frontmatter",
+      "entry": "markdown",
+      "filename": "bad-yaml.md",
+      "input": "---\ntitle: [未闭合\n---\n\n正文\n",
+      "expected": {"status": "rejected", "htmlSource": null, "diagnosticCodes": ["INVALID_FRONTMATTER"]},
+      "acceptance": "错误有文件和位置；单项失败不删除原件或覆盖原文章。"
+    },
+    {
+      "id": "C13-unknown-language",
+      "entry": "markdown",
+      "filename": "custom.md",
+      "input": "```customlang\nalpha < beta\n```\n",
+      "expected": {"status": "ready", "htmlSource": "<pre><code class=\"language-customlang\">alpha &lt; beta\n</code></pre>", "diagnosticCodes": ["UNKNOWN_CODE_LANGUAGE"]},
+      "acceptance": "未知语言保留，展示可用纯文本回退；此诊断不阻止发布。"
+    },
+    {
+      "id": "C14-html-roundtrip-seed",
+      "entry": "html",
+      "input": "<h2 id=\"section-8\">改过的标题</h2><p>新文字<span data-note-kind=\"math-inline\">a &lt; b</span></p><pre><code class=\"language-cpp\">int x = 1;\n</code></pre>",
+      "expected": {"status": "ready", "htmlSource": "<h2 id=\"section-8\">改过的标题</h2><p>新文字<span data-note-kind=\"math-inline\">a &lt; b</span></p><pre><code class=\"language-cpp\">int x = 1;\n</code></pre>", "diagnosticCodes": []},
+      "acceptance": "已规范 HTML 再规范化不变；第 4 批编辑普通文字后保留 ID、公式和代码语义。"
+    },
+    {
+      "id": "C15-nested-list-h6",
+      "entry": "markdown",
+      "filename": "nested.md",
+      "input": "###### 深层标题\n\n3. 第一项\n   - 子项\n4. 第二项\n",
+      "expected": {"status": "ready", "htmlSource": "<h6 id=\"section-1\">深层标题</h6><ol start=\"3\"><li>第一项<ul><li>子项</li></ul></li><li>第二项</li></ol>", "diagnosticCodes": []},
+      "acceptance": "目录包含 h6，嵌套列表层次和起始序号不丢失。"
+    }
+  ]
+}

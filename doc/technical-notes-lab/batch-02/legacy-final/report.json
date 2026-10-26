@@ -1,0 +1,128 @@
+{
+  "schemaVersion": "notes-html/1",
+  "mode": "offline-precheck-no-database",
+  "items": [
+    {
+      "id": "preview-de65af55802d94ec",
+      "path": "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md",
+      "originalHash": "61dc45350cd43f97dd0d746b3b646f57edadf8391e71f376fda095808f338cc3",
+      "status": "ready",
+      "renderStatus": "ready",
+      "elapsedMs": 6620,
+      "diagnostics": [],
+      "file": "preview-de65af55802d94ec.json"
+    },
+    {
+      "id": "preview-5ee71fd87d8d7dc1",
+      "path": "15_HOOK专题/09_Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）.md",
+      "originalHash": "a5c371668a91b8c7502ae9e0b97fef28097abcf745effe226d5ec4b87b694483",
+      "status": "review_required",
+      "renderStatus": "failed",
+      "elapsedMs": 2397,
+      "diagnostics": [
+        {
+          "code": "RENDER_FAILED",
+          "severity": "error",
+          "blocksPublishing": true,
+          "location": null,
+          "message": "Parse error on line 9:\n...mov eax,SSN; syscall    CPU->>Ki: IA32_\n-----------------------^\nExpecting '()', 'SOLID_OPEN_ARROW', 'DOTTED_OPEN_ARROW', 'SOLID_ARROW', 'SOLID_ARROW_TOP', 'SOLID_ARROW_BOTTOM', 'STICK_ARROW_TOP', 'STICK_ARROW_BOTTOM', 'SOLID_ARROW_TOP_DOTTED', 'SOLID_ARROW_BOTTOM_DOTTED', 'STICK_ARROW_TOP_DOTTED', 'STICK_ARROW_BOTTOM_DOTTED', 'SOLID_ARROW_TOP_REVERSE', 'SOLID_ARROW_BOTTOM_REVERSE', 'STICK_ARROW_TOP_REVERSE', 'STICK_ARROW_BOTTOM_REVERSE', 'SOLID_ARROW_TOP_REVERSE_DOTTED', 'SOLID_ARROW_BOTTOM_REVERSE_DOTTED', 'STICK_ARROW_TOP_REVERSE_DOTTED', 'STICK_ARROW_BOTTOM_REVERSE_DOTTED', 'BIDIRECTIONAL_SOLID_ARROW', 'DOTTED_ARROW', 'BIDIRECTIONAL_DOTTED_ARROW', 'SOLID_CROSS', 'DOTTED_CROSS', 'SOLID_POINT', 'DOTTED_POINT', got 'NEWLINE'"
+        }
+      ],
+      "file": "preview-5ee71fd87d8d7dc1.json"
+    },
+    {
+      "id": "preview-451fddefed3bfccd",
+      "path": "13_安全开发专题/课时06_令牌提权.md",
+      "originalHash": "083e54fe7851a33bb1e2f8ed82405bf767c4753b7684dc15ea3938771f541ca3",
+      "status": "ready",
+      "renderStatus": "ready",
+      "elapsedMs": 1338,
+      "diagnostics": [],
+      "file": "preview-451fddefed3bfccd.json"
+    },
+    {
+      "id": "preview-ab1e0f97d8fb774a",
+      "path": "06_Windows内核安全/课时15_阶段合集.md",
+      "originalHash": "51945cff4a2f978a49a11421bab27c449c344c505aa593fbfe26c65d3441435b",
+      "status": "ready",
+      "renderStatus": "ready",
+      "elapsedMs": 1153,
+      "diagnostics": [],
+      "file": "preview-ab1e0f97d8fb774a.json"
+    },
+    {
+      "id": "preview-ac3bbe2a7d48aa07",
+      "path": "19_提权专题/课时07_提权信息收集.md",
+      "originalHash": "7e46bad32e8b06b0b769c8ac643c245bce8226e6aa72f970a41fd3434eb0a63c",
+      "status": "ready",
+      "renderStatus": "ready",
+      "elapsedMs": 1155,
+      "diagnostics": [],
+      "file": "preview-ac3bbe2a7d48aa07.json"
+    },
+    {
+      "id": "preview-f29937cf12822bc9",
+      "path": "05_进程通信专题/课时06_阶段合集.md",
+      "originalHash": "4bf5d80e335671dbcf29297ad2e893f7a2157073a8afba1c4aaf864e7e020f51",
+      "status": "ready",
+      "renderStatus": "ready",
+      "elapsedMs": 1157,
+      "diagnostics": [],
+      "file": "preview-f29937cf12822bc9.json"
+    },
+    {
+      "id": "preview-45ae40a5262e0ff3",
+      "path": "12_远程控制开发基础/课时07_阶段合集.md",
+      "originalHash": "8e17cdeddae8a4d38bde009cca75b4978016e4d63ff18c7fe38d1c3bb8f5ca08",
+      "status": "ready",
+      "renderStatus": "ready",
+      "elapsedMs": 1467,
+      "diagnostics": [],
+      "file": "preview-45ae40a5262e0ff3.json"
+    },
+    {
+      "id": "preview-46127210e2b01771",
+      "path": "16_Anti_Debug专题/课时18_通过DuplicateHandle检测调试器.md",
+      "originalHash": "a850919be4f0de25a940381c8ee8902525ffdd3056137506937e19e08fd58899",
+      "status": "ready",
+      "renderStatus": "ready",
+      "elapsedMs": 1276,
+      "diagnostics": [],
+      "file": "preview-46127210e2b01771.json"
+    },
+    {
+      "id": "preview-56500374d69bec97",
+      "path": "15_HOOK专题/10_Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）.md",
+      "originalHash": "f4a8e1cc943faebfd3d00fca19d98ac6c3448bc4f0702b5448e4d76c291faa21",
+      "status": "ready",
+      "renderStatus": "ready",
+      "elapsedMs": 2268,
+      "diagnostics": [],
+      "file": "preview-56500374d69bec97.json"
+    },
+    {
+      "id": "preview-7e6a8a161567b1bf",
+      "path": "13_安全开发专题/课时05_屏幕截屏.md",
+      "originalHash": "5b13595f8bd252e742d94bb52fbe6fbc1e2d00d92a4eb1e9fff1138599e87611",
+      "status": "ready",
+      "renderStatus": "ready",
+      "elapsedMs": 1327,
+      "diagnostics": [],
+      "file": "preview-7e6a8a161567b1bf.json"
+    }
+  ],
+  "media": {},
+  "skipped": [],
+  "totals": {
+    "ready": 9,
+    "review_required": 1,
+    "rejected": 0
+  },
+  "limits": {
+    "inputBytes": 1900000,
+    "mediaBytes": 10000000,
+    "workerTimeoutMs": 10000
+  },
+  "databaseWritten": false,
+  "count": 10
+}

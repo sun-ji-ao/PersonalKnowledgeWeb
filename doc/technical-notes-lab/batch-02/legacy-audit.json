@@ -1,0 +1,117 @@
+{
+  "automatedSemanticAudit": true,
+  "browserVisualInspection": false,
+  "count": 10,
+  "items": [
+    {
+      "path": "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md",
+      "originalHash": "61dc45350cd43f97dd0d746b3b646f57edadf8391e71f376fda095808f338cc3",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 22,
+      "formulas": 0,
+      "mermaidBlocks": 13,
+      "conversionStatus": "ready",
+      "renderStatus": "ready"
+    },
+    {
+      "path": "15_HOOK专题/09_Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）.md",
+      "originalHash": "a5c371668a91b8c7502ae9e0b97fef28097abcf745effe226d5ec4b87b694483",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 21,
+      "formulas": 0,
+      "mermaidBlocks": 12,
+      "conversionStatus": "review_required",
+      "renderStatus": "failed"
+    },
+    {
+      "path": "13_安全开发专题/课时06_令牌提权.md",
+      "originalHash": "083e54fe7851a33bb1e2f8ed82405bf767c4753b7684dc15ea3938771f541ca3",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 6,
+      "formulas": 0,
+      "mermaidBlocks": 0,
+      "conversionStatus": "ready",
+      "renderStatus": "ready"
+    },
+    {
+      "path": "06_Windows内核安全/课时15_阶段合集.md",
+      "originalHash": "51945cff4a2f978a49a11421bab27c449c344c505aa593fbfe26c65d3441435b",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 5,
+      "formulas": 0,
+      "mermaidBlocks": 0,
+      "conversionStatus": "ready",
+      "renderStatus": "ready"
+    },
+    {
+      "path": "19_提权专题/课时07_提权信息收集.md",
+      "originalHash": "7e46bad32e8b06b0b769c8ac643c245bce8226e6aa72f970a41fd3434eb0a63c",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 36,
+      "formulas": 0,
+      "mermaidBlocks": 0,
+      "conversionStatus": "ready",
+      "renderStatus": "ready"
+    },
+    {
+      "path": "05_进程通信专题/课时06_阶段合集.md",
+      "originalHash": "4bf5d80e335671dbcf29297ad2e893f7a2157073a8afba1c4aaf864e7e020f51",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 8,
+      "formulas": 0,
+      "mermaidBlocks": 0,
+      "conversionStatus": "ready",
+      "renderStatus": "ready"
+    },
+    {
+      "path": "12_远程控制开发基础/课时07_阶段合集.md",
+      "originalHash": "8e17cdeddae8a4d38bde009cca75b4978016e4d63ff18c7fe38d1c3bb8f5ca08",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 4,
+      "formulas": 0,
+      "mermaidBlocks": 0,
+      "conversionStatus": "ready",
+      "renderStatus": "ready"
+    },
+    {
+      "path": "16_Anti_Debug专题/课时18_通过DuplicateHandle检测调试器.md",
+      "originalHash": "a850919be4f0de25a940381c8ee8902525ffdd3056137506937e19e08fd58899",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 9,
+      "formulas": 0,
+      "mermaidBlocks": 0,
+      "conversionStatus": "ready",
+      "renderStatus": "ready"
+    },
+    {
+      "path": "15_HOOK专题/10_Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）.md",
+      "originalHash": "f4a8e1cc943faebfd3d00fca19d98ac6c3448bc4f0702b5448e4d76c291faa21",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 8,
+      "formulas": 0,
+      "mermaidBlocks": 6,
+      "conversionStatus": "ready",
+      "renderStatus": "ready"
+    },
+    {
+      "path": "13_安全开发专题/课时05_屏幕截屏.md",
+      "originalHash": "5b13595f8bd252e742d94bb52fbe6fbc1e2d00d92a4eb1e9fff1138599e87611",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 6,
+      "formulas": 0,
+      "mermaidBlocks": 0,
+      "conversionStatus": "ready",
+      "renderStatus": "ready"
+    }
+  ]
+}

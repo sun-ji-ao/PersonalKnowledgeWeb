@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "notes-html/1",
+  "mode": "offline-precheck-no-database",
+  "items": [
+    {
+      "id": "preview-b3f46e1eb270daed",
+      "path": "missing-media.md",
+      "originalHash": "be5724acb72faf8255d179696b90a120f2b0228c430e09c80294dfc6f2824e61",
+      "status": "review_required",
+      "renderStatus": "ready",
+      "elapsedMs": 927,
+      "diagnostics": [
+        {
+          "code": "MISSING_MEDIA",
+          "severity": "warning",
+          "blocksPublishing": true,
+          "location": null,
+          "message": "Unresolved resource: ./absent.png"
+        },
+        {
+          "code": "LINK_UNRESOLVED",
+          "severity": "warning",
+          "blocksPublishing": true,
+          "location": null,
+          "message": "Unresolved resource: ./unknown.md"
+        }
+      ],
+      "file": "preview-b3f46e1eb270daed.json"
+    },
+    {
+      "id": "preview-a118a04699fd7145",
+      "path": "writing-contract.md",
+      "originalHash": "e6b0cd7c1a90145a470fa0fa8a3e9eab481ad59e635a9ff398c6d54e42328121",
+      "status": "ready",
+      "renderStatus": "ready",
+      "elapsedMs": 2045,
+      "diagnostics": [],
+      "file": "preview-a118a04699fd7145.json"
+    }
+  ],
+  "media": {},
+  "skipped": [],
+  "totals": {
+    "ready": 1,
+    "review_required": 1,
+    "rejected": 0
+  },
+  "limits": {
+    "inputBytes": 1900000,
+    "mediaBytes": 10000000,
+    "workerTimeoutMs": 10000
+  },
+  "databaseWritten": false,
+  "count": 2
+}

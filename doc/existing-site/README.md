@@ -1,5 +1,7 @@
 # 孙计奥 Notes — 个人技术知识网站
 
+本文已归档至 `doc/existing-site/`；下文命令和项目路径均以 `C:\Users\17536\Desktop\website` 为工作目录。
+
 基于 [Astro](https://astro.build/) 的静态知识库站点，将本地 Markdown 技术文档自动导入、构建为可浏览、可搜索的个人网站。内容涵盖 Windows 内核、C/C++、逆向工程、安全研究等主题。
 
 **在线地址：** https://sun-ji-ao.github.io

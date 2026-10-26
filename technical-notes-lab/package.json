@@ -1,0 +1,40 @@
+{
+  "name": "technical-notes-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
+    "import": "node scripts/import.mjs",
+    "precheck": "node scripts/precheck.mjs",
+    "preview:conversion": "node scripts/preview-conversion.mjs",
+    "build:editor": "esbuild public/html-editor.js --bundle --format=esm --outfile=public/html-editor.bundle.js --legal-comments=linked --banner:js=\"/* Third-party MIT licenses: html-editor.LICENSE.txt */\""
+  },
+  "dependencies": {
+    "esbuild": "0.25.10",
+    "jsdom": "26.1.0",
+    "katex": "0.16.47",
+    "mermaid": "11.16.1",
+    "parse5": "7.3.0",
+    "prosemirror-commands": "1.7.1",
+    "prosemirror-history": "1.5.0",
+    "prosemirror-keymap": "1.2.3",
+    "prosemirror-model": "1.25.4",
+    "prosemirror-schema-list": "1.5.1",
+    "prosemirror-state": "1.4.4",
+    "prosemirror-view": "1.41.3",
+    "rehype-katex": "7.0.1",
+    "rehype-stringify": "10.0.1",
+    "remark-gfm": "4.0.1",
+    "remark-math": "6.0.0",
+    "remark-parse": "11.0.0",
+    "remark-rehype": "11.1.2",
+    "shiki": "4.3.1",
+    "unified": "11.0.5",
+    "yaml": "2.8.3"
+  }
+}

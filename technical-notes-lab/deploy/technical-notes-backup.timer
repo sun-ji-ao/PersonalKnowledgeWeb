@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Technical Notes joint backup
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+Persistent=true
+Unit=technical-notes-backup.service
+
+[Install]
+WantedBy=timers.target

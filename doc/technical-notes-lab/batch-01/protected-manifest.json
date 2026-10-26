@@ -1,0 +1,1014 @@
+[
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时01_Windows环境配置.md",
+    "sha256": "8768e9efcf7fc05e5b67cbe850ea3c19e9940cb3e3a618e04bc4a503d45fbc14"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时02_Linux环境配置.md",
+    "sha256": "e6f1b6259e81f68001cba42655ca3e74ce86aa806152cd4a51e1b8bc45a350fd"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时03_第一个C&C++程序.md",
+    "sha256": "fe41b8655553de9971b2077571c8a4337a103b5d06558b189e103b52122bb0dd"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时04_进制与位.md",
+    "sha256": "c37187d4ed690d1b3f279d45c0463385354a914a6007d365c472396bec351740"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时05_基础数据类型.md",
+    "sha256": "3486f526fbabdde6151b0236362edaf343fb9064bb03ee21199b546c7b985cd9"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时06_选择结构.md",
+    "sha256": "3922cacf1d87ec27ae5b421c9d75a2b5e4d809969d6dee881a6c37b8418adb93"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时07_位运算.md",
+    "sha256": "74db9fd021e9dfdda8dd857686e7afb4696131d47bba07042b176a51f05d87e4"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时08_算术运算符.md",
+    "sha256": "d071720e7cfd25e571725bb85e24d9b2d368be9af08411bdb42abd9853e270b8"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时09_逻辑运算符.md",
+    "sha256": "512f73afe02d7683cf0244f7fcd9d96b6a610f9a55811f27fde20bad4517907d"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时10_循环结构.md",
+    "sha256": "650f8a23a4c257354a08db77c4e1acfaadad9c5419aa25c0996fdb6ff4aecfb4"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时11_数组与字符串.md",
+    "sha256": "3714d63a491fb3d2ad65bee949d1d65a2f736d6350a4bcd475b9a680ff05fafc"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时12_指针与内存管理.md",
+    "sha256": "2942f8a53509482db481ffb6dd13ad7b7c7fedc475cfab544bad564375f70644"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时13_字符串操作函数.md",
+    "sha256": "9a68a53414cb5b1254ebf175b57753dd75d24bdfd2e416eabc5f9f96029b52e1"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时14_函数与递归.md",
+    "sha256": "9c2bd75f422471b7776c4da7204c0ad71b024e54e6339389e95b2519f95ebe77"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时15_输入输出函数.md",
+    "sha256": "dd7da9a08a10a9e48d8f0e74a10c38f3a6256714c29c05366f90f7c8a5973b3c"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时16_结构体联合体与枚举.md",
+    "sha256": "deb9d97dc3e4a3d3ff5f757585a7543b87d4ac3ef30856013798911f683039aa"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时17_有参宏与无参宏.md",
+    "sha256": "baf71ef83dc955d41a972859201f9ea3381c811889ecaebd95b2e561444ace33"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时18_文件操作C.md",
+    "sha256": "d98f27fe63699cf6bdc01e7208c7fa9614ffb5268022e6452f6909a2666a926c"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时19_类和封装.md",
+    "sha256": "2425d49a9413eb8efde77b8a83e76aac38055219b88512dcc5c46dafc3b521e5"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时20_运算符重载.md",
+    "sha256": "d0027b102ee879a2d755211350da694d28e74203e462e85fe41a7eedabfc0354"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时21_多态.md",
+    "sha256": "f9dbb661398876ba0ee5b01f53eda05f26b68c02cd169a9e728c1f490ca9521c"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时22_继承.md",
+    "sha256": "cf2ff0d2b4bd72bb5631528271f4a8aa90f39519a59038481ca886f88b017c67"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时23_异常.md",
+    "sha256": "1b5a0d899d508a29d3a8ab18b7efc93c10314bf1df3368c6e8d8e5092acba3cb"
+  },
+  {
+    "path": "bypassAV-study-main/01_C&C++快速入门/课时24_阶段合集.md",
+    "sha256": "9dc8a9e6dc9e776b3a6c413b16bbfa5ebe4001e15da1b443a1dfadc6cc918f73"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时01_汇编的概念与常用寄存器.md",
+    "sha256": "946b3b4e4dc65d0223b2eb6b5a3f934e0340941e42615195dcb9878d691b65ae"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时02_x86汇编框架.md",
+    "sha256": "aa295e888a2270ac0446b37814f6b713ba104ba03ebcdc061fb4ebd50052b975"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时03_数据类型与整数运算.md",
+    "sha256": "d19a3adcdbca4b0a44f2d4cbe864aee9680bf249f41854eb0216d3cd0716836d"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时04_位运算指令.md",
+    "sha256": "7adaea601a669fc633769264e9a07b8ce61a6cf272d0d9e51a20ba98a9b73fe3"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时05_保护模式下的寻址方式.md",
+    "sha256": "2372601f0b9388a9b7665c7ff3e6ea0b23d90307374150900ad1528cefacdfb0"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时06_EFLAGS标志寄存器.md",
+    "sha256": "55bfdaa1b7825c3cc92b0cb1b0c6e2da9c779245eaf5754aa572803f4282e7d7"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时07_JCC指令.md",
+    "sha256": "4ebe885068e7f8edadbe0595a83e787ec7bf16520c8261d2d78b213ef76b96bc"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时08_函数与堆栈.md",
+    "sha256": "4807c8befd0768faf5ca2c82ab42565e251533ec873e9409ba5df5be22d753c2"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时09_数组与串指令.md",
+    "sha256": "1f68691caa9fb2cbea6d7636ef4cf53113aa13169c60683a2ab137f209d75e6c"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时10_结构体与宏.md",
+    "sha256": "fcc50bf6a668a410d4604b7d39dffcaea8aac6bc02e1f55bcc57aa1d417ca0c5"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时11_x64汇编框架.md",
+    "sha256": "06d6ece6b2a1747f455e293dbcf800df1b18d63f549f8282930dd98edfc14ded"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时12_内联汇编与混合编程.md",
+    "sha256": "0e1d9d2b7d56b1b97b29fa7d7f8e8d9e8598ef097af9ddaac65338eaedb5554a"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时13_Linux汇编框架与系统调用.md",
+    "sha256": "242a23a19643d29cf3ed306ce1f55c3e8ba1de61f25370380742677702a594d5"
+  },
+  {
+    "path": "bypassAV-study-main/02_x86_64架构汇编语言/课时14_阶段合集.md",
+    "sha256": "0eb646418b4873aa07ecd09811654a24f6d5b9bca613ca44fdd714a7d0ecdbe4"
+  },
+  {
+    "path": "bypassAV-study-main/03_C&C++软件逆向技术/课时01_分析定位目标功能.md",
+    "sha256": "22fd75801d7f2ccb0282855db47233398cba20dc26c478872ce3ab589edafee5"
+  },
+  {
+    "path": "bypassAV-study-main/03_C&C++软件逆向技术/课时02_函数调用约定.md",
+    "sha256": "019d535c8b739e81334aca7f8df3de95cff19bece47dc299a7044485f96fd4c6"
+  },
+  {
+    "path": "bypassAV-study-main/03_C&C++软件逆向技术/课时03_ifelse语句识别分析.md",
+    "sha256": "d33e0d8414a1d060702fa29a47a5559d85ebc66b2b637ef1bf100305cc882908"
+  },
+  {
+    "path": "bypassAV-study-main/03_C&C++软件逆向技术/课时04_switch语句识别分析.md",
+    "sha256": "0e3496037d279c3d3f34f43b34a3be54ab7921ceb3fc450fcc2404cc89c8c7b8"
+  },
+  {
+    "path": "bypassAV-study-main/03_C&C++软件逆向技术/课时05_循环结构识别分析.md",
+    "sha256": "0acfcbaa9b2951357e70be4d3296a9c454f1fda9d190a5d2852151e6d1399971"
+  },
+  {
+    "path": "bypassAV-study-main/03_C&C++软件逆向技术/课时06_数组与指针识别分析.md",
+    "sha256": "a95d24d275868abac3e9d8313bf5480e5f7a5cd8be4d5b594cb8e8d2cb160604"
+  },
+  {
+    "path": "bypassAV-study-main/03_C&C++软件逆向技术/课时07_类与对象识别分析.md",
+    "sha256": "61faed2f649e22fa02d6ceeae4f266722e143b06c3a44a7319c9129f70993bf9"
+  },
+  {
+    "path": "bypassAV-study-main/03_C&C++软件逆向技术/课时08_构造函数与析构函数识别分析.md",
+    "sha256": "5cf135476bbb20a30a34d807ecc0fee6246193a8823506713efb12b98e052590"
+  },
+  {
+    "path": "bypassAV-study-main/03_C&C++软件逆向技术/课时09_阶段合集.md",
+    "sha256": "5772ddc65519e8e7231d669a4508fd27b43cec64f2b7b48f2cc51d6255771e62"
+  },
+  {
+    "path": "bypassAV-study-main/04_Win32编程/课时01_消息机制.md",
+    "sha256": "b7af00fbab3cee5e8a8ccd69520a2682524a554d9ae69ca5b7cdf3c91e43f407"
+  },
+  {
+    "path": "bypassAV-study-main/04_Win32编程/课时02_文件与目录.md",
+    "sha256": "0867d1ecf19fc253c6d1d5fa43208a091b446160c32497a48617806bd270c059"
+  },
+  {
+    "path": "bypassAV-study-main/04_Win32编程/课时03_进程与线程.md",
+    "sha256": "87c0228d8c5909d50cb42b8a2fce1963e0195c112d28bd82faac05306c0a22f6"
+  },
+  {
+    "path": "bypassAV-study-main/04_Win32编程/课时04_线程同步机制.md",
+    "sha256": "c3129566bb16cc45f8cc83a00eef5bfc73881fe2094b549c4be35dd9d0da6ba2"
+  },
+  {
+    "path": "bypassAV-study-main/04_Win32编程/课时05_静态库与动态库.md",
+    "sha256": "88587edb40e729e108fe10232424782dc1b64320a1c9df8d6c8a4d23acc5600c"
+  },
+  {
+    "path": "bypassAV-study-main/04_Win32编程/课时06_内存管理.md",
+    "sha256": "a74a9eefc061d9e408454cab5c37392808716156060bb87b6680ecddb54b8b16"
+  },
+  {
+    "path": "bypassAV-study-main/04_Win32编程/课时07_异常处理.md",
+    "sha256": "fb60f06e32fa3d43c168545c7bf2915902719ef2133f074fba2a89be256bd178"
+  },
+  {
+    "path": "bypassAV-study-main/04_Win32编程/课时08_TLS机制.md",
+    "sha256": "62d7d0e3ed49c9e0f621546235c5c45cf70e9c8186e63c36504f9673d6b61cb1"
+  },
+  {
+    "path": "bypassAV-study-main/04_Win32编程/课时09_注册表.md",
+    "sha256": "c8c0d4ef6f507d64d603e2dce2c7007649ccdb820d28600b5e9f82f2af98343e"
+  },
+  {
+    "path": "bypassAV-study-main/04_Win32编程/课时10_窗口操作.md",
+    "sha256": "e8d288c2028c01c72120103415d06d4ecf645f36eef34898cc53d9b468059c89"
+  },
+  {
+    "path": "bypassAV-study-main/04_Win32编程/课时11_阶段合集.md",
+    "sha256": "db0524fc2ac90dc3d4949a0313cf9c3a598b30f12c514837c9f255434aad176e"
+  },
+  {
+    "path": "bypassAV-study-main/05_进程通信专题/课时01_邮槽.md",
+    "sha256": "43e9925c6fb50927854301a20af92e5deb3582d11e434cafb28a1fd7a1d24cdd"
+  },
+  {
+    "path": "bypassAV-study-main/05_进程通信专题/课时02_管道.md",
+    "sha256": "4368856ca0631efc1a6bd04ef314c511c86113db63b3767cd92627e09dc516f0"
+  },
+  {
+    "path": "bypassAV-study-main/05_进程通信专题/课时03_剪切板.md",
+    "sha256": "4abb84bff1681679fea8e61f8995ce93d0736bf389764db18ce19562a061afe3"
+  },
+  {
+    "path": "bypassAV-study-main/05_进程通信专题/课时04_WM_COPYDATA.md",
+    "sha256": "02abb2d6122529f1e260f1619a5b77d1743882aa93755c6e24390bd8104016e7"
+  },
+  {
+    "path": "bypassAV-study-main/05_进程通信专题/课时05_文件映射.md",
+    "sha256": "e0d4cb2d97d990d94770f504c8c1bcdc1ee786b23f8a1f1fa29ccc822f7e556a"
+  },
+  {
+    "path": "bypassAV-study-main/05_进程通信专题/课时06_阶段合集.md",
+    "sha256": "4bf5d80e335671dbcf29297ad2e893f7a2157073a8afba1c4aaf864e7e020f51"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时01_配置双机调试环境.md",
+    "sha256": "4637134b03dd3ab2896536692bce10ae3d73ce0bc6613fd2c81c28aae6350306"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时02_第一个驱动程序.md",
+    "sha256": "d3e37718d87612e43d623ecd666b0915afa386f6d30716d0a916b63028150348"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时03_IRQL中断请求级别.md",
+    "sha256": "c1c1cdbd55d2aa51ddd9ba05110cbb5def7d79967c0e121e6ce110f8f0e39691"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时04_驱动内存管理.md",
+    "sha256": "ec2e89e88f193447b6382162cf2fdc80eb534109948a64878ce794bbd9e39030"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时05_字符串操作.md",
+    "sha256": "40d593bd5453e5716fe6f16acc93528755bfcf9faf95ac3849835c9f80bd810d"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时06_链表操作.md",
+    "sha256": "dfe79946370782d8bdc319922175cabad61a63db4b6fc4535a0e683a9f5c1581"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时07_R3与R0通信.md",
+    "sha256": "ad474aaab64eec4b2c54b00832c50158e6ffcf1a9360a25dbbf3dbb129211130"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时08_监控进程与拦截进程.md",
+    "sha256": "5bcae9ada2f806f7a059a7b339e248f689d0a9ea3ade66db0bad31ce81e1fb78"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时09_线程监控.md",
+    "sha256": "1b02fa3d8aa874481988a3aa6a4e2a5eb3793d387f22c6c7a1237c92163c954a"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时10_对象监控.md",
+    "sha256": "de619aab7ad8080b010e862e85fe8293a7a2390fde8353707b2a660c9da7bd6f"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时11_模块监控.md",
+    "sha256": "8693eb29da7a6aebd6ea69ba707acb2b2be2b268892c03a1b2bcd8d5aaad03f1"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时12_监控注册表.md",
+    "sha256": "ffbd61e4a3db8d903463609705ebbb4e430d216e0d153a7e82716cde9bbf0bb5"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时13_系统调用.md",
+    "sha256": "5f2b3ceb1ddee3dfd11bf7be4e71fd3268a3dc7eb772208d8bec424144a641f4"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时14_SSDT_Hook.md",
+    "sha256": "ef1ee3f53716619ef6a44143a3db189875a4b566d412ff7548680ee1c3f70755"
+  },
+  {
+    "path": "bypassAV-study-main/06_Windows内核安全/课时15_阶段合集.md",
+    "sha256": "51945cff4a2f978a49a11421bab27c449c344c505aa593fbfe26c65d3441435b"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时01_主机相关网络信息编程.md",
+    "sha256": "73b30f32b6e086cc8caf9764f55f43e0d74dc60ac94e8d50574bfec7782f1d8c"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时02_TCP套接字编程与主机上线实验.md",
+    "sha256": "34006c0f4dc17efee8f9d149baab83fba501d04978d68505071b52d3f30ee490"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时03_UDP套接字与原始套接字.md",
+    "sha256": "591642c63d6101a26f6160a0e98660f166012e74974dc15b157f98893a7c773f"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时04_远控添加Client端进程信息获取功能.md",
+    "sha256": "079f3c543d9d197524ffb4c6017be9f019104f92b27ddb1e33c3116aadc33c76"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时05_WinInet_API基础.md",
+    "sha256": "de09ce754eeb0215c62fc285879a7aa75946c70bf7c3c29cf28ded18e6f67ec0"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时06_HTTP协议.md",
+    "sha256": "ab5a008fbdec426346d1f8cd33a9f9f775c33c8361a33e103f956cf8bf962cd5"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时07_实现简易HTTP服务器完成通信.md",
+    "sha256": "1682d95a84c3eb5b53f2cb2a0ac053e2f05be87785f5f23731ca957b7d7dec5b"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时08_实现FTP服务器.md",
+    "sha256": "a07e66ab955b6e232bdf8304304587b95c5e286fc07ccfeab412873bdcaf99a3"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时09_实现FTP客户端并完成通信.md",
+    "sha256": "6f1a42c6501f456465f2972de3646fd347657346bd06a0bfc0e01c08ef4d9cee"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时10_select选择模型.md",
+    "sha256": "67866d31f5465512440cbbd74ef6b7981a30cd82b7ae0841ea2c1836cc1d3e41"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时11_WSAAsyncSelect异步选择模型.md",
+    "sha256": "e483cce4fa1df4836c2eac1fba86aa89ebf526cdbcf6418f940263a4f0f7a524"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时12_WSAEventSelect事件选择模型.md",
+    "sha256": "3b33b8413ea3b30a08257472e189b2cfde5ee209cb9a7975827c8434a8709724"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时13_重叠IO模型.md",
+    "sha256": "54a8f35b3f61f6b1df85b14744eec54fb1f5743b1a47c19c2805ff9dba6678c9"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时14_IOCP完成端口.md",
+    "sha256": "c6897e70ad3169104e284d2ec30d771b181c192975bb2c3b343a3c0801eefeed"
+  },
+  {
+    "path": "bypassAV-study-main/07_Windows网络编程/课时15_阶段合集.md",
+    "sha256": "2c31cbf9370d935c67adf24b86b4e550705ba4c52409361627d404e7bdb3bf4c"
+  },
+  {
+    "path": "bypassAV-study-main/08_Windows_PE结构/课时01_Windows_PE文件基础知识.md",
+    "sha256": "e71497eebf0c958960a9ef162bf6b9f7481e3fc457f9dc724b02d091b415623a"
+  },
+  {
+    "path": "bypassAV-study-main/08_Windows_PE结构/课时02_PE文件头解析.md",
+    "sha256": "ebec3b142a1db1d57db70a1de45104ac71d496559a4467c914c146cf0918f038"
+  },
+  {
+    "path": "bypassAV-study-main/08_Windows_PE结构/课时03_区段与数据目录表定位.md",
+    "sha256": "ee4324e6ceaaa33b37699995a467ab9c59cf4f410a9f6df083225ed2d0062616"
+  },
+  {
+    "path": "bypassAV-study-main/08_Windows_PE结构/课时04_导入表解析.md",
+    "sha256": "f9d2a8df9d6d26e6dd0022533864873deb75a46ba1e4f0dae64517d267ba58f4"
+  },
+  {
+    "path": "bypassAV-study-main/08_Windows_PE结构/课时05_导出表解析.md",
+    "sha256": "1b6628d781523c88e10966c66a0e230e0fdbffcd7b38b17c9e9643396afdb4ed"
+  },
+  {
+    "path": "bypassAV-study-main/08_Windows_PE结构/课时06_资源表解析.md",
+    "sha256": "f5beb27231a3482f2d0d90c92952e06c26c8be42f548b8b0ae9bce151f8661b8"
+  },
+  {
+    "path": "bypassAV-study-main/08_Windows_PE结构/课时07_重定位表解析.md",
+    "sha256": "a09cf7186b2d11c9081601a388a85c6b5a5735572a8bb65fbbb592131b37ab7f"
+  },
+  {
+    "path": "bypassAV-study-main/08_Windows_PE结构/课时08_阶段合集.md",
+    "sha256": "551b381000323b2d63bb0c2fe2686ab96aa942e74c5180fb8122b98b28148634"
+  },
+  {
+    "path": "bypassAV-study-main/09_加密壳/课时01_加密壳原理.md",
+    "sha256": "1518f7f5ec1abc19cf4fca58f102b7dbaf1732a876a98991592bac55311b2dbe"
+  },
+  {
+    "path": "bypassAV-study-main/09_加密壳/课时02_动态获取Kernel32的地址.md",
+    "sha256": "372c54a5358b8995e811f2a7b922cb6ffadf1e34b43d88b6a6e6ac299d792d62"
+  },
+  {
+    "path": "bypassAV-study-main/09_加密壳/课时03_分析导出表获取GetProcAddress的地址.md",
+    "sha256": "d3f8ef9a83500f97c02fd43f7842318eefce60cef4f574daee3452d99069847f"
+  },
+  {
+    "path": "bypassAV-study-main/09_加密壳/课时04_封装简易验证与解密流程.md",
+    "sha256": "bca62b98d9d448585c6d5a0f696ce1898136221d8b1e7c34ba3d5185d911307f"
+  },
+  {
+    "path": "bypassAV-study-main/09_加密壳/课时05_加壳工具初始化PE文件信息.md",
+    "sha256": "60cfaaa1883f6354d7593f1c588fbc31b29711b12d844f1b3d04d5d179146c8d"
+  },
+  {
+    "path": "bypassAV-study-main/09_加密壳/课时06_获取壳代码段数据并修复重定位.md",
+    "sha256": "666753caca19f2e9a561f42ca3dd7494c0811985745171d35cbd891349dfe881"
+  },
+  {
+    "path": "bypassAV-study-main/09_加密壳/课时07_添加区段完成加壳流程.md",
+    "sha256": "0e36aaddfb7b9f2a160562c833545ee88dd520465fd75bbbddfb5b8c615c29fa"
+  },
+  {
+    "path": "bypassAV-study-main/09_加密壳/课时08_阶段合集.md",
+    "sha256": "826a241b7b8a96e049ab55da8b1d8cc7cc59dc521e3386d01fdab8cac1111127"
+  },
+  {
+    "path": "bypassAV-study-main/10_shellcode开发技术/课时01_shellcode的概念.md",
+    "sha256": "4d001f477f161bb9c32afbb27fa7c0a97372a40f7c9a39a3a5c06f42c1f5425a"
+  },
+  {
+    "path": "bypassAV-study-main/10_shellcode开发技术/课时02_动态获取kernel32dll地址.md",
+    "sha256": "07cdd205b12e3630afc044d5c22a65375634881058f8d743960a763d03d69eee"
+  },
+  {
+    "path": "bypassAV-study-main/10_shellcode开发技术/课时03_x86shellcode框架.md",
+    "sha256": "15427cfac56cb5d152d9f539f128c9c2f63ae8673a991544e1cbaa493e55aadb"
+  },
+  {
+    "path": "bypassAV-study-main/10_shellcode开发技术/课时04_shellcode提取与加载.md",
+    "sha256": "5c9b5b7627af9abe6ee91cca925a45806686a3f9830c8f33ba6abc4d92f9e9c6"
+  },
+  {
+    "path": "bypassAV-study-main/10_shellcode开发技术/课时05_x64shellcode框架.md",
+    "sha256": "2e3db9dfadd1e517d3cf00b1a45872a7715d33a4b8a326d4ddc0479386e3c120"
+  },
+  {
+    "path": "bypassAV-study-main/10_shellcode开发技术/课时06_shellcode精简字节数.md",
+    "sha256": "414d0d2109fa081ef4241288a288c671a738497c9a2228c0023f4414b0d02366"
+  },
+  {
+    "path": "bypassAV-study-main/10_shellcode开发技术/课时07_阶段合集.md",
+    "sha256": "b8c742b72d7878443905837007b378119d6324fb162edb4add69d475a4cd665d"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时01_C++内联汇编实现shellcode_loader.md",
+    "sha256": "46d0e1bbbf62f45dfe50e0f13689925de9998f4c26b8cf3452744f41ba213f39"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时02_C++函数指针实现shellcode_loader.md",
+    "sha256": "32d53a7f5ac0b0c838c6c6a1127f9dce632a503ad145c7840decbaa9d84c9525"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时03_C++线程和远程线程实现shellcode_loader.md",
+    "sha256": "6381d782ae78a1c0239a3594312223d69bcc8c706bd0818f7fe42ce5e45f9034"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时04_golang实现shellcode_loader.md",
+    "sha256": "90b36b94872943efb843534b404a781d2c5b4746c5560be1ce1f401060e0bfe2"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时05_Csharp实现shellcode_loader.md",
+    "sha256": "cef5d987a6f5adf0899b09718eff37e5a2ec490685bddebae5adf6f32f5bebd2"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时06_Python实现shellcode_loader.md",
+    "sha256": "5ecf7e3c613fac525e75d8793fe49a2e45ca24c5e1f09095a6018003d90ff336"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时07_C++可执行堆实现shellcode_loader.md",
+    "sha256": "4189823217e0564dfd45db5e636548ca3b7723225a776ac2a5ae8ef29cc2a64c"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时08_C++UserAPC实现shellcode_loader.md",
+    "sha256": "5ff1698f4f6fc57a30d920d44e157bb40a3c7667ace48ab41e43531a3a81291a"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时09_C++线程上下文实现shellcode_loader.md",
+    "sha256": "88bf655880d5e03fdf73d42d6178141e2b7b9c7df53fda6822531a95e4883e23"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时10_C++TLS实现shellcode_loader.md",
+    "sha256": "e39357d6034d80724f4b06f8fe8ea89c93f61c96f7c22f83c3d7cbc93144d540"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时11_C++VEH实现shellcode_loader.md",
+    "sha256": "21f75b4993f1eb4e3bc3495f4e05315b99878327b6d48a28573ba1ba96ceb6ed"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时12_C++Fiber实现shellcode_loader.md",
+    "sha256": "b742f60d61e7ec9eab3b33b76696d95ea10e1bd68a645cef282d45be61a23ebe"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时13_C++SEH实现shellcode_loader.md",
+    "sha256": "d3c3148217dbd4e1de0f05c067ffb97e4e67d4bd873c4511ff6ab2e0b772411c"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时14_C++CallBack实现shellcode_loader.md",
+    "sha256": "6fb3d5b045ed80c253e7f1791787e9bea5c5005a0c869a24983a045443543c2b"
+  },
+  {
+    "path": "bypassAV-study-main/11_shellcode_loader/课时15_阶段合集.md",
+    "sha256": "824573feea750e866460c7c6bdf196d2d2b68f9aab4cf0bb1d057ab0cad28c94"
+  },
+  {
+    "path": "bypassAV-study-main/12_远程控制开发基础/课时01_通信架构与客户端上线功能.md",
+    "sha256": "dd75e5209c13d44327c2a7c8d65f358b0b64ee650b4152ce922136d9fd639cea"
+  },
+  {
+    "path": "bypassAV-study-main/12_远程控制开发基础/课时02_客户端进程信息获取.md",
+    "sha256": "084c64456f390bc03839148f127207a1eadeaba87bf9e894a4ecaf078a687805"
+  },
+  {
+    "path": "bypassAV-study-main/12_远程控制开发基础/课时03_客户端硬盘文件信息获取.md",
+    "sha256": "f8bc6bc0e6f6bb6f105f94fe5995f7b5c9b809ec005d8cf7efc32b4482f7fc09"
+  },
+  {
+    "path": "bypassAV-study-main/12_远程控制开发基础/课时04_被控端文件取回服务端.md",
+    "sha256": "11e1ef39159e44876f9eec594ee3f209905403c839e845a06d09684604080622"
+  },
+  {
+    "path": "bypassAV-study-main/12_远程控制开发基础/课时05_主控端文件下发到被控端.md",
+    "sha256": "d7852a286c901411e65b5a53d4ae2994374a1fdb3283a67460777ea9ec2b3100"
+  },
+  {
+    "path": "bypassAV-study-main/12_远程控制开发基础/课时06_远程SHELL执行并回显.md",
+    "sha256": "7c061c206330ceeefdec2f3683b4850efd5a362faf1c25b56b06d80bb6dc2215"
+  },
+  {
+    "path": "bypassAV-study-main/12_远程控制开发基础/课时07_阶段合集.md",
+    "sha256": "8e17cdeddae8a4d38bde009cca75b4978016e4d63ff18c7fe38d1c3bb8f5ca08"
+  },
+  {
+    "path": "bypassAV-study-main/13_安全开发专题/课时01_自启动.md",
+    "sha256": "4b74f893875c8232b8945869483ee417c24d8ec117cbb76bb0cc01b4113736bd"
+  },
+  {
+    "path": "bypassAV-study-main/13_安全开发专题/课时02_自删除.md",
+    "sha256": "09555e1dc0414485cb6cbcabda76dbdbbd30519a66ab39fb046bcf887e53002f"
+  },
+  {
+    "path": "bypassAV-study-main/13_安全开发专题/课时03_资源释放.md",
+    "sha256": "8ba825d5f8cfc8dbeffdbb9cabbe54a4f09f2d3cfb7a899dfc03527565097216"
+  },
+  {
+    "path": "bypassAV-study-main/13_安全开发专题/课时04_键盘记录.md",
+    "sha256": "eaf69ef12a52bbc17be802cf4a29aec600bde524f7eb8c3779569a1efafe0b10"
+  },
+  {
+    "path": "bypassAV-study-main/13_安全开发专题/课时05_屏幕截屏.md",
+    "sha256": "5b13595f8bd252e742d94bb52fbe6fbc1e2d00d92a4eb1e9fff1138599e87611"
+  },
+  {
+    "path": "bypassAV-study-main/13_安全开发专题/课时06_令牌提权.md",
+    "sha256": "083e54fe7851a33bb1e2f8ed82405bf767c4753b7684dc15ea3938771f541ca3"
+  },
+  {
+    "path": "bypassAV-study-main/13_安全开发专题/课时07_阶段合集.md",
+    "sha256": "614e10a191e1bd33b23ceee850668244638b3189c4d9440b76954888441b8c58"
+  },
+  {
+    "path": "bypassAV-study-main/14_Inject专题/课时01_远程线程注入.md",
+    "sha256": "632c4b35329052e7393bd4f7fe21a612ddca0df368cf2d6c4354d22eeb24e2e4"
+  },
+  {
+    "path": "bypassAV-study-main/14_Inject专题/课时02_劫持进程注入.md",
+    "sha256": "92946df9601b326c8cbc00e494ade5554dd8c65c1bc91ede9e2fb545f07be459"
+  },
+  {
+    "path": "bypassAV-study-main/14_Inject专题/课时03_消息钩子注入.md",
+    "sha256": "2072d928a5b36d4f55379fa3f9257443e9a7f72bcf2f3c4d746c8e3f8d5de724"
+  },
+  {
+    "path": "bypassAV-study-main/14_Inject专题/课时04_UserAPC注入.md",
+    "sha256": "8872207d7f4f6ff91685fd926eec56ac2aa6167e388940a5f4fc34ec05a0ec83"
+  },
+  {
+    "path": "bypassAV-study-main/14_Inject专题/课时05_阶段合集.md",
+    "sha256": "6fb4a24164225a1110ebf16de6f05306eb9749cb22a5a2191c23a6512c07642e"
+  },
+  {
+    "path": "bypassAV-study-main/15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md",
+    "sha256": "61dc45350cd43f97dd0d746b3b646f57edadf8391e71f376fda095808f338cc3"
+  },
+  {
+    "path": "bypassAV-study-main/15_HOOK专题/09_Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）.md",
+    "sha256": "a5c371668a91b8c7502ae9e0b97fef28097abcf745effe226d5ec4b87b694483"
+  },
+  {
+    "path": "bypassAV-study-main/15_HOOK专题/10_Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）.md",
+    "sha256": "f4a8e1cc943faebfd3d00fca19d98ac6c3448bc4f0702b5448e4d76c291faa21"
+  },
+  {
+    "path": "bypassAV-study-main/15_HOOK专题/11_Windows 全架构 - 硬件固件级 Hook（Ring -2 及以下）.md",
+    "sha256": "5f8264be31e9b53f6d4beaf88373fbaea9ce0c6356c00f8cfe78bb6b0583c3ce"
+  },
+  {
+    "path": "bypassAV-study-main/15_HOOK专题/课时01_InlineHook.md",
+    "sha256": "ee0d7cf754876b7b9d8ace3a450fa8360e2c79a1fc0ccf88a9d5e9c3ed683b9d"
+  },
+  {
+    "path": "bypassAV-study-main/15_HOOK专题/课时02_x64InlineHook.md",
+    "sha256": "8b948c42be7cdfca8f30835f1c06fe8bb5c9703886890b7736e728dd3b184e19"
+  },
+  {
+    "path": "bypassAV-study-main/15_HOOK专题/课时03_HotFixHook.md",
+    "sha256": "8219a141e1a0fbe2871403a086b5191e558bbcd7800f90fc4a96831bd2113cef"
+  },
+  {
+    "path": "bypassAV-study-main/15_HOOK专题/课时04_IATHook.md",
+    "sha256": "66066bfa7fed15f5caa39d97c2292518e9839169ea08b8e464994056e35bb759"
+  },
+  {
+    "path": "bypassAV-study-main/15_HOOK专题/课时05_VEH_INT3Hook.md",
+    "sha256": "2dc83b7c77245bb2cdd86ba7cf8eb3790300547ebe6151d90ea1b893ccf9fe28"
+  },
+  {
+    "path": "bypassAV-study-main/15_HOOK专题/课时06_VEH_DRRegHook.md",
+    "sha256": "c07c46813cf7ffad47887e264464ded5ef2fed7deaefd709091ada2532f303aa"
+  },
+  {
+    "path": "bypassAV-study-main/15_HOOK专题/课时07_阶段合集.md",
+    "sha256": "5bfb0a2185c40897a8a775d7dd84aa55d4a517f0224f3d97617db55a0d8ac628"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时01_IsDebuggerPresent.md",
+    "sha256": "4b70cfbda4d2aecf8f2aaa12dda80bb093647c4bd098a61ada269c0533f109e9"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时02_自实现IsDebuggerPresent.md",
+    "sha256": "d3e8221c4fce07d6a59ed578b8354d803338bcf8f49ae722f97382817fc14342"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时03_CheckRemoteDebuggerPresent.md",
+    "sha256": "c8d0b536b962d9c006959c8e53c5d9fa1c0bef54ede327a4c67753f259f53c07"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时04_检测PEB结构BeingDebugged.md",
+    "sha256": "ec0cc862c17cac580454fb425a004036e3d6a4cf8afa8821ddcf2300fff8963f"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时05_检测PEB结构NtGlobalFlag.md",
+    "sha256": "421c0fb25e99ecb611c27cc4b059ba0e96eccf48834139bdb2156918a1aa853a"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时06_检测PEB结构ProcessHeap.md",
+    "sha256": "bbdaac9f5c1916f8f1dec493e614227f844738d8a7828d8a74e847d3b6f01e87"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时07_未公开API检测ProcessDebugPort.md",
+    "sha256": "7d92e4f73f456aa99fe0c79cbfca075477ae787a89a82917d97017d7c8f40c03"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时08_未公开API检测ProcessDebugFlags.md",
+    "sha256": "2368790fa2c7cfca41d47b6938f0a05d1f890efd2e150a83cb1e81fdddb944aa"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时09_未公开API检测ProcessDebugObjectHandle.md",
+    "sha256": "ad64d259d904a502c01f1061f87e14ac1067b2cdfb2f33db0c940aca74da1939"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时10_未公开API获取PEB检测相关字段.md",
+    "sha256": "74670a93214b354bc94a14c94aa54337830fae2ddbae08718c772b6a57632e6a"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时11_遍历进程名检测调试器.md",
+    "sha256": "476031844c79b5ed36e5ccf34c77c2fe4841c9b4b523f56aa16277874d6d1895"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时12_遍历窗口名检测调试器.md",
+    "sha256": "ad589464bcadc382b6847085d4554e14a540a0bfc1be7073055639acc9109f2a"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时13_遍历顶层窗口检测调试器.md",
+    "sha256": "364527a1b1556642b366b730d32daa40cc31254312f82e5ec76becea74c0d819"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时14_基于SEH异常机制检测调试器.md",
+    "sha256": "1f316ee607a4b08b095dba4e16aaaf603748acdbb1b250e4fe3dd21ca6c763b5"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时15_通过CloseHandle检测调试器.md",
+    "sha256": "26776cb30eed94ae5b59f32572cc188d87d88d633f4e6abade3a33a4df27dcae"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时16_通过NtClose检测调试器.md",
+    "sha256": "7622d326d4883e17c4f58da6bb55ec0281c5029437838a509f7775ce6e3a702d"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时17_通过SetHandleInformation检测调试器.md",
+    "sha256": "ad834aa2da4cb4aaa9c1986b95a670ee45283666874bfb0125babc7b81a2e1b1"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时18_通过DuplicateHandle检测调试器.md",
+    "sha256": "a850919be4f0de25a940381c8ee8902525ffdd3056137506937e19e08fd58899"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时19_通过ParentProcess检测调试器.md",
+    "sha256": "82acb7141f74aad56806b17e04ef6fa24d746bed4ea8594c8a6716ddb234cd17"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时20_通过DR_Register检测调试器.md",
+    "sha256": "070e3b92fddc9d392abe45c42c24e8490eaf6f7fba2be26608d14d7abc2d4651"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时21_通过API软件断点检测调试器.md",
+    "sha256": "73820da1b00e3fe4f088d1c1e8e0c0d180375f85f3093eb7a1778b3b081a5043"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时22_通过自调试实现反调试.md",
+    "sha256": "2941edebccf470817e8adf2fcfbfb4f39d192ee0303b6534bf1b54c527f95dad"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时23_通过附加调试实现反调试.md",
+    "sha256": "3bcee7f89b7d60be8e14fbfaef4c19b7df9eaef7cabe0ec7aa3448cf47a6793c"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时24_通过时钟间隔检测调试器.md",
+    "sha256": "4ca1112cbac57c0f1cf8340d7bb8cf8c00831356f623a737eb6432aebd79b2e7"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时25_通过StartupInfo检测调试器.md",
+    "sha256": "4a493a0f8aa14913d7045c2c85e4c13fd50d195441dc2e7795b516c4b143951a"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时26_通过注册表检测实时调试器.md",
+    "sha256": "d141145b4039956c6e4256a9d687ce58a537c33ca2123ee83cc7ad1ea0e88ad4"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时27_通过Crc32校验代码段检测调试器.md",
+    "sha256": "1afa3e5c34ccbfe28c210f564b934649c0e674e5349e1a1588f185765008eda5"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时28_通过Tls机制检测调试器.md",
+    "sha256": "688a334c78b30c3f755c83840eaa5f435dd7cd3d480a98fac1c6b127872d2e8f"
+  },
+  {
+    "path": "bypassAV-study-main/16_Anti_Debug专题/课时29_阶段合集.md",
+    "sha256": "9c9b5306889304092c0cc62bfa4052b522be2e7e33fb9c81f7a504ba4175496d"
+  },
+  {
+    "path": "bypassAV-study-main/17_Anti_VM专题/课时01_通过Mac地址检测虚拟机.md",
+    "sha256": "6a9e005e7f3ea410e34bc40f44ab61cdbfcc2d39368e9d59630487a7eb40a2cf"
+  },
+  {
+    "path": "bypassAV-study-main/17_Anti_VM专题/课时02_通过进程信息检测虚拟机.md",
+    "sha256": "3815bf318428f97d32b61e0a45f0cc71f99c4767755cedbf20f1366e047fec33"
+  },
+  {
+    "path": "bypassAV-study-main/17_Anti_VM专题/课时03_通过文件夹信息检测虚拟机.md",
+    "sha256": "bdc1c73a20dda8391a090b30df1bbafcb15dec5e848bebe4e8629570a6cfafa1"
+  },
+  {
+    "path": "bypassAV-study-main/17_Anti_VM专题/课时04_通过注册表信息检测虚拟机.md",
+    "sha256": "4c261ec397d7771e37a0316dedeb870493e74f85f47418652bc1544bc1129b67"
+  },
+  {
+    "path": "bypassAV-study-main/17_Anti_VM专题/课时05_通过服务信息检测虚拟机.md",
+    "sha256": "4456baa63851129c7deb4ca9ad37b3975ec192a12348e7812cefbca50a2f7ae4"
+  },
+  {
+    "path": "bypassAV-study-main/17_Anti_VM专题/课时06_通过IO端口检测虚拟机.md",
+    "sha256": "87a3f308d7dbedc042fb218d18de3008bd2a7eb3a48ae41c93329f3d1f92a5b0"
+  },
+  {
+    "path": "bypassAV-study-main/17_Anti_VM专题/课时07_通过社会工程学检测虚拟机.md",
+    "sha256": "3f96fe4d2f86ba31164ec6f8ce94ba3ddca18792abfb0673aefd1ab7b17dbfc7"
+  },
+  {
+    "path": "bypassAV-study-main/17_Anti_VM专题/课时08_阶段合集.md",
+    "sha256": "44bfa31c184d8cc0404752fc33e311d8f60ee0d67331b00d934066755cc84fa6"
+  },
+  {
+    "path": "bypassAV-study-main/18_CobaltStrike专题/课时01_CobaltStrike的安装与启动.md",
+    "sha256": "a6d716f655ae79a8f5af8f2141f1a07fa0d773928418a81014e6a3c9f852cae3"
+  },
+  {
+    "path": "bypassAV-study-main/18_CobaltStrike专题/课时02_CobaltStrike界面介绍.md",
+    "sha256": "496be643961c15a1a431cd20e91bc2d7063c1d77a94e758b1cca7c21c52012bf"
+  },
+  {
+    "path": "bypassAV-study-main/18_CobaltStrike专题/课时03_创建监听器与Attacks.md",
+    "sha256": "ca31bd19a246d8ca87946d3049cf15896a1eb3a04dd04a704ab864fcc7915b6f"
+  },
+  {
+    "path": "bypassAV-study-main/19_提权专题/课时01_Linux内核漏洞提权.md",
+    "sha256": "f962c812cfe80c11f1de882b87ffa31908f8617551b3721a08000e5faa9d51fd"
+  },
+  {
+    "path": "bypassAV-study-main/19_提权专题/课时02_SUID提权.md",
+    "sha256": "572777be35ac683e4a36ad8da9761244c605b0f1ed0e2bd720d77d832205f761"
+  },
+  {
+    "path": "bypassAV-study-main/19_提权专题/课时03_SUDO提权.md",
+    "sha256": "af0f9a9bdb0ca665aee9291e636327df06630f4edc079b7be2216d2a58d218d1"
+  },
+  {
+    "path": "bypassAV-study-main/19_提权专题/课时04_john碰撞密码提权.md",
+    "sha256": "7c42ff7c46f1b1a7c20847e96595b8afe05a054f322a3be64b18dab6da81ab58"
+  },
+  {
+    "path": "bypassAV-study-main/19_提权专题/课时05_passwd提权.md",
+    "sha256": "ff8fe62619e7f9719f31212fa83d4c27e62c29959d7accdfa8e4b900e4a4526b"
+  },
+  {
+    "path": "bypassAV-study-main/19_提权专题/课时06_Windows提权基础.md",
+    "sha256": "ba5538ae8caabb4e71d01e869a9ee17a52653b8439082b8afbec5944bbcac224"
+  },
+  {
+    "path": "bypassAV-study-main/19_提权专题/课时07_提权信息收集.md",
+    "sha256": "7e46bad32e8b06b0b769c8ac643c245bce8226e6aa72f970a41fd3434eb0a63c"
+  },
+  {
+    "path": "bypassAV-study-main/19_提权专题/课时08_Windows内核提权.md",
+    "sha256": "e487e087667796df54b930bb1867564caaf721cdf577eda669e2db7e6072fd0f"
+  },
+  {
+    "path": "bypassAV-study-main/19_提权专题/课时09_Windows_Print_Spooler漏洞提权.md",
+    "sha256": "5ee303d41f7402da2cbc9d559737d6be3ef9420b40475d0c6ba78ed452f83de5"
+  },
+  {
+    "path": "bypassAV-study-main/19_提权专题/课时10_土豆提权.md",
+    "sha256": "da00b8e002e23e3e4134c57805000d4d31f4e0a831a4dfdca403409d78304fb2"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时01_R3进程伪装.md",
+    "sha256": "18a59b616ac0273fddb7c75a2006214ab799905e78f1b77b1ff80b1a62abedd7"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时02_栈溢出调用CALL.md",
+    "sha256": "5cc2406f07a826f63117701f34c7677636f3ce4885e32cdb03d673f5ff31f204"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时03_未导出API执行ShellCode.md",
+    "sha256": "2e8f7afc2e351fc1881814ee24964498242c065e57342379b7a8e4251429a005"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时04_遍历内存快执行ShellCode.md",
+    "sha256": "2cf197a2f71c6f8536beff1d58697aecb2fb8285d6a6e0d7f7c88be95648e00b"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时05_重写R3API.md",
+    "sha256": "ebd23ed782391d926e698d8fa5e636bd0907a59df3d8a02801f00c3ab5f0048a"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时06_重载NTDLL.md",
+    "sha256": "cf9e80b22cb24764e9109e9f4ba0337e61b6353b3025f325fcd3cf916ce3837b"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时07_映射注入执行ShellCode.md",
+    "sha256": "70a4623c1aad10875892a7896ad59e5dc2f185f06e914b1e8caf5bd8e77b5208"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时08_进程挂起注入执行ShellCode.md",
+    "sha256": "16c0e0032a347df358cb8d801bea2a24030121f2a1b79fc3c4e488073cf60df1"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时09_Windows日志绕过.md",
+    "sha256": "37032e2ab4e59146189b9af5eb6e70e7d10896586fd1fb76265269046afadd94"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时10_进程镂空.md",
+    "sha256": "b9f2baced660e3b322560e83c1f2274df38dbbc30ac65a31db2f5f3221ddf83e"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时11_模块镂空.md",
+    "sha256": "6f9b49cad15ad4d2d5fdae0ba6b8ae4f5d481b1a0ee8b27aca1376d87e1e5a6d"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时12_Windows策略防止挂钩.md",
+    "sha256": "981edaa65a56d024ea12fceb1e858b1d5c8bca4f0665864f815a3da8e3d7ce0a"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时13_Windows策略防止ShellCode.md",
+    "sha256": "53384c4f6c34d13e272caf051b3a8a97f4fd693cc56f32c376ddf3ce6ddf3938"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时14_父进程伪装.md",
+    "sha256": "faef33bee65ce5d227516ca75fbd89385d41ce26172a8455fe0170f9a9cf7214"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时15_利用白名单绕过UAC.md",
+    "sha256": "42b6706842f9e58c4ec0e634404ccbb76c9932aaa155d63b8fb46ae5facfc578"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时16_代码实现UAC绕过.md",
+    "sha256": "ad924ce7231a70efafed4796f5913d730a2de9290815a0eef488b4eebad9484d"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时17_CVE-2019-1388UAC提权.md",
+    "sha256": "11b2b0ac664672ca3ce72eccd459da19cbf26a74d6f0ab90fa063ac2352e1a22"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时18_白名单DLL劫持绕UAC.md",
+    "sha256": "5f08a09c51abd3b3862d4bf1df99a294333ad738583ccab3d721f37809eb82af"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时19_PPL.md",
+    "sha256": "255dc026ddfcf00a9fa4e77e5c3f29a833122b76f858afe589335fcbed4b2b37"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时20_查杀原理.md",
+    "sha256": "126187c2f13556348aadc47141774a23276f2af8f42cd31868f49afd0b788c7e"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时21_特征码定位原理.md",
+    "sha256": "22d0fc5e5b5927b1719e591e0a5d777a7bfc8c1cf4f74fe11b96b1d9e006e71c"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时22_shellCode加密原理.md",
+    "sha256": "38d97a6ab6d4ac2de3ca90e7440a7be762666487d7f0328e618cd9831ab0067d"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时23_异或和凯撒加密ShellCode.md",
+    "sha256": "09ae9ffeb3cd7414378a591b2c7f7899fc7726693ef0d2bf5df780edc419b089"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时24_加密算法加密ShellCode.md",
+    "sha256": "9c82a25f2f47b247fcfb423c76f694b22b46c327196233ddb1f1797541dabc4f"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时25_补充Shellcode加载方式.md",
+    "sha256": "9a3b4e827b7a1e978e1be08ac212bafd3f4e7dfea6a62bca70398c53e8cd056e"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时26_非对称加密加密ShellCode.md",
+    "sha256": "f94734df3ba977599e71b467450160c964bfac261c769bff65727656e51942b3"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时27_花指令.md",
+    "sha256": "674ee237beb69017cad9cc8fa98f11440dba7e87756e5a84e11c5fe9e9a7e24d"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时28_花指令的剔除.md",
+    "sha256": "f76bdbe3633cce8c5330ab43ff87581c3514737586171f72efe8b717dc98a318"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时29_动态Patch函数.md",
+    "sha256": "1b27d5a6ba70205a5ab46a11251ba3e8e35bdad41e839e0b1cc7b08f61ba048b"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时30_代码混淆.md",
+    "sha256": "943b472ed421e2cedc64ca1cd77770ecdd706174322646647dbed7c08070bf44"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时31_函数调用序列欺骗.md",
+    "sha256": "f6079282d276ab3d8de5cabd048a7bb4473684d920e8b0f9b30239ef21f449bc"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时32_函数序列欺骗.md",
+    "sha256": "823da1de549025983e80fe43955a85d9e719341bd88cec094dc1268d9dbcc4b5"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时33_ShellCode页面反转.md",
+    "sha256": "9474531a9bebabaac203d93629282952be84311fc736986b6dbb54e155323939"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时34_ETW绕过.md",
+    "sha256": "fce3c5d76d731f778ebaf26f0451b2e1e5572f882b94f3f13ad8bbc1ac21d698"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时35_APC注入.md",
+    "sha256": "18e55e83c9cec9d91846980fcded338780997edc27e8ca72f50d19f20eb648e5"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时36_dll劫持.md",
+    "sha256": "57296ed50b5be7c8fc644b2be67aff1f5c888c192e76d8ae02e7299445631595"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时37_隐藏模块.md",
+    "sha256": "aa363f197e6de3414cede0dd6632a9cd94a85e55805f182d59cf0acf47625158"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时38_补充异常ShellCode加载方式.md",
+    "sha256": "bbbfabcc6f9ed8f1d86297c63e3f50bf9c8bd63471d4b52698e4231719e2d633"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时39_补充异常ShellCode加载和反调试方法.md",
+    "sha256": "1d6337478a9703d83bd35ff91d979b6d210a681dc54108b96b4cd0385e291d0c"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时40_基础补充ShellCode加载方式.md",
+    "sha256": "1ae485a87eddefdd003a5c20eaa86b343365aef9243eb18d276d9cadde11a3a3"
+  },
+  {
+    "path": "bypassAV-study-main/20_免杀专题/课时41_基础补充ShellCode加载方式.md",
+    "sha256": "0ac902aa3f0bb821471e6c4299c1abb500d32a0e9c1b20a027d6732b380f41d5"
+  }
+]

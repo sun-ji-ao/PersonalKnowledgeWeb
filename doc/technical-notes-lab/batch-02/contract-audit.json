@@ -1,0 +1,29 @@
+{
+  "automatedSemanticAudit": true,
+  "browserVisualInspection": false,
+  "count": 2,
+  "items": [
+    {
+      "path": "missing-media.md",
+      "originalHash": "be5724acb72faf8255d179696b90a120f2b0228c430e09c80294dfc6f2824e61",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 0,
+      "formulas": 0,
+      "mermaidBlocks": 0,
+      "conversionStatus": "review_required",
+      "renderStatus": "ready"
+    },
+    {
+      "path": "writing-contract.md",
+      "originalHash": "e6b0cd7c1a90145a470fa0fa8a3e9eab481ad59e635a9ff398c6d54e42328121",
+      "sourceUnchanged": true,
+      "canonicalIdempotent": true,
+      "codeBlocks": 1,
+      "formulas": 3,
+      "mermaidBlocks": 1,
+      "conversionStatus": "ready",
+      "renderStatus": "ready"
+    }
+  ]
+}

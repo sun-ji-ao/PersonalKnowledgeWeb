@@ -1,0 +1,4 @@
+PASS: 14 application files unchanged; ZIP entries and archive SHA256 verified.
+PASS: 8 JavaScript syntax checks.
+PASS: 253 original Markdown files unchanged; count reconciled.
+LIMIT: Running default SQLite database was not backed up or hashed. Existing tests use isolated temporary DATA_DIR.

@@ -1,0 +1,11 @@
+✔ editor equivalence tolerates mark order but rejects semantic/attribute/source loss (58.5816ms)
+✔ long-form model edits keep every heading ID, code source and language on reopen (1107.0247ms)
+✔ visual client serializes overlapping saves and retains local changes after conflict (239.8926ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2887.8386

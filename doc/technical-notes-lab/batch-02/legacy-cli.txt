@@ -1,0 +1,11 @@
+{
+  "output": "../doc/technical-notes-lab/batch-02/legacy-preview",
+  "count": 10,
+  "totals": {
+    "ready": 7,
+    "review_required": 3,
+    "rejected": 0
+  },
+  "skipped": 0,
+  "databaseWritten": false
+}

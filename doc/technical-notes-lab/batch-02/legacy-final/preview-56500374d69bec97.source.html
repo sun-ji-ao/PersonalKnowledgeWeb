@@ -1,0 +1,568 @@
+<h1 id="section-1">10_Windows 全架构 Hook 技术图谱 - Hypervisor 级 Hook（Ring -1）</h1><blockquote><p><strong>术语说明</strong>：文件名中的 "Ring 1" 是常见误称。Hypervisor 实际运行在 <strong>Ring -1（VMX Root Operation）</strong>，比 Windows 内核（Ring 0）更高。x86 的 Ring 1/2 在现代 Windows 中几乎不使用。</p></blockquote><p>这是 Windows 平台上隐蔽性最强的一层。基于 <strong>Intel VT-x</strong>（或 AMD-V）的 Type-1/Type-2 Hypervisor 运行在所有软件之下（包括 Windows 内核），拥有对 Guest 物理内存视图、CPU 状态、部分 MSR 的完全控制权。在此层面实施的 Hook，操作系统读到的代码/数据都可以被 EPT 重定向伪造。</p><p><strong>现实约束</strong>：Win10+ 启用 <strong>VBS / HVCI / Hyper-V</strong> 后，第三方 Hypervisor 难以抢占 VT-x，需绕过或利用嵌套虚拟化。下文技术主要见于安全研究、开源 HV 框架（HyperPlatform、hvpp、DdiMon 等），而非普通应用开发。</p><hr><h2 id="section-2">导读：Hypervisor Hook 技术全景</h2><pre data-note-kind="mermaid"><code>flowchart TB
+    subgraph Guest["Guest（Windows 内核 Ring 0）"]
+        G1["ntoskrnl / 驱动"]
+        G2["完整性校验 / PatchGuard"]
+    end
+
+    subgraph HV["Hypervisor（Ring -1 VMX Root）"]
+        V1["EPT 页表"]
+        V2["VM-Exit Handler"]
+        V3["MSR Bitmap"]
+        V4["CPUID / TSC 伪装"]
+    end
+
+    G1 --&gt;|"读目标函数"| V1
+    V1 --&gt;|"EPT 重定向"| G2
+    G1 --&gt;|"执行目标函数"| V2
+    V2 --&gt;|"EPT Violation + MTF"| V1
+    G1 --&gt;|"rdmsr / cpuid"| V3 &amp; V4
+</code></pre><h3 id="section-3">技术速查对比表</h3><table><thead><tr><th>编号</th><th>技术</th><th>常用度</th><th>隐蔽性</th><th>性能开销</th><th>CPU 要求</th><th>现代状态</th></tr></thead><tbody><tr><td>3.1</td><td>EPT Hook（读写/执行分离）</td><td>★★★★★</td><td>★★★★★</td><td>中（VM-Exit）</td><td>VT-x + EPT</td><td><strong>HV Hook 核心</strong></td></tr><tr><td>3.2</td><td>VMFUNC EPTP Switching</td><td>★★☆☆☆</td><td>★★★★★+</td><td>低（无 VM-Exit）</td><td>Haswell+ 2013+</td><td>研究型，复杂度高</td></tr><tr><td>3.3</td><td>EPT + MSR Bitmap</td><td>★★★★☆</td><td>★★★★★</td><td>低~中</td><td>VT-x + EPT</td><td>HV 反检测标配</td></tr><tr><td>3.4</td><td>CPUID 隐藏 + TSC 补偿</td><td>★★★★☆</td><td>★★★★☆</td><td>中</td><td>VT-x</td><td>HV 反检测标配</td></tr></tbody></table><h3 id="section-4">与第 08/09 章的关系</h3><table><thead><tr><th>层次</th><th>章节</th><th>Hook 能力边界</th></tr></thead><tbody><tr><td>Ring 3</td><td>第 08 章</td><td>进程内 API/syscall stub</td></tr><tr><td>Ring 0</td><td>第 09 章</td><td>内核回调 / Infinity Hook</td></tr><tr><td>Ring -1</td><td>本章</td><td><strong>Guest 物理内存视图级</strong>，可骗过 PatchGuard 读取</td></tr></tbody></table><h3 id="section-5">阅读建议</h3><ul><li><strong>必学核心</strong>：3.1 EPT Hook（理解 Violation + MTF 状态机）</li><li><strong>反检测组合</strong>：3.3 MSR Bitmap + 3.4 CPUID/TSC</li><li><strong>进阶优化</strong>：3.2 VMFUNC（降低 VM-Exit 频率）</li><li><strong>环境前提</strong>：先理解 VT-x 基础（VMCS、VM-Exit、EPTP）</li></ul><h3 id="section-6">VT-x 最小概念（读代码前必知）</h3><table><thead><tr><th>概念</th><th>含义</th></tr></thead><tbody><tr><td><strong>VMX Root</strong></td><td>Hypervisor 运行模式（Ring -1）</td></tr><tr><td><strong>VMX Non-Root</strong></td><td>Guest（Windows）运行模式</td></tr><tr><td><strong>VMCS</strong></td><td>虚拟机控制结构，保存 Guest/Host 状态</td></tr><tr><td><strong>VM-Exit</strong></td><td>Guest 触发事件后陷入 Hypervisor</td></tr><tr><td><strong>EPT</strong></td><td>扩展页表，GPA → HPA 二次地址翻译</td></tr><tr><td><strong>INVEPT</strong></td><td>刷新 EPT TLB（修改 EPT 后必须调用）</td></tr></tbody></table><hr><h2 id="section-7">3.1 EPT Hook（扩展页表 Hook）— 读写/执行分离</h2><h3 id="section-8">技术定位</h3><p><strong>Hypervisor Hook 最核心技术</strong>。利用 EPT 对同一 Guest 物理页配置不同 HPA 映射：读/写走干净页，执行走 Shadow Hook 页。这是 DdiMon、HyperPlatform 等开源框架的实现基础。</p><h3 id="section-9">原理</h3><p>EPT（Extended Page Table）是 Intel VT-x 提供的第二层地址翻译。Guest 的物理地址（GPA）通过 EPT 映射到实际的主机物理地址（HPA）。EPT 的每个条目都有独立的 Read/Write/Execute 权限位。</p><p>核心思想：<strong>对同一个 GPA，让读写操作映射到干净原始页，让执行操作映射到包含 Hook 代码的页</strong>。</p><pre data-note-kind="mermaid"><code>stateDiagram-v2
+    [*] --&gt; RW_Clean: 初始 EPT 配置
+    note right of RW_Clean: R=1 W=1 X=0 → 干净 HPA
+
+    RW_Clean --&gt; Exec_Shadow: CPU 执行 → EPT Violation
+    note right of Exec_Shadow: R=0 W=0 X=1 → Shadow HPA
+
+    Exec_Shadow --&gt; RW_Clean: MTF 单步后恢复
+</code></pre><p><strong>与普通内核 PTE Hook（09 章 2.11）的区别</strong>：EPT 在 Hypervisor 层操作，Guest 内核的 <code>MmGetPhysicalAddress</code> 和页表遍历看到的仍是"正常"视图，且可对 Guest 只读重定向。</p><h3 id="section-10">EPT 条目结构</h3><pre><code class="language-c">typedef union _EPT_PTE {
+ULONG64 Value;
+struct {
+ULONG64 ReadAccess :1;
+ULONG64 WriteAccess :1;
+ULONG64 ExecuteAccess :1;
+ULONG64 MemoryType :3;        // 0=UC, 6=WB
+ULONG64 IgnorePat :1;
+ULONG64 LargePage :1;         // 2MB/1GB 大页
+ULONG64 Accessed :1;
+ULONG64 Dirty :1;
+ULONG64 UserModeExecute :1;   // MBEC
+ULONG64 Reserved1 :1;
+ULONG64 PhysicalAddress :40;  // 物理页帧号
+ULONG64 Reserved2 :11;
+ULONG64 SuppressVE :1;        // #VE 抑制
+    };
+} EPT_PTE, *PEPT_PTE;
+
+typedef union _EPTP {
+ULONG64 Value;
+struct {
+ULONG64 MemoryType :3;        // EPT 页表自身的内存类型
+ULONG64 PageWalkLength :3;    // 页表遍历深度-1 (3 = 4级)
+ULONG64 DirtyAndAccessEnabled :1;
+ULONG64 Reserved1 :5;
+ULONG64 PML4PhysicalAddress :40;
+ULONG64 Reserved2 :12;
+    };
+} EPTP;
+</code></pre><h3 id="section-11">地址翻译链路（Guest 视角）</h3><pre data-note-kind="mermaid"><code>flowchart LR
+    GVA["Guest 虚拟地址 GVA"] --&gt; GPT["Guest 页表 CR3"]
+    GPT --&gt; GPA["Guest 物理地址 GPA"]
+    GPA --&gt; EPT["EPT 页表 EPTP"]
+    EPT --&gt; HPA["Host 物理地址 HPA"]
+    HPA --&gt; RAM["真实物理内存"]
+</code></pre><blockquote><p><strong>Hook 操作点</strong>：修改 EPT 最后一级 PTE 的 <code>PhysicalAddress</code>（PFN）和 R/W/X 位，Guest 页表无需改动。</p></blockquote><h3 id="section-12">完整实现（从 Hypervisor 初始化到 Hook 安装）</h3><pre><code class="language-c">#include &lt;ntddk.h&gt;
+#include &lt;intrin.h&gt;
+
+// ===== EPT 页表构建 =====
+
+typedef struct _EPT_STATE {
+DECLSPEC_ALIGN(PAGE_SIZE) EPT_PTE PML4[512];
+DECLSPEC_ALIGN(PAGE_SIZE) EPT_PTE PDPT[512];
+DECLSPEC_ALIGN(PAGE_SIZE) EPT_PTE PD[512][512];   // 512 个 PD，每个 512 条目
+// 对于 2MB 大页映射，不需要 PT 层
+// 对于需要精确控制的页，单独分配 PT
+    EPTP Eptp;
+} EPT_STATE;
+
+// 构建恒等映射 EPT（GPA == HPA，2MB 大页）
+NTSTATUS BuildIdentityEpt(EPT_STATE* ept) {
+RtlZeroMemory(ept, sizeof(EPT_STATE));
+
+// PML4[0] -&gt; PDPT
+    ept-&gt;PML4[0].ReadAccess = 1;
+    ept-&gt;PML4[0].WriteAccess = 1;
+    ept-&gt;PML4[0].ExecuteAccess = 1;
+    ept-&gt;PML4[0].PhysicalAddress = MmGetPhysicalAddress(ept-&gt;PDPT).QuadPart &gt;&gt; 12;
+
+// PDPT -&gt; PD
+for (int i = 0; i &lt; 512; i++) {
+        ept-&gt;PDPT[i].ReadAccess = 1;
+        ept-&gt;PDPT[i].WriteAccess = 1;
+        ept-&gt;PDPT[i].ExecuteAccess = 1;
+        ept-&gt;PDPT[i].PhysicalAddress = MmGetPhysicalAddress(&amp;ept-&gt;PD[i]).QuadPart &gt;&gt; 12;
+    }
+
+// PD -&gt; 2MB 大页直接映射（覆盖 0 - 512GB 物理内存）
+for (int i = 0; i &lt; 512; i++) {
+for (int j = 0; j &lt; 512; j++) {
+            ULONG64 physAddr = ((ULONG64)i * 512 + j) * 0x200000; // 2MB per entry
+            ept-&gt;PD[i][j].ReadAccess = 1;
+            ept-&gt;PD[i][j].WriteAccess = 1;
+            ept-&gt;PD[i][j].ExecuteAccess = 1;
+            ept-&gt;PD[i][j].LargePage = 1;
+            ept-&gt;PD[i][j].MemoryType = 6; // WB
+            ept-&gt;PD[i][j].PhysicalAddress = physAddr &gt;&gt; 12;
+        }
+    }
+
+// 配置 EPTP
+    ept-&gt;Eptp.MemoryType = 6; // WB
+    ept-&gt;Eptp.PageWalkLength = 3; // 4-level
+    ept-&gt;Eptp.PML4PhysicalAddress = MmGetPhysicalAddress(ept-&gt;PML4).QuadPart &gt;&gt; 12;
+
+return STATUS_SUCCESS;
+}
+
+// ===== 将 2MB 大页拆分为 4KB 页（精确控制单个页的权限）=====
+
+typedef struct _EPT_SPLIT_PAGE {
+DECLSPEC_ALIGN(PAGE_SIZE) EPT_PTE PT[512];  // 512 个 4KB PTE
+} EPT_SPLIT_PAGE;
+
+NTSTATUS SplitLargePage(EPT_STATE* ept, ULONG64 targetPhysAddr) {
+// 确定目标在哪个 PD entry
+    ULONG pdptIndex = (targetPhysAddr &gt;&gt; 30) &amp; 0x1FF;
+    ULONG pdIndex = (targetPhysAddr &gt;&gt; 21) &amp; 0x1FF;
+
+    EPT_PTE* pdEntry = &amp;ept-&gt;PD[pdptIndex][pdIndex];
+if (!pdEntry-&gt;LargePage) return STATUS_SUCCESS; // 已经拆分过
+
+// 分配 PT 页
+    EPT_SPLIT_PAGE* splitPage = ExAllocatePoolWithTag(NonPagedPool, sizeof(EPT_SPLIT_PAGE), 'tpES');
+if (!splitPage) return STATUS_INSUFFICIENT_RESOURCES;
+
+// 用 512 个 4KB 条目填充，恒等映射
+    ULONG64 basePhys = (pdEntry-&gt;PhysicalAddress &lt;&lt; 12) &amp; ~0x1FFFFFULL; // 2MB 对齐
+for (int i = 0; i &lt; 512; i++) {
+        splitPage-&gt;PT[i].ReadAccess = 1;
+        splitPage-&gt;PT[i].WriteAccess = 1;
+        splitPage-&gt;PT[i].ExecuteAccess = 1;
+        splitPage-&gt;PT[i].MemoryType = 6;
+        splitPage-&gt;PT[i].PhysicalAddress = (basePhys + i * PAGE_SIZE) &gt;&gt; 12;
+    }
+
+// 将 PD entry 从大页改为指向 PT
+    pdEntry-&gt;Value = 0;
+    pdEntry-&gt;ReadAccess = 1;
+    pdEntry-&gt;WriteAccess = 1;
+    pdEntry-&gt;ExecuteAccess = 1;
+    pdEntry-&gt;PhysicalAddress = MmGetPhysicalAddress(splitPage-&gt;PT).QuadPart &gt;&gt; 12;
+// LargePage = 0（默认，表示指向下一级 PT）
+
+// 刷新 EPT TLB
+InveptAllContexts();
+
+return STATUS_SUCCESS;
+}
+
+// ===== EPT Hook 安装 =====
+
+typedef struct _EPT_HOOK_ENTRY {
+    ULONG64 targetPhysAddr;    // 目标物理地址（页对齐）
+    ULONG64 originalHpa;       // 原始 HPA（干净页）
+    ULONG64 shadowHpa;         // Shadow HPA（Hook 代码页）
+    EPT_PTE* pEptPte;          // 对应的 EPT PTE
+    PVOID shadowPage;          // Shadow 页虚拟地址
+    ULONG functionOffset;      // 函数在页内的偏移
+    LIST_ENTRY listEntry;
+} EPT_HOOK_ENTRY;
+
+LIST_ENTRY g_hookList;
+
+NTSTATUS InstallEptHook(EPT_STATE* ept, PVOID targetFunction, PVOID hookFunction) {
+// 获取目标函数的物理地址
+    PHYSICAL_ADDRESS targetPhys = MmGetPhysicalAddress(targetFunction);
+    ULONG64 targetPhysPage = targetPhys.QuadPart &amp; ~0xFFF;
+
+// 拆分大页
+SplitLargePage(ept, targetPhysPage);
+
+// 分配 Shadow Page
+    PVOID shadowPage = ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE, 'wdhS');
+if (!shadowPage) return STATUS_INSUFFICIENT_RESOURCES;
+
+// 复制原始页内容
+    PVOID mappedOriginal = MmMapIoSpace(targetPhys, PAGE_SIZE, MmNonCached);
+RtlCopyMemory(shadowPage, mappedOriginal, PAGE_SIZE);
+MmUnmapIoSpace(mappedOriginal, PAGE_SIZE);
+
+// 在 Shadow Page 中目标偏移处写入跳转
+    ULONG offset = targetPhys.LowPart &amp; 0xFFF;
+    BYTE* hookPoint = (BYTE*)shadowPage + offset;
+
+// 写入 14 字节绝对跳转
+    hookPoint[0] = 0xFF;
+    hookPoint[1] = 0x25;
+    *(UINT32*)(hookPoint + 2) = 0;
+    *(UINT64*)(hookPoint + 6) = (UINT64)hookFunction;
+
+// 配置 EPT：初始状态 = Read+Write, 禁止 Execute
+    ULONG ptIndex = (targetPhysPage &gt;&gt; 12) &amp; 0x1FF;
+    ULONG pdIndex = (targetPhysPage &gt;&gt; 21) &amp; 0x1FF;
+    ULONG pdptIndex = (targetPhysPage &gt;&gt; 30) &amp; 0x1FF;
+
+// 定位 PT（需要从拆分后的 PD entry 找到 PT）
+// ... 这里需要根据你的 EPT 结构定位到正确的 PTE
+
+// 保存 Hook 信息
+    EPT_HOOK_ENTRY* entry = ExAllocatePoolWithTag(NonPagedPool, sizeof(EPT_HOOK_ENTRY), 'kooH');
+    entry-&gt;targetPhysAddr = targetPhysPage;
+    entry-&gt;originalHpa = targetPhysPage;
+    entry-&gt;shadowHpa = MmGetPhysicalAddress(shadowPage).QuadPart;
+    entry-&gt;shadowPage = shadowPage;
+    entry-&gt;functionOffset = offset;
+InsertTailList(&amp;g_hookList, &amp;entry-&gt;listEntry);
+
+// 设置 EPT PTE：RW=干净页, X=禁止（触发 Execute 时切换到 shadow）
+    entry-&gt;pEptPte-&gt;ReadAccess = 1;
+    entry-&gt;pEptPte-&gt;WriteAccess = 1;
+    entry-&gt;pEptPte-&gt;ExecuteAccess = 0;  // 执行时触发 EPT Violation
+    entry-&gt;pEptPte-&gt;PhysicalAddress = entry-&gt;originalHpa &gt;&gt; 12;
+
+InveptAllContexts();
+return STATUS_SUCCESS;
+}
+
+// ===== VM-Exit Handler: EPT Violation 处理 =====
+
+void HandleEptViolation(PVMX_VCPU vcpu) {
+    ULONG64 guestPhysAddr = __vmx_vmread(VMCS_GUEST_PHYSICAL_ADDRESS);
+    ULONG64 qualification = __vmx_vmread(VMCS_EXIT_QUALIFICATION);
+
+    BOOLEAN isExecute = (qualification &gt;&gt; 2) &amp; 1;
+    BOOLEAN isRead = qualification &amp; 1;
+    BOOLEAN isWrite = (qualification &gt;&gt; 1) &amp; 1;
+
+// 查找对应的 Hook
+    EPT_HOOK_ENTRY* hook = FindHookByPhysAddr(guestPhysAddr &amp; ~0xFFF);
+if (!hook) {
+// 不是我们的 Hook，注入异常
+InjectException(vcpu, EXCEPTION_GENERAL_PROTECTION);
+return;
+    }
+
+if (isExecute) {
+// CPU 要执行这个页 → 切换到 Shadow Page（含 Hook 跳转）
+        hook-&gt;pEptPte-&gt;ReadAccess = 0;
+        hook-&gt;pEptPte-&gt;WriteAccess = 0;
+        hook-&gt;pEptPte-&gt;ExecuteAccess = 1;
+        hook-&gt;pEptPte-&gt;PhysicalAddress = hook-&gt;shadowHpa &gt;&gt; 12;
+    } else {
+// CPU 要读/写这个页 → 切换到 Original Page（干净代码）
+        hook-&gt;pEptPte-&gt;ReadAccess = 1;
+        hook-&gt;pEptPte-&gt;WriteAccess = 1;
+        hook-&gt;pEptPte-&gt;ExecuteAccess = 0;
+        hook-&gt;pEptPte-&gt;PhysicalAddress = hook-&gt;originalHpa &gt;&gt; 12;
+    }
+
+InveptSingleContext(vcpu-&gt;eptp);
+
+// 设置 Monitor Trap Flag：执行一条指令后恢复初始状态
+    ULONG64 procCtls = __vmx_vmread(VMCS_PROC_BASED_CONTROLS);
+    __vmx_vmwrite(VMCS_PROC_BASED_CONTROLS, procCtls | VMX_PROC_CTL_MONITOR_TRAP_FLAG);
+}
+
+// MTF 处理：单条指令执行完毕后恢复
+void HandleMonitorTrapFlag(PVMX_VCPU vcpu) {
+// 恢复所有 Hook 页为初始状态（RW=原始, X=禁止）
+    PLIST_ENTRY entry = g_hookList.Flink;
+while (entry != &amp;g_hookList) {
+        EPT_HOOK_ENTRY* hook = CONTAINING_RECORD(entry, EPT_HOOK_ENTRY, listEntry);
+        hook-&gt;pEptPte-&gt;ReadAccess = 1;
+        hook-&gt;pEptPte-&gt;WriteAccess = 1;
+        hook-&gt;pEptPte-&gt;ExecuteAccess = 0;
+        hook-&gt;pEptPte-&gt;PhysicalAddress = hook-&gt;originalHpa &gt;&gt; 12;
+        entry = entry-&gt;Flink;
+    }
+
+// 关闭 MTF
+    ULONG64 procCtls = __vmx_vmread(VMCS_PROC_BASED_CONTROLS);
+    __vmx_vmwrite(VMCS_PROC_BASED_CONTROLS, procCtls &amp; ~VMX_PROC_CTL_MONITOR_TRAP_FLAG);
+
+InveptSingleContext(vcpu-&gt;eptp);
+}
+</code></pre><h3 id="section-13">检测难度：★★★★★</h3><ul><li>操作系统读取目标函数时，看到的是<strong>完全干净的原始代码</strong></li><li>PatchGuard 所有完整性校验读取都被 EPT 重定向到干净页</li><li>CRC 校验、<code>memcmp</code> 对比、内存扫描全部通过</li><li>理论检测：时序分析（EPT Violation + VM-Exit 引入微延迟）、嵌套 HV 检测、硬件性能计数器</li></ul><h3 id="section-14">EPT Violation + MTF 状态机（通俗版）</h3><pre><code class="language-text">1. 初始：EPT PTE → 干净页，权限 RW=1, X=0
+2. Guest 执行该页 → EPT Violation（执行权限不足）→ VM-Exit
+3. Handler：改 PTE → Shadow 页，权限 X=1, RW=0；开启 MTF
+4. VM-Entry 继续执行 Shadow 页中的 Hook 跳转
+5. 执行 1 条指令后 MTF VM-Exit → 恢复 PTE 为步骤 1
+</code></pre><h3 id="section-15">更易理解的最小伪代码</h3><pre><code class="language-c">// 精简版：仅展示 EPT Hook 的三态切换逻辑（省略 EPT 建表细节）
+
+typedef enum _EPT_HOOK_VIEW {
+    ViewCleanRw,    // 读/写：干净页
+    ViewShadowExec  // 执行：Shadow 页
+} EPT_HOOK_VIEW;
+
+void OnEptViolation(ULONG64 gpa, BOOLEAN isExecute) {
+    EPT_HOOK_ENTRY* hook = FindHook(gpa &amp; ~0xFFF);
+    if (hook == NULL) return;
+
+    if (isExecute) {
+        // 切换到 Shadow 页，仅允许执行
+        SetEptPte(hook, hook-&gt;shadowHpa, /*r*/0, /*w*/0, /*x*/1);
+        EnableMonitorTrapFlag();  // 执行一条后触发 MTF
+    } else {
+        // 读/写始终走干净页
+        SetEptPte(hook, hook-&gt;originalHpa, /*r*/1, /*w*/1, /*x*/0);
+    }
+    InveptSingleContext();
+}
+
+void OnMonitorTrapFlag(void) {
+    // 恢复所有 Hook 页为 CleanRw 视图
+    RestoreAllHooksToCleanRw();
+    DisableMonitorTrapFlag();
+    InveptSingleContext();
+}
+</code></pre><h3 id="section-16">开源参考实现</h3><table><thead><tr><th>项目</th><th>说明</th></tr></thead><tbody><tr><td><a href="https://github.com/tandasat/HyperPlatform">HyperPlatform</a></td><td>经典 Windows VT-x 研究框架，含 EPT Hook</td></tr><tr><td><a href="https://github.com/tandasat/DdiMon">DdiMon</a></td><td>基于 HyperPlatform 的监控/Hook 示例</td></tr><tr><td><a href="https://github.com/wbenny/hvpp">hvpp</a></td><td>现代 C++ Hypervisor 库</td></tr></tbody></table><blockquote><p>AMD 平台对应技术为 <strong>NPT（Nested Page Tables）</strong>，概念与 EPT 等价，实现细节不同。</p></blockquote><hr><h2 id="section-17">3.2 VMFUNC EPTP Switching（零 VM-Exit 的 EPT 切换）</h2><h3 id="section-18">技术定位</h3><p><strong>研究型性能优化</strong>。在 Haswell+ CPU 上通过 <code>VMFUNC</code> 指令无 VM-Exit 切换 EPTP，避免 3.1 中每次 Violation 的高开销。需维护多套完整 EPT，复杂度高，生产案例极少。</p><h3 id="section-19">原理</h3><p>VMFUNC 是 Intel 在 Haswell+ 处理器上引入的指令，允许 Guest 在<strong>不触发 VM-Exit</strong> 的情况下切换 EPTP（EPT Pointer），即瞬间切换到不同的物理内存视图。</p><h3 id="section-20">完整实现</h3><pre><code class="language-c">// ===== VMCS 配置：启用 VMFUNC =====
+
+void EnableVmfuncInVmcs() {
+// 启用 Secondary Proc-Based Controls 中的 VMFUNC bit
+    ULONG64 secondary = __vmx_vmread(VMCS_SECONDARY_PROC_BASED_CONTROLS);
+    secondary |= (1ULL &lt;&lt; 13); // Enable VMFUNC
+    __vmx_vmwrite(VMCS_SECONDARY_PROC_BASED_CONTROLS, secondary);
+
+// VMFUNC Controls: 只启用 function 0 (EPTP Switching)
+    __vmx_vmwrite(VMCS_VMFUNC_CONTROLS, 1ULL);
+
+// 配置 EPTP List（最多 512 个 EPTP）
+DECLSPEC_ALIGN(PAGE_SIZE) ULONG64 eptpList[512] = {0};
+
+    eptpList[0] = g_cleanEptp.Value;    // Index 0: 干净视图（默认）
+    eptpList[1] = g_hookedEptp.Value;   // Index 1: Hook 视图
+
+    PHYSICAL_ADDRESS eptpListPhys = MmGetPhysicalAddress(eptpList);
+    __vmx_vmwrite(VMCS_EPTP_LIST_ADDRESS, eptpListPhys.QuadPart);
+}
+
+// ===== Guest 端切换代码 =====
+
+// 切换到 Hook 视图（Guest 内核代码调用）
+__forceinline void SwitchToHookView() {
+// VMFUNC: EAX=0 (function=EPTP Switching), ECX=1 (EPTP index)
+    __asm {
+xor eax, eax    // function 0
+        mov ecx, 1      // switch to index 1
+        _emit 0x0F      // VMFUNC opcode
+        _emit 0x01
+        _emit 0xC4
+    }
+}
+
+// 切换到干净视图
+__forceinline void SwitchToCleanView() {
+    __asm {
+xor eax, eax
+xor ecx, ecx    // switch to index 0
+        _emit 0x0F
+        _emit 0x01
+        _emit 0xC4
+    }
+}
+
+// ===== 高级应用：自动切换的 Hook Trampoline =====
+// 在 Hook 函数入口自动切换视图，退出时切换回来
+
+// 汇编 Trampoline：
+// 1. 进入时切换到干净视图（这样读内存看到的是原始代码）
+// 2. 调用真正的 Hook 处理函数
+// 3. 退出时切换回 Hook 视图
+// 4. 跳转到原始函数（在 Hook 视图中执行原始代码的 trampoline）
+
+BYTE g_vmfuncTrampoline[] = {
+// Switch to clean view (index 0)
+0x31, 0xC0,                         // xor eax, eax
+0x31, 0xC9,                         // xor ecx, ecx
+0x0F, 0x01, 0xC4,                   // vmfunc
+
+// Call hook handler (address patched at runtime)
+0xFF, 0x15, 0x02, 0x00, 0x00, 0x00, // call [rip+2]
+0xEB, 0x08,                         // jmp over address
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // hook_handler address
+
+// Switch back to hook view (index 1)
+0x31, 0xC0,                         // xor eax, eax
+0xB9, 0x01, 0x00, 0x00, 0x00,       // mov ecx, 1
+0x0F, 0x01, 0xC4,                   // vmfunc
+
+// Jump to original function trampoline (address patched)
+0xFF, 0x25, 0x00, 0x00, 0x00, 0x00, // jmp [rip+0]
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00  // original_trampoline address
+};
+</code></pre><h3 id="section-21">对比普通 EPT Hook</h3><table><thead><tr><th>维度</th><th>普通 EPT Hook（3.1）</th><th>VMFUNC EPTP Switching（3.2）</th></tr></thead><tbody><tr><td>视图切换方式</td><td>EPT Violation → VM-Exit</td><td>VMFUNC 指令（无 VM-Exit）</td></tr><tr><td>性能开销</td><td>每次切换约 1000–3000 cycles</td><td>约 100 cycles</td></tr><tr><td>时序攻击风险</td><td>有（VM-Exit 延迟可测量）</td><td>极低（指令级速度）</td></tr><tr><td>CPU 要求</td><td>VT-x + EPT</td><td>Haswell+（2013+）</td></tr><tr><td>复杂度</td><td>中等</td><td>高（需维护多套 EPT）</td></tr><tr><td>常用度</td><td>高</td><td>低（研究/极致隐蔽）</td></tr></tbody></table><h3 id="section-22">现状说明</h3><table><thead><tr><th>项目</th><th>说明</th></tr></thead><tbody><tr><td>启用条件</td><td>VMCS 中 <code>Enable VMFUNC</code> + <code>EPTP List</code> 配置</td></tr><tr><td>Guest 配合</td><td>需在 Guest 内核/用户态执行 <code>vmfunc</code>（需注入或内核模块）</td></tr><tr><td>检测</td><td>几乎无时序特征，但 <code>CPUID</code> 可暴露 VMFUNC 支持（可被 3.4 隐藏）</td></tr><tr><td>适用场景</td><td>高频 Hook 点、对 VM-Exit 延迟敏感的研究原型</td></tr></tbody></table><h3 id="section-23">检测难度：★★★★★+</h3><ul><li>没有 VM-Exit，时序攻击基本无效</li><li>CPUID 可以被拦截来隐藏 VMFUNC 支持</li><li>目前没有已知的广泛部署检测方案（不代表绝对不可检测）</li></ul><hr><h2 id="section-24">3.3 EPT + MSR Bitmap 联合 Hook</h2><h3 id="section-25">技术定位</h3><p><strong>HV 反检测标配</strong>。单独 EPT 只能骗过内存读取；配合 MSR Bitmap 可拦截 <code>rdmsr</code>/<code>wrmsr</code>，伪造 <code>IA32_LSTAR</code> 等关键 MSR，形成"代码 + 数据"双重伪装。</p><h3 id="section-26">原理</h3><p>VMX 的 MSR Bitmap 可以选择性地让某些 MSR 的读写触发 VM-Exit。配合 EPT Hook，可以拦截任何通过 MSR 实现的功能（性能计数器、电源控制、安全特性等），同时让检测工具读到伪造的 MSR 值。</p><pre data-note-kind="mermaid"><code>flowchart LR
+    A["Guest rdmsr IA32_LSTAR"] --&gt; B{"MSR Bitmap 拦截?"}
+    B --&gt;|是| C["VM-Exit"]
+    C --&gt; D["Handler 返回伪造值"]
+    B --&gt;|否| E["硬件真实 MSR"]
+</code></pre><h3 id="section-27">完整实现</h3><pre><code class="language-c">// MSR Bitmap 结构（4KB 页，4个区域各 1KB）
+// 0x000-0x3FF: Low MSRs read  (MSR 0x00000000 - 0x00001FFF)
+// 0x400-0x7FF: High MSRs read (MSR 0xC0000000 - 0xC0001FFF)
+// 0x800-0xBFF: Low MSRs write
+// 0xC00-0xFFF: High MSRs write
+
+DECLSPEC_ALIGN(PAGE_SIZE) UCHAR g_msrBitmap[PAGE_SIZE] = {0};
+
+void SetupMsrBitmap() {
+    RtlZeroMemory(g_msrBitmap, PAGE_SIZE);
+
+// 拦截 IA32_LSTAR 的读取（让检测工具看到假值）
+// IA32_LSTAR = 0xC0000082
+// 在 High MSR read bitmap 中: offset = 0x400 + (0x82 / 8) = 0x410, bit = 0x82 % 8 = 2
+    g_msrBitmap[0x410] |= (1 &lt;&lt; 2);  // RDMSR 触发 VM-Exit
+
+// 也可以拦截写入
+    g_msrBitmap[0xC10] |= (1 &lt;&lt; 2);  // WRMSR 触发 VM-Exit
+
+// 拦截 IA32_DEBUGCTL (用于隐藏调试特性)
+// 0x1D9 → Low MSR read: offset = 0x000 + (0x1D9 / 8) = 0x3B, bit = 0x1D9 % 8 = 1
+    g_msrBitmap[0x3B] |= (1 &lt;&lt; 1);
+
+// 写入 VMCS
+    PHYSICAL_ADDRESS msrBitmapPhys = MmGetPhysicalAddress(g_msrBitmap);
+    __vmx_vmwrite(VMCS_MSR_BITMAP_ADDRESS, msrBitmapPhys.QuadPart);
+}
+
+// VM-Exit Handler: 伪造 MSR 值
+void HandleMsrRead(PVMX_VCPU vcpu) {
+    ULONG msrIndex = (ULONG)vcpu-&gt;guestState.Rcx;
+    ULONG64 realValue;
+
+switch (msrIndex) {
+case 0xC0000082: // IA32_LSTAR
+// 返回原始的 KiSystemCall64 地址（即使实际已被修改）
+            realValue = g_originalKiSystemCall64;
+break;
+
+case 0x1D9: // IA32_DEBUGCTL
+// 隐藏任何调试相关设置
+            realValue = 0;
+break;
+
+default:
+            realValue = __readmsr(msrIndex);
+break;
+    }
+
+    vcpu-&gt;guestState.Rax = (ULONG)(realValue &amp; 0xFFFFFFFF);
+    vcpu-&gt;guestState.Rdx = (ULONG)(realValue &gt;&gt; 32);
+    AdvanceGuestRip(vcpu);
+}
+
+// VM-Exit Handler: 拦截 MSR 写入
+void HandleMsrWrite(PVMX_VCPU vcpu) {
+    ULONG msrIndex = (ULONG)vcpu-&gt;guestState.Rcx;
+    ULONG64 newValue = ((ULONG64)vcpu-&gt;guestState.Rdx &lt;&lt; 32) | (vcpu-&gt;guestState.Rax &amp; 0xFFFFFFFF);
+
+switch (msrIndex) {
+case 0xC0000082: // IA32_LSTAR
+// 阻止修改（或记录后放行）
+// 如果放行，更新我们的记录
+            g_originalKiSystemCall64 = newValue;
+            __writemsr(msrIndex, newValue);
+break;
+
+default:
+            __writemsr(msrIndex, newValue);
+break;
+    }
+    AdvanceGuestRip(vcpu);
+}
+</code></pre><h3 id="section-28">检测难度：★★★★★</h3><ul><li>检测工具用 <code>rdmsr</code> 读 <code>IA32_LSTAR</code> 看到的是假值</li><li>配合 EPT Hook，代码内存读取也是假的</li><li>双重伪装：代码伪装 + MSR 数据伪装</li></ul><h3 id="section-29">常拦截 MSR 速查</h3><table><thead><tr><th>MSR</th><th>地址</th><th>拦截目的</th></tr></thead><tbody><tr><td><code>IA32_LSTAR</code></td><td>0xC0000082</td><td>隐藏 syscall 入口是否被改</td></tr><tr><td><code>IA32_DEBUGCTL</code></td><td>0x1D9</td><td>隐藏调试/断点相关设置</td></tr><tr><td><code>IA32_EFER</code></td><td>0xC0000080</td><td>控制 SCE/NXE 等</td></tr><tr><td><code>IA32_SYSENTER_*</code></td><td>0x174–0x176</td><td>旧版 sysenter 路径检测</td></tr></tbody></table><h3 id="section-30">MSR Bitmap 偏移计算公式</h3><pre><code class="language-text">High MSR（0xC0000000–0xC0001FFF）读拦截：
+  字节偏移 = 0x400 + ((msr &amp; 0x1FFF) / 8)
+  位索引   = (msr &amp; 0x1FFF) % 8
+
+示例 IA32_LSTAR (0xC0000082)：
+  偏移 0x410，bit 2  → g_msrBitmap[0x410] |= (1 &lt;&lt; 2)
+</code></pre><hr><h2 id="section-31">3.4 CPUID 虚拟化隐藏 + TSC 补偿</h2><h3 id="section-32">技术定位</h3><p><strong>HV 反虚拟机检测标配</strong>。任何 Hypervisor 都会引入 CPUID 特征位和 VM-Exit 时序差异；本节是 Hypervisor 隐藏自身存在的标准手段，与 3.1 EPT Hook 配合使用。</p><h3 id="section-33">原理</h3><p>Hypervisor 的存在可以通过 CPUID 指令被检测（VMX 会让 <code>CPUID.1:ECX.bit31 = 1</code>）。同时 VM-Exit 会引入可测量的时间延迟。通过拦截 CPUID 和补偿 TSC（时间戳计数器），可以让检测工具更难发现 Hypervisor。</p><pre data-note-kind="mermaid"><code>flowchart TB
+    subgraph 反VM检测
+        D1["CPUID leaf 1 bit31"]
+        D2["CPUID 0x40000000 Hypervisor 叶"]
+        D3["RDTSC 前后差值"]
+    end
+    subgraph HV对抗
+        H1["HandleCpuid 清除 bit31"]
+        H2["Hypervisor 叶返回 0"]
+        H3["VMCS TSC_OFFSET 补偿"]
+    end
+    D1 --&gt; H1
+    D2 --&gt; H2
+    D3 --&gt; H3
+</code></pre><h3 id="section-34">完整实现</h3><pre><code class="language-c">// ===== CPUID 伪装 =====
+void HandleCpuid(PVMX_VCPU vcpu) {
+    int cpuInfo[4];
+    __cpuidex(cpuInfo, (int)vcpu-&gt;guestState.Rax, (int)vcpu-&gt;guestState.Rcx);
+
+ULONG leaf = (ULONG)vcpu-&gt;guestState.Rax;
+
+switch (leaf) {
+case 0x1:
+// 清除 Hypervisor Present bit (ECX bit 31)
+            cpuInfo[2] &amp;= ~(1 &lt;&lt; 31);
+break;
+
+case 0x40000000:
+case 0x40000001:
+case 0x40000002:
+case 0x40000003:
+case 0x40000004:
+case 0x40000005:
+case 0x40000006:
+// 所有 Hypervisor 扩展 leaf 返回 0
+            cpuInfo[0] = cpuInfo[1] = cpuInfo[2] = cpuInfo[3] = 0;
+break;
+
+case 0x0:
+// 确保 max leaf 不包含 0x40000000 范围
+if (cpuInfo[0] &gt; 0x20) cpuInfo[0] = 0x20;
+break;
+    }
+
+    vcpu-&gt;guestState.Rax = cpuInfo[0];
+    vcpu-&gt;guestState.Rbx = cpuInfo[1];
+    vcpu-&gt;guestState.Rcx = cpuInfo[2];
+    vcpu-&gt;guestState.Rdx = cpuInfo[3];
+    AdvanceGuestRip(vcpu);
+}
+
+// ===== TSC 补偿（隐藏 VM-Exit 延迟）=====
+// VM-Exit + VM-Entry 大约消耗 1000-3000 TSC cycles
+// 如果检测工具在 VM-Exit 前后读 TSC 对比，可以发现异常延迟
+
+// 方案：在 VMCS 中设置 TSC Offset，每次 VM-Exit 后补偿消耗的时间
+typedef struct _TSC_STATE {
+    ULONG64 lastExitTsc;      // 上次 VM-Exit 时的 TSC
+    ULONG64 totalOffset;      // 累积需要减去的 TSC
+} TSC_STATE;
+
+TSC_STATE g_tscState[256] = {0}; // 每个 CPU 一个
+
+void HandleVmExit(PVMX_VCPU vcpu) {
+    ULONG64 exitTsc = __rdtsc();
+
+// ... 处理各种 VM-Exit ...
+
+ULONG64 entryTsc = __rdtsc();
+    ULONG64 exitCost = entryTsc - exitTsc;
+
+// 将这次 VM-Exit 的时间消耗累加到 TSC Offset
+    g_tscState[vcpu-&gt;cpuIndex].totalOffset += exitCost;
+
+// 更新 VMCS TSC Offset（Guest 读到的 TSC = 实际 TSC - offset）
+    __vmx_vmwrite(VMCS_TSC_OFFSET, -(INT64)g_tscState[vcpu-&gt;cpuIndex].totalOffset);
+}
+
+// 还需要处理 RDTSC/RDTSCP 的 VM-Exit（如果启用了 RDTSC exiting）
+void HandleRdtsc(PVMX_VCPU vcpu) {
+    ULONG64 tsc = __rdtsc() - g_tscState[vcpu-&gt;cpuIndex].totalOffset;
+    vcpu-&gt;guestState.Rax = (ULONG)(tsc &amp; 0xFFFFFFFF);
+    vcpu-&gt;guestState.Rdx = (ULONG)(tsc &gt;&gt; 32);
+    AdvanceGuestRip(vcpu);
+}
+</code></pre><h3 id="section-35">检测难度：★★★★☆</h3><ul><li>CPUID 看不到 Hypervisor Present 位（基础检测可绕过）</li><li>TSC 差值测量难度增大（非绝对不可检测）</li><li>高级检测仍可能通过：缓存时序、侧信道、固件/TPM  attestation、嵌套 HV 存在性</li></ul><h3 id="section-36">反检测 vs 反-反检测（现实博弈）</h3><table><thead><tr><th>检测方手段</th><th>HV 对抗（本章技术）</th><th>检测方进阶</th></tr></thead><tbody><tr><td><code>CPUID.1:ECX[31]</code></td><td>3.4 清除该位</td><td>检查 Hypervisor 叶 0x40000000 一致性</td></tr><tr><td><code>rdtsc</code> 差值</td><td>TSC_OFFSET 补偿</td><td>多核 TSC 同步、HPET 交叉验证</td></tr><tr><td>内存完整性扫描</td><td>3.1 EPT 干净页</td><td>行为分析、网络 C2 特征</td></tr><tr><td><code>rdmsr LSTAR</code></td><td>3.3 MSR Bitmap 伪造</td><td>直接 syscall 进内核对比行为</td></tr></tbody></table><h3 id="section-37">TSC 补偿注意点</h3><table><thead><tr><th>项目</th><th>说明</th></tr></thead><tbody><tr><td><code>VMCS_TSC_OFFSET</code></td><td>Guest 读到 <code>TSC - offset</code></td></tr><tr><td>多核</td><td>每个 vCPU 独立维护 <code>g_tscState[cpuIndex]</code></td></tr><tr><td>RDTSC exiting</td><td>若启用 RDTSC VM-Exit，需在 Handler 中手动补偿</td></tr><tr><td>局限</td><td>无法完美消除所有微架构侧信道</td></tr></tbody></table><hr><h2 id="section-38">本章总结</h2><h3 id="section-39">技术选型决策树</h3><pre data-note-kind="mermaid"><code>flowchart TD
+    START["需要 Hook 且骗过内存扫描?"] --&gt; Q1{"能加载自有 Hypervisor?"}
+    Q1 --&gt;|否| R09["退回第 09 章&lt;br/&gt;Kernel Callback / Infinity Hook"]
+    Q1 --&gt;|是| Q2{"主要需求?"}
+    Q2 --&gt;|Hook 内核函数| A1["3.1 EPT Hook"]
+    Q2 --&gt;|降低 VM-Exit 开销| A2["3.2 VMFUNC（Haswell+）"]
+    Q2 --&gt;|隐藏 HV 存在| A3["3.3 MSR Bitmap + 3.4 CPUID/TSC"]
+</code></pre><h3 id="section-40">三层 Hook 隐蔽性对比</h3><table><thead><tr><th>检测手段</th><th>Ring 3</th><th>Ring 0</th><th>Ring -1（本章）</th></tr></thead><tbody><tr><td>内存扫描</td><td>易发现</td><td>较易发现</td><td><strong>读看到干净页</strong></td></tr><tr><td>PatchGuard</td><td>不涉及</td><td>监控关键结构</td><td>PG 读取也被 EPT 骗过</td></tr><tr><td><code>rdmsr</code> 检测</td><td>不涉及</td><td>可发现异常</td><td>Bitmap 可伪造</td></tr><tr><td>时序检测</td><td>较难</td><td>较难</td><td>EPT Violation 有痕迹；VMFUNC 更少</td></tr></tbody></table><h3 id="section-41">部署现实约束（Win10+）</h3><table><thead><tr><th>约束</th><th>影响</th></tr></thead><tbody><tr><td><strong>Hyper-V / VBS 已启用</strong></td><td>VT-x 常被 Hyper-V 占用，第三方 HV 需嵌套虚拟化或 Boot 前加载</td></tr><tr><td><strong>HVCI（内存完整性）</strong></td><td>Guest 内核代码页保护增强，但不阻止 EPT 层重映射</td></tr><tr><td><strong>Secure Boot + DSE</strong></td><td>Hypervisor 驱动仍需签名才能持久加载</td></tr><tr><td><strong>PatchGuard</strong></td><td>在 Guest 内仍运行，但<strong>读取校验</strong>可被 EPT 绕过</td></tr></tbody></table><h3 id="section-42">学习路径建议</h3><table><thead><tr><th>阶段</th><th>内容</th><th>目标</th></tr></thead><tbody><tr><td>第一阶段</td><td>VT-x 基础 + 3.1 EPT 状态机</td><td>理解 Violation/MTF</td></tr><tr><td>第二阶段</td><td>阅读 HyperPlatform 源码</td><td>跑通最小 HV</td></tr><tr><td>第三阶段</td><td>3.3 + 3.4 反检测组合</td><td>理解完整隐蔽链</td></tr><tr><td>第四阶段</td><td>3.2 VMFUNC</td><td>性能优化（可选）</td></tr></tbody></table><h3 id="section-43">核心认知</h3><ol><li><strong>EPT Hook 本质</strong>：在 GPA→HPA 翻译层做视图切换，不是改 Guest 内核字节。</li><li><strong>MTF 是关键</strong>：单步恢复干净视图，避免执行后仍停留在 Shadow 页被读取发现。</li><li><strong>反检测是组合技</strong>：EPT + MSR Bitmap + CPUID/TSC，缺一不可才接近"全隐蔽"。</li><li><strong>不是银弹</strong>：VBS/Hyper-V 环境下第三方 HV 本身难以部署；高级安全产品仍有行为/固件层检测。</li></ol><h3 id="section-44">推荐工具与资源</h3><table><thead><tr><th>资源</th><th>用途</th></tr></thead><tbody><tr><td>Intel SDM Vol.3C（VMX 章节）</td><td>VT-x / EPT / VMFUNC 权威规范</td></tr><tr><td><a href="https://github.com/tandasat/HyperPlatform">HyperPlatform</a></td><td>Windows EPT Hook 参考实现</td></tr><tr><td><a href="https://github.com/wbenny/hvpp">hvpp</a></td><td>现代 C++ Hypervisor 框架</td></tr><tr><td>WinDbg + 双机调试</td><td>调试 Guest 内核（Guest 作为被调试机）</td></tr><tr><td><code>coreinfo -v</code> / <code>bcdedit</code></td><td>检查 Hyper-V/VBS 是否占用 VT-x</td></tr></tbody></table><hr><h2 id="section-45">附录：全架构 Hook 三层对照总表</h2><table><thead><tr><th>章节</th><th>层次</th><th>代表技术</th><th>生产可用性</th></tr></thead><tbody><tr><td>第 08 章</td><td>Ring 3</td><td>IAT / Inline / VEH</td><td>高（应用/注入）</td></tr><tr><td>第 09 章</td><td>Ring 0</td><td>Minifilter / WFP / ObCallback</td><td><strong>最高（官方驱动）</strong></td></tr><tr><td>第 10 章</td><td>Ring -1</td><td>EPT Hook + 反检测</td><td>低（研究/特殊场景）</td></tr></tbody></table><blockquote><p>绝大多数合法安全产品停留在第 09 章；第 10 章代表隐蔽性上限，但部署成本与合规风险也最高。</p></blockquote>

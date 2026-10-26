@@ -1,0 +1,57 @@
+
+> technical-notes-lab@0.1.0 test
+> node --test --test-concurrency=1 test/*.test.mjs
+
+✔ HTML contract C01-metadata-headings (719.2409ms)
+✔ HTML contract C02-code-escaping (777.8543ms)
+✔ HTML contract C03-math-mermaid (753.7409ms)
+✔ HTML contract C04-table-task-quote (666.337ms)
+✔ HTML contract C05-safe-html (847.9362ms)
+✔ HTML contract C06-unsafe-html (804.7671ms)
+✔ HTML contract C07-unsupported-html (832.3072ms)
+✔ HTML contract C08-resource-mapping (912.6894ms)
+✔ HTML contract C09-missing-resources (876.4285ms)
+✔ HTML contract C10-bom-crlf (848.1169ms)
+✔ HTML contract C11-invalid-utf8 (508.7ms)
+✔ HTML contract C12-invalid-frontmatter (444.0586ms)
+✔ HTML contract C13-unknown-language (815.3ms)
+✔ HTML contract C14-html-roundtrip-seed (870.7043ms)
+✔ HTML contract C15-nested-list-h6 (688.9834ms)
+✔ strict metadata, byte limits, AST budget and hard timeout (4009.5613ms)
+✔ hostile attributes, parser repair, protocols and canonical source remain inert (2456.9711ms)
+✔ language aliases and complex source text survive normalization (2901.4059ms)
+✔ review regressions: meaningful spaces, compatibility blocks, cyclic metadata and expanded HTML (3832.5687ms)
+render 1790097954593: start
+render 1790097954765: highlighter ready
+render 1790097954829: import DOM
+render 1790097955243: DOM imported
+render 1790097955281: import Mermaid
+render 1790097956217: Mermaid imported
+render 1790097956220: parse diagram
+render 1790097956242: diagram parsed
+render 1790097956246: complete
+render 1790097956862: start
+render 1790097957032: highlighter ready
+render 1790097957620: start
+render 1790097957810: highlighter ready
+render 1790097957811: import DOM
+render 1790097958206: DOM imported
+render 1790097958243: import Mermaid
+render 1790097959141: Mermaid imported
+render 1790097959144: parse diagram
+✔ display generation binds source hash, preserves source and blocks failures (5214.0605ms)
+render 1790097962063: start
+render 1790097962240: highlighter ready
+render 1790097962249: complete
+✔ final review: valid content models, repair diagnostics, clean TOC and bounded rendering (3122.8934ms)
+✔ precheck CLI and single converter agree; sources unchanged, resource and output boundaries hold (15960.5634ms)
+✔ Markdown: 旧frontmatter、代码别名、公式、图表及不可信HTML (263.4711ms)
+✔ 端到端：导入→编辑→发布快照→冲突→撤回→重启持久化 (1447.5775ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51334.2269

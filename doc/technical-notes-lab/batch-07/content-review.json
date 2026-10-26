@@ -1,0 +1,45 @@
+{
+  "reviewedAt": "2026-09-24T14:05:12.512Z",
+  "database": "C:\\Users\\17536\\Desktop\\website\\technical-notes-lab\\.test-data\\batch-07-content-reviewed\\notes.sqlite",
+  "notes": [
+    {
+      "path": "15_HOOK专题/09_Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）.md",
+      "noteId": "5ee71fd87d8d7dc12a3a1c580cf9f85f",
+      "previousRevisionId": "83bfcfc9-298f-4971-9235-1a5498708e78",
+      "currentRevisionId": "10e61f9f-43f5-4643-a197-1fd0d689edf6",
+      "version": 2,
+      "sourceArchiveId": "57fdaea4-a686-4bac-8164-40d5d7937cb7",
+      "sourceHash": "8f20b9bba19fc8bc9839a44230ed441be8b7d3b840fa133ca0540b1de293d7b2",
+      "status": "ready",
+      "renderStatus": "ready",
+      "publishable": true,
+      "diagnostics": [],
+      "change": {
+        "before": "Ntdll-&gt;&gt;CPU: mov eax,SSN; syscall",
+        "after": "Ntdll-&gt;&gt;CPU: mov eax, SSN &lt;br/&gt; syscall",
+        "reason": "Mermaid 把分号当作语句结束；用图表换行继续表达同一两步操作。"
+      }
+    },
+    {
+      "path": "20_免杀专题/课时05_重写R3API.md",
+      "noteId": "1ebbe2ce2bd86c1f4b59a57c8e2938d5",
+      "previousRevisionId": "d1376054-6615-4742-ae95-c3154300ea91",
+      "currentRevisionId": "2e516e9e-3ef8-43a0-b079-bb581ee3a774",
+      "version": 2,
+      "sourceArchiveId": "4fe005d1-ac9a-46d9-b82a-3beaf6d1f850",
+      "sourceHash": "2b0d7e0fe16265a13b7e9080dffd18402f7abb49a69b8c0a0479f0512a4786f3",
+      "status": "ready",
+      "renderStatus": "ready",
+      "publishable": true,
+      "diagnostics": [],
+      "change": {
+        "before": "<h3 id=\"section-9\">3.1 安全软件如何Hook API</h3><pre><code class=\"language-text\">",
+        "after": "<h3 id=\"section-9\">3.1 安全软件如何Hook API</h3><p>原始函数：</p><pre><code class=\"language-text\">",
+        "reason": "把误写为围栏语言的“原始函数：”恢复为可见说明，代码继续按纯文本展示。"
+      }
+    }
+  ],
+  "totalNotes": 253,
+  "totalRevisions": 255,
+  "publishedNotes": 0
+}

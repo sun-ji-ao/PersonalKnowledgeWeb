@@ -1,0 +1,105 @@
+{
+  "checkedAt": "2026-09-24T14:08:39.720Z",
+  "method": "web.open read-only",
+  "note": "Page loads were observed; future availability and all in-page destinations are not guaranteed.",
+  "uniqueUrls": 12,
+  "occurrences": 19,
+  "links": [
+    {
+      "url": "https://github.com/klezVirus/SysWhispers3",
+      "occurrences": 1,
+      "sourcePaths": [
+        "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    },
+    {
+      "url": "https://github.com/zyantific/zydis",
+      "occurrences": 1,
+      "sourcePaths": [
+        "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    },
+    {
+      "url": "https://github.com/TsudaKageyu/minhook",
+      "occurrences": 3,
+      "sourcePaths": [
+        "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    },
+    {
+      "url": "https://github.com/microsoft/Detours",
+      "occurrences": 2,
+      "sourcePaths": [
+        "15_HOOK专题/08_Windows 全架构 Hook 技术图谱-用户态 Hook（Ring 3).md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    },
+    {
+      "url": "https://github.com/microsoft/Windows-driver-samples",
+      "occurrences": 1,
+      "sourcePaths": [
+        "15_HOOK专题/09_Windows 全架构 Hook 技术图谱-内核态 Hook（Ring 0）.md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    },
+    {
+      "url": "https://github.com/wbenny/hvpp",
+      "occurrences": 2,
+      "sourcePaths": [
+        "15_HOOK专题/10_Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）.md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    },
+    {
+      "url": "https://github.com/tandasat/HyperPlatform",
+      "occurrences": 2,
+      "sourcePaths": [
+        "15_HOOK专题/10_Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）.md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    },
+    {
+      "url": "https://github.com/tandasat/DdiMon",
+      "occurrences": 1,
+      "sourcePaths": [
+        "15_HOOK专题/10_Windows 全架构 Hook 技术图谱-Hypervisor 级 Hook（Ring 1）.md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    },
+    {
+      "url": "https://github.com/chipsec/chipsec",
+      "occurrences": 2,
+      "sourcePaths": [
+        "15_HOOK专题/11_Windows 全架构 - 硬件固件级 Hook（Ring -2 及以下）.md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    },
+    {
+      "url": "https://github.com/ufrisk/MemProcFS",
+      "occurrences": 1,
+      "sourcePaths": [
+        "15_HOOK专题/11_Windows 全架构 - 硬件固件级 Hook（Ring -2 及以下）.md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    },
+    {
+      "url": "https://github.com/ufrisk/pcileech",
+      "occurrences": 2,
+      "sourcePaths": [
+        "15_HOOK专题/11_Windows 全架构 - 硬件固件级 Hook（Ring -2 及以下）.md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    },
+    {
+      "url": "https://attack.mitre.org/techniques/T1055/012/",
+      "occurrences": 1,
+      "sourcePaths": [
+        "20_免杀专题/课时10_进程镂空.md"
+      ],
+      "result": "web.open returned repository/page content on 2026-09-24"
+    }
+  ]
+}

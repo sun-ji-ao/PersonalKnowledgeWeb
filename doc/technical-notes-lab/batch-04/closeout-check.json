@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-09-23T00:37:30.480Z",
+  "legacyFiles": 253,
+  "legacyChanged": 0,
+  "browserData": {
+    "noteCount": 3,
+    "sampleRevisions": 8,
+    "originalBytes": 785,
+    "originalHash": "70ff175c43e70fdec452663e2e2da47b847d141417a1181667c531516801654f",
+    "restoredAsNewRevision": true,
+    "failedRenderDraftSaved": true,
+    "conflictDidNotOverwrite": true,
+    "onlineFormattingPersisted": true,
+    "longHeadings": 80,
+    "longCodeBlocks": 80
+  },
+  "documentationLinks": 129,
+  "missingLinks": []
+}
