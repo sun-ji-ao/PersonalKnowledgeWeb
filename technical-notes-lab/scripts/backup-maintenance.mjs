@@ -4,8 +4,69 @@ import os from 'node:os';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createServer } from 'node:net';
 
 const namePattern = /^backup-\d{4}-\d{2}-\d{2}T[\d-]+Z-[a-f0-9]+$/;
+function writeJson(filename, value) {
+  const temporary = `${filename}.${randomUUID()}.tmp`;
+  try {
+    fs.writeFileSync(temporary, JSON.stringify(value, null, 2), { flag: 'wx', mode: 0o600 });
+    fs.renameSync(temporary, filename);
+  } finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
+}
+
+// Kernel-owned IPC locks disappear when a process exits, including forced termination.
+// They also serialize recovery of old PID files, avoiding two stale-lock reclaimers.
+export async function acquireSyncLock(destination) {
+  const root = fs.realpathSync(destination);
+  const identity = createHash('sha256').update(process.platform === 'win32' ? root.toLowerCase() : root).digest('hex');
+  if (!['win32', 'linux'].includes(process.platform)) throw new Error('Backup synchronization supports Windows and Linux');
+  const endpoint = process.platform === 'win32' ? `\\\\.\\pipe\\technical-notes-backup-${identity}` : `\0technical-notes-backup-${identity}`;
+  const server = createServer(socket => socket.destroy());
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(endpoint, () => { server.removeListener('error', reject); resolve(); });
+  });
+  return () => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+}
+
+function recoverLegacyLock(root) {
+    const legacy = path.join(root, '.sync.lock');
+    if (fs.existsSync(legacy)) {
+      const stat = regular(legacy);
+      if (stat.size > 128) throw new Error('Unrecognized legacy sync lock; inspect it before recovery');
+      const value = fs.readFileSync(legacy, 'utf8').trim();
+      if (!/^\d+$/.test(value) || Number(value) < 1) throw new Error('Invalid legacy sync lock; inspect it before recovery');
+      try { process.kill(Number(value), 0); throw new Error('A legacy backup process is still running'); }
+      catch (error) { if (error.code !== 'ESRCH') throw error; }
+      fs.renameSync(legacy, path.join(root, `.sync.lock.recovered-${randomUUID()}`));
+    }
+}
+
+export function backupStatus(root, now = Date.now()) {
+  const issues = []; let local, lastRun, lastSuccess;
+  const read = filename => {
+    try { return JSON.parse(fs.readFileSync(path.join(root, filename), 'utf8')); }
+    catch (error) { if (error.code !== 'ENOENT') issues.push(`INVALID_${filename.toUpperCase().replace(/[^A-Z]/g, '_')}`); return null; }
+  };
+  try {
+    local = inventory(root, now);
+    if (!local.valid.length) issues.push('NO_VALID_BACKUP');
+    else if (local.ageHours < -0.1 || local.ageHours > local.maxAgeHours) issues.push('BACKUP_STALE_OR_FUTURE');
+    if (local.invalid.length) issues.push('BACKUP_CORRUPT');
+    if (local.freeBytes < local.minimumFreeBytes) issues.push('LOW_DISK_SPACE');
+  } catch { issues.push('LOCAL_INVENTORY_UNAVAILABLE'); }
+  lastRun = read('sync-last-run.json'); lastSuccess = read('sync-last-success.json');
+  if (lastRun && (!['running', 'success', 'failed'].includes(lastRun.status) || !Number.isFinite(Date.parse(lastRun.startedAt)))) issues.push('INVALID_SYNC_RUN_STATE');
+  const successAge = (now - Date.parse(lastSuccess?.checkedAt)) / 3600000;
+  if (!Number.isFinite(successAge) || successAge < -0.1 || successAge > 26) issues.push('SYNC_SUCCESS_MISSING_OR_STALE');
+  if (lastRun?.status === 'failed') issues.push('SYNC_FAILED');
+  if (lastRun?.status === 'running' && (!Number.isFinite(Date.parse(lastRun.startedAt)) || now - Date.parse(lastRun.startedAt) > 20 * 60_000)) issues.push('SYNC_INTERRUPTED_OR_STALLED');
+  return { checkedAt: new Date(now).toISOString(), healthy: issues.length === 0, issues,
+    latest: local?.valid[0] || null, validSnapshots: local?.valid.length ?? 0,
+    invalidSnapshots: local?.invalid.length ?? 0, ageHours: local?.ageHours ?? null,
+    freeBytes: local?.freeBytes ?? null, lastRun, lastSuccessAt: lastSuccess?.checkedAt || null };
+}
 function regular(file) {
   const stat = fs.lstatSync(file);
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error(`Not a regular file: ${file}`);
@@ -80,19 +141,21 @@ export async function pack(directory) {
   return { name: path.basename(archive) };
 }
 
-export async function sync(config) {
+export async function sync(config, { transport = run } = {}) {
   const { host, key, destination, remoteBase } = config;
   if (!/^[a-zA-Z0-9_-]+@[a-zA-Z0-9.-]+$/.test(host) || !/^\/[a-zA-Z0-9_/-]+$/.test(remoteBase) || !path.isAbsolute(destination) || !path.isAbsolute(key)) throw new Error('Invalid sync configuration');
   const port = String(config.port || 22);
   if (!/^\d+$/.test(port)) throw new Error('Invalid SSH port');
   fs.mkdirSync(destination, { recursive: true, mode: 0o700 });
-  const lock = path.join(destination, '.sync.lock');
-  const fd = fs.openSync(lock, 'wx', 0o600);
+  const release = await acquireSyncLock(destination);
+  const startedAt = new Date().toISOString(), runId = randomUUID();
+  const statusPath = path.join(destination, 'sync-last-run.json');
   try {
-    fs.writeFileSync(fd, `${process.pid}\n`);
-    const args = ['-i', key, '-p', port, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', host];
+    writeJson(statusPath, { runId, startedAt, status: 'running', pid: process.pid });
+    recoverLegacyLock(destination);
+    const args = ['-i', key, '-p', port, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3', host];
     const command = `${remoteBase}/node-runtime/node_modules/node/bin/node ${remoteBase}/backup-maintenance.mjs inventory ${remoteBase}/backups`;
-    const remote = JSON.parse(await run('ssh', [...args, command]));
+    const remote = JSON.parse(await transport('ssh', [...args, command]));
     if (!remote.healthy) throw new Error('Remote backup inventory is unhealthy; inspect server inventory');
     const latest = remote.valid[0];
     if (!latest || !namePattern.test(latest.name)) throw new Error('Unsafe remote snapshot name');
@@ -101,10 +164,10 @@ export async function sync(config) {
     if (!fs.existsSync(target)) {
       const staging = path.join(destination, `.incoming-${randomUUID()}`);
       fs.mkdirSync(staging, { mode: 0o700 });
-      const packed = JSON.parse(await run('ssh', [...args, `${remoteBase}/node-runtime/node_modules/node/bin/node ${remoteBase}/backup-maintenance.mjs pack ${remoteBase}/backups/${latest.name}`]));
+      const packed = JSON.parse(await transport('ssh', [...args, `${remoteBase}/node-runtime/node_modules/node/bin/node ${remoteBase}/backup-maintenance.mjs pack ${remoteBase}/backups/${latest.name}`]));
       if (packed.name !== `.transfer-${latest.name}.tar.gz`) throw new Error('Invalid transfer archive name');
       const archive = path.join(staging, packed.name);
-      await run('scp', ['-O', '-i', key, '-P', port, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3', `${host}:${remoteBase}/backups/${packed.name}`, archive]);
+      await transport('scp', ['-O', '-i', key, '-P', port, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3', `${host}:${remoteBase}/backups/${packed.name}`, archive]);
       const entries = (await run('tar', ['-tzf', archive])).trim().split(/\r?\n/);
       if (entries.some(entry => !/^[a-zA-Z0-9._/-]+$/.test(entry) || entry.split('/').some(part => !part || part === '.' || part === '..'))) throw new Error('Unsafe transport archive');
       const extracted = path.join(staging, latest.name);
@@ -118,9 +181,14 @@ export async function sync(config) {
     }
     const verified = verify(target);
     const report = { checkedAt: new Date().toISOString(), downloaded, verified, inventory: inventory(destination) };
-    fs.writeFileSync(path.join(destination, 'sync-last-success.json'), JSON.stringify(report, null, 2), { mode: 0o600 });
+    if (!report.inventory.healthy) throw new Error('Local backup inventory is unhealthy after synchronization');
+    writeJson(path.join(destination, 'sync-last-success.json'), report);
+    writeJson(statusPath, { runId, startedAt, finishedAt: report.checkedAt, status: 'success', downloaded, snapshot: verified.name });
     return report;
-  } finally { fs.closeSync(fd); fs.unlinkSync(lock); }
+  } catch (error) {
+    writeJson(statusPath, { runId, startedAt, finishedAt: new Date().toISOString(), status: 'failed', error: error.message });
+    throw error;
+  } finally { await release(); }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -129,6 +197,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     let report;
     if (command === 'verify') report = verify(path.resolve(value));
     else if (command === 'pack') report = await pack(path.resolve(value));
+    else if (command === 'status') {
+      report = backupStatus(path.resolve(value));
+      if (!report.healthy) process.exitCode = 2;
+    }
     else if (command === 'inventory' || command === 'check') {
       report = inventory(path.resolve(value || path.join(os.homedir(), 'technical-notes/backups')));
       if (command === 'check' && !report.healthy) process.exitCode = 2;
@@ -136,7 +208,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       report = await sync(JSON.parse(fs.readFileSync(value, 'utf8')));
       if (!report.inventory.healthy) process.exitCode = 2;
     }
-    else throw new Error('Usage: backup-maintenance.mjs verify|inventory|check DIRECTORY | sync CONFIG.json');
+    else throw new Error('Usage: backup-maintenance.mjs verify|inventory|check|status DIRECTORY | sync CONFIG.json');
     console.log(JSON.stringify(report, null, 2));
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }
