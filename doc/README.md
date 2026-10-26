@@ -8,6 +8,8 @@
 
 ## 新站开发
 
+- [网站部署与回退工具：已安装，正式激活待 sudo 认证](./technical-notes-lab/B9-RELEASE-AUTOMATION.md)
+
 - [服务器共存服务与操作边界（含公司电脑专用记录服务）](./technical-notes-lab/SERVER-COEXISTENCE.md)
 
 - [当前开发实现汇总](./technical-notes-lab/DEVELOPMENT-IMPLEMENTATION-SUMMARY.md)
