@@ -1,5 +1,11 @@
 # 开发日志
 
+## 2026-10-27 · 用户认证后正式激活及独立核验
+
+用户在服务器终端完成 sudo 认证，激活记录 20261026T164111Z-4fcae1e8 于北京时间 00:41:22 返回 active。随后独立 SSH 核对 systemd 与 MainPID 实际工作目录，确认运行 b10-release-tools-20261027，服务 active/running、NRestarts=0，无待恢复记录。本机和公开健康接口正常；首页、分类、标签、归档、RSS/sitemap 200，旧 docs 302，匿名私有接口 401。生产库只读完整性 ok，仍为 253 篇。
+
+通过原 production-backup.sh 成功生成切换后快照 backup-2026-10-26T16-42-38-790Z-23d2b047，254 个文件，验证新版本备份入口。Nginx、Hysteria active，网站 cron 不变，未操作其他共存服务。B9-04 工具上线完成；真实生产故障注入回退演练作为 B9-04a 保留，详见 [部署与回退工具](./B9-RELEASE-AUTOMATION.md)。
+
 ## 2026-10-27 · 部署回退工具安装及隔离演练（正式激活待认证）
 
 核对 SSH、生产 unit 和非敏感环境路径，确认 b9 正常运行、现有 SSH 用户执行 sudo 需要密码。实现 website-release.py，提供 preflight、activate、rollback、recover、status；只修改网站自己的 WorkingDirectory drop-in，保留独立内容目录，切换前新建备份并在副本验证；失败恢复旧配置，不以旧快照覆盖生产数据。入口、持久化关键文件和依赖变化会阻断自动切换，要求单独迁移方案。

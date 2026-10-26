@@ -1,10 +1,10 @@
 # 网站部署与回退工具（2026-10-27）
 
-部署工具已安装到 `/home/sunjiao/technical-notes/website-release.py`，候选版本为 `releases/b10-release-tools-20261027`。服务器 Ubuntu 14/14 针对性测试通过；真实内容副本上的启动、备份和旧版恢复演练通过。**正式服务仍运行 b9，尚未切换。**当前 SSH 用户执行 sudo 需要密码，自动会话没有该认证，不能将准备完成写成生产激活成功。
+部署工具已安装到 `/home/sunjiao/technical-notes/website-release.py`。**正式服务已于北京时间 2026-10-27 00:41:22 切换到 `releases/b10-release-tools-20261027`。**用户在自己的终端完成 sudo 认证并执行激活，随后通过独立 SSH 只读检查确认实际进程目录、systemd 状态和公开健康接口正常。服务器 Ubuntu 14/14 针对性测试及真实内容副本的启动、备份和旧版恢复演练通过。
 
-## 一次性激活操作
+## 激活命令记录（本次已执行，无需重复）
 
-在已有服务器终端中执行：
+本次在已有服务器终端中执行的命令：
 
 ```sh
 sudo -v && python3 ~/technical-notes/website-release.py activate b10-release-tools-20261027
@@ -69,4 +69,14 @@ sudo -v && python3 ~/technical-notes/website-release.py recover
 - 最终服务器预检记录：`runtime/deployments/20261026T163542Z-9d14c491/result.json`，状态 ready；对应生产快照 `backup-2026-10-26T16-35-42-000Z-93b5f49a`。预检后 `status` 返回 active=b9、recoveryRequired=false，公开 HTTPS 健康接口返回 ok=true、mode=html。
 - 上述新快照已于北京时间 00:37:44 同步到既有本机离机目录，254 文件校验通过，`downloaded=true`、`healthy=true`。
 
-生产 sudo/systemd 实际切换和失败后自动切回尚未执行；当前验证由隔离实机检查和故障注入单元测试组成，不将模拟结果当作正式切换证据。本次没有修改应用业务代码，未重复运行全应用测试。TLS 真实续期、生产浏览器验收和整机故障演练仍为独立待办。
+### 正式激活后的独立核验
+
+- 激活记录 `20261026T164111Z-4fcae1e8`：from=b9、to=b10-release-tools-20261027、status=active，完成时间 UTC `2026-10-26T16:41:22Z`。
+- `website-release.py status` 返回当前新版本、recoveryRequired=false；systemd 为 active/running、ExecMainStatus=0、NRestarts=0。MainPID 对应进程的 `/proc/<pid>/cwd` 与新版本目录一致。
+- 本机与公网 `/_health` 均返回 ok=true、mode=html。首页、分类、标签、归档、RSS、sitemap 为 200，旧 `/docs/` 为 302，匿名 `/api/html/notes` 为 401。
+- 生产数据库只读检查 integrity=ok、htmlNotes=253。演练中新增的第 254 篇只存在于隔离副本。
+- Nginx、Hysteria 状态仍为 active，网站 cron 入口与日程不变。未操作 NewAPI 或记录服务。
+- 切换后执行现有 `production-backup.sh` 成功，新快照为 `backup-2026-10-26T16-42-38-790Z-23d2b047`，254 个清单文件，证明备份入口能从 systemd 选择新 release。
+- 该快照于北京时间 00:43:21 下载至本机离机目录，254 文件、27,323,219 字节校验通过，healthy=true；本机 11 个有效快照、0 个无效快照。
+
+生产 sudo/systemd 实际切换已验证；生产故障注入后的自动切回仍未演练，当前失败回退证据来自隔离检查和单元测试。本次没有修改应用业务代码，未重复运行全应用测试。TLS 真实续期、生产浏览器验收和整机故障演练仍为独立待办。
