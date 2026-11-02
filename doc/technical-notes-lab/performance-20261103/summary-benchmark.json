@@ -1,0 +1,213 @@
+{
+  "date": "2026-11-03",
+  "environment": "Windows local, sequential, same restored snapshot; not production latency",
+  "notes": 253,
+  "unchangedResponses": true,
+  "summaryMatchesFullProjection": true,
+  "results": {
+    "baseline": {
+      "/_health": {
+        "bytes": 25,
+        "hash": "ac8a5745159adc5ea16579f9cdb582aa509b59ec7f3f94d2180b17c925fe4780",
+        "milliseconds": [
+          3.921899999999937,
+          1.747600000000034,
+          1.365000000000009
+        ],
+        "medianMs": 1.747600000000034
+      },
+      "/": {
+        "bytes": 126045,
+        "hash": "97a248a9dd9ef35f92f91410788d0028a305c30524eb65d918231236369e6862",
+        "milliseconds": [
+          128.47519999999997,
+          120.57860000000005,
+          126.87110000000007
+        ],
+        "medianMs": 126.87110000000007
+      },
+      "/api/public/notes": {
+        "bytes": 16487671,
+        "hash": "a9ba6ad2d06b75138187c6765212b2f067c341db65be8d61e8ec6c7a07abac99",
+        "milliseconds": [
+          279.8200999999999,
+          279.1255000000001,
+          268.71500000000015
+        ],
+        "medianMs": 279.1255000000001
+      },
+      "/api/public/notes?view=summary": {
+        "bytes": 16487671,
+        "hash": "a9ba6ad2d06b75138187c6765212b2f067c341db65be8d61e8ec6c7a07abac99",
+        "milliseconds": [
+          265.3798999999999,
+          260.64869999999974,
+          268.6417000000001
+        ],
+        "medianMs": 265.3798999999999
+      },
+      "/api/public/search?q=Windows": {
+        "bytes": 145058,
+        "hash": "7b0de5a92185520530af920e063e674e14477231d020cd863a0e3ab984152eac",
+        "milliseconds": [
+          183.0532000000003,
+          181.0994999999998,
+          191.21630000000005
+        ],
+        "medianMs": 183.0532000000003
+      },
+      "/sitemap.xml": {
+        "bytes": 31014,
+        "hash": "a31fb4dab97c93dfcb6ede90463814af717098abb47acd0d53585199d8f48e8b",
+        "milliseconds": [
+          156.5925000000002,
+          167.16789999999992,
+          169.52129999999943
+        ],
+        "medianMs": 167.16789999999992
+      },
+      "/rss.xml": {
+        "bytes": 101295,
+        "hash": "e2d876c226ef443339a3be2151e512cbdf60c481bdaf909387b7e9ed9f26f908",
+        "milliseconds": [
+          159.72109999999975,
+          170.48320000000058,
+          162.71079999999984
+        ],
+        "medianMs": 162.71079999999984
+      },
+      "/categories/": {
+        "bytes": 3078,
+        "hash": "672d1fcb0fb6bdb492b69553e588bd708fc4cc484094ad1de2cabae56800311c",
+        "milliseconds": [
+          92.2494999999999,
+          82.5023000000001,
+          84.10100000000057
+        ],
+        "medianMs": 84.10100000000057
+      },
+      "/tags/": {
+        "bytes": 1497,
+        "hash": "f1c8ab97f54ba12449745c3c959a51a4b41a28e131960f00d657f0f5f0aea745",
+        "milliseconds": [
+          92.39930000000004,
+          78.99139999999989,
+          82.65809999999965
+        ],
+        "medianMs": 82.65809999999965
+      },
+      "/archive/": {
+        "bytes": 22442,
+        "hash": "63977509117dbef564fd4e2b11c6d2eace8be5898f6445b3c2864ebed4e8f3be",
+        "milliseconds": [
+          79.83580000000075,
+          90.52859999999964,
+          83.3149999999996
+        ],
+        "medianMs": 83.3149999999996
+      }
+    },
+    "candidate": {
+      "/_health": {
+        "bytes": 25,
+        "hash": "ac8a5745159adc5ea16579f9cdb582aa509b59ec7f3f94d2180b17c925fe4780",
+        "milliseconds": [
+          2.1761999999998807,
+          1.1711000000004788,
+          0.8272999999999229
+        ],
+        "medianMs": 1.1711000000004788
+      },
+      "/": {
+        "bytes": 126045,
+        "hash": "97a248a9dd9ef35f92f91410788d0028a305c30524eb65d918231236369e6862",
+        "milliseconds": [
+          80.5609999999997,
+          62.091699999999946,
+          61.36789999999928
+        ],
+        "medianMs": 62.091699999999946
+      },
+      "/api/public/notes": {
+        "bytes": 16487671,
+        "hash": "a9ba6ad2d06b75138187c6765212b2f067c341db65be8d61e8ec6c7a07abac99",
+        "milliseconds": [
+          192.91699999999946,
+          182.4403000000002,
+          184.6216000000004
+        ],
+        "medianMs": 184.6216000000004
+      },
+      "/api/public/notes?view=summary": {
+        "bytes": 80677,
+        "hash": "ca2b5901bad1df2d85fb61d5fdfe466dd5bdd37381c98ec9b14cf776d5971e57",
+        "milliseconds": [
+          27.779599999999846,
+          35.36190000000079,
+          32.38299999999981
+        ],
+        "medianMs": 32.38299999999981
+      },
+      "/api/public/search?q=Windows": {
+        "bytes": 145058,
+        "hash": "7b0de5a92185520530af920e063e674e14477231d020cd863a0e3ab984152eac",
+        "milliseconds": [
+          55.562700000000405,
+          61.39629999999943,
+          59.532100000000355
+        ],
+        "medianMs": 59.532100000000355
+      },
+      "/sitemap.xml": {
+        "bytes": 31014,
+        "hash": "a31fb4dab97c93dfcb6ede90463814af717098abb47acd0d53585199d8f48e8b",
+        "milliseconds": [
+          32.54649999999947,
+          30.247800000000097,
+          29.36409999999978
+        ],
+        "medianMs": 30.247800000000097
+      },
+      "/rss.xml": {
+        "bytes": 101295,
+        "hash": "e2d876c226ef443339a3be2151e512cbdf60c481bdaf909387b7e9ed9f26f908",
+        "milliseconds": [
+          31.809900000000198,
+          32.04659999999967,
+          30.787500000000364
+        ],
+        "medianMs": 31.809900000000198
+      },
+      "/categories/": {
+        "bytes": 3078,
+        "hash": "672d1fcb0fb6bdb492b69553e588bd708fc4cc484094ad1de2cabae56800311c",
+        "milliseconds": [
+          34.32300000000032,
+          30.30699999999979,
+          30.334499999999935
+        ],
+        "medianMs": 30.334499999999935
+      },
+      "/tags/": {
+        "bytes": 1497,
+        "hash": "f1c8ab97f54ba12449745c3c959a51a4b41a28e131960f00d657f0f5f0aea745",
+        "milliseconds": [
+          29.937399999999798,
+          30.005599999999504,
+          30.125100000000202
+        ],
+        "medianMs": 30.005599999999504
+      },
+      "/archive/": {
+        "bytes": 22442,
+        "hash": "63977509117dbef564fd4e2b11c6d2eace8be5898f6445b3c2864ebed4e8f3be",
+        "milliseconds": [
+          30.42279999999937,
+          30.55279999999948,
+          30.802099999999882
+        ],
+        "medianMs": 30.55279999999948
+      }
+    }
+  }
+}

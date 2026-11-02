@@ -146,11 +146,11 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true });
     }
     if (route === '/' && req.method === 'GET') {
-      const notes = htmlStore?.publicList(), params = Object.fromEntries(url.searchParams);
+      const notes = htmlStore?.publicSummaryList(), params = Object.fromEntries(url.searchParams);
       return send(res,200,htmlStore ? htmlIndexView(notes,params,discoveryIndex.search(notes,params)) : indexView(store.publicList()),'text/html; charset=utf-8');
     }
     if (htmlStore && req.method === 'GET') {
-      const notes = htmlStore.publicList();
+      const summaries = () => htmlStore.publicSummaryList();
       if (route === '/docs/' || route === '/docs') {
         res.writeHead(302, { Location: `/${url.search}`, 'Cache-Control': 'no-store' }); return res.end();
       }
@@ -160,14 +160,14 @@ const server = http.createServer(async (req, res) => {
         if (query !== null) target.searchParams.set('q', query);
         res.writeHead(302, { Location: target.pathname + target.search, 'Cache-Control': 'no-store' }); return res.end();
       }
-      if (route === '/categories/' || route === '/categories') return send(res, 200, legacyFacetIndex(notes, 'category'), 'text/html; charset=utf-8');
-      if (route === '/tags/' || route === '/tags') return send(res, 200, legacyFacetIndex(notes, 'tag'), 'text/html; charset=utf-8');
-      if (route === '/archive/' || route === '/archive') return send(res, 200, legacyArchive(notes), 'text/html; charset=utf-8');
+      if (route === '/categories/' || route === '/categories') return send(res, 200, legacyFacetIndex(summaries(), 'category'), 'text/html; charset=utf-8');
+      if (route === '/tags/' || route === '/tags') return send(res, 200, legacyFacetIndex(summaries(), 'tag'), 'text/html; charset=utf-8');
+      if (route === '/archive/' || route === '/archive') return send(res, 200, legacyArchive(summaries()), 'text/html; charset=utf-8');
       const facetRoute = route.match(/^\/(categories|tags)\/([^/]+)\/?$/);
       if (facetRoute) {
         let slug; try { slug = decodeURIComponent(facetRoute[2]); } catch { return send(res, 400, { error: '旧链接编码无效' }); }
         const type = facetRoute[1] === 'categories' ? 'category' : 'tag';
-        const name = legacyFacetName(notes, type, slug);
+        const name = legacyFacetName(summaries(), type, slug);
         if (!name) return send(res, 404, { error: '旧分类或标签不存在或尚未公开' });
         const target = new URL('/', publicOrigin?.origin || url.origin);
         target.searchParams.set(type, name);
@@ -180,10 +180,10 @@ const server = http.createServer(async (req, res) => {
     const publicExport = route.match(/^\/api\/public\/notes\/([a-f0-9-]+)\/export$/);
     const publicDto = route.match(/^\/api\/public\/notes\/([a-f0-9-]+)$/);
     if (htmlStore && req.method === 'GET') {
-      if (route === '/api/public/search') { const notes = htmlStore.publicList(); return send(res,200,{results:discoveryIndex.search(notes,Object.fromEntries(url.searchParams)),...discoveryFacets(notes)}); }
-      if (route === '/rss.xml') return send(res,200,rssFeed(htmlStore.publicList(),publicOrigin?.origin || url.origin),'application/rss+xml; charset=utf-8');
-      if (route === '/sitemap.xml') return send(res,200,sitemap(htmlStore.publicList(),publicOrigin?.origin || url.origin),'application/xml; charset=utf-8');
-      if (route === '/api/public/notes') return send(res, 200, htmlStore.publicList());
+      if (route === '/api/public/search') { const notes = htmlStore.publicSummaryList(); return send(res,200,{results:discoveryIndex.search(notes,Object.fromEntries(url.searchParams)),...discoveryFacets(notes)}); }
+      if (route === '/rss.xml') return send(res,200,rssFeed(htmlStore.publicSummaryList(),publicOrigin?.origin || url.origin),'application/rss+xml; charset=utf-8');
+      if (route === '/sitemap.xml') return send(res,200,sitemap(htmlStore.publicSummaryList(),publicOrigin?.origin || url.origin),'application/xml; charset=utf-8');
+      if (route === '/api/public/notes') return send(res, 200, url.searchParams.get('view') === 'summary' ? htmlStore.publicSummaryList() : htmlStore.publicList());
       if (publicArticle || publicExport || publicDto) {
         const note = htmlStore.publicGet((publicArticle || publicExport || publicDto)[1]);
         if (!note) return send(res, 404, { error: '未找到公开笔记' });

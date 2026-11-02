@@ -60,11 +60,16 @@ test('B5/B6 independent integration: concurrent publication CAS, bad draft isola
   assert.equal(bad.publishable, false);
   assert.equal((await app.request(`${privateRoute}/publish`, 'POST', publishInput(bad))).status, 422);
   assert.deepEqual(await json(await app.request(publicRoute, 'GET', undefined, false)), before);
-  for (const route of ['/', '/api/public/notes', `/notes/${created.id}`, `${publicRoute}/export`]) {
+  for (const route of ['/', '/api/public/notes', '/api/public/notes?view=summary', `/notes/${created.id}`, `${publicRoute}/export`]) {
     const response = await app.request(route, 'GET', undefined, false); assert.equal(response.status, 200);
     const text = await response.text(); assert.doesNotMatch(text, /秘密|private-heading/); assert.match(text, /公开原稿/);
     if (route.endsWith('/export')) { assert.match(text, /^<!doctype html>/i); assert.match(response.headers.get('content-disposition'), /attachment/); }
   }
+  const summaries = await json(await app.request('/api/public/notes?view=summary', 'GET', undefined, false));
+  const fullList = await json(await app.request('/api/public/notes', 'GET', undefined, false));
+  assert.deepEqual(summaries, fullList.map(({html_rendered, headings, ...metadata}) => metadata));
+  assert.ok(fullList[0].html_rendered);
+  assert.equal(Object.hasOwn(summaries[0], 'html_rendered'), false);
   const privateExport = await app.request(`${privateRoute}/export`); assert.equal(await privateExport.text(), bad.html_source);
   const archive = await app.request(`/api/html/archives/${bad.source_archive_id}`); assert.deepEqual(Buffer.from(await archive.arrayBuffer()), originalBytes);
   assert.equal((await app.request(`/api/html/archives/${bad.source_archive_id}`, 'GET', undefined, false)).status, 401);
@@ -90,12 +95,12 @@ test('B5/B6 independent integration: published-only Chinese discovery and immedi
     assert.equal((Array.isArray(payload) ? payload : payload.results).length, 0);
   }
   assert.equal((await app.request('/api/public/search?q=' + 'a'.repeat(201), 'GET', undefined, false)).status, 400);
-  for (const route of ['/', '/api/public/search', '/rss.xml', '/sitemap.xml']) {
+  for (const route of ['/', '/api/public/notes?view=summary', '/api/public/search', '/rss.xml', '/sitemap.xml']) {
     const response = await app.request(route, 'GET', undefined, false); assert.equal(response.status, 200);
     const text = await response.text(); assert.doesNotMatch(text, /草稿独占|私有分类|私有标签/); assert.match(text, new RegExp(note.id));
   }
   await json(await app.request(`${route}/unpublish`, 'POST', { version:draft.version }));
-  for (const route of ['/', '/api/public/search', '/rss.xml', '/sitemap.xml']) {
+  for (const route of ['/', '/api/public/notes?view=summary', '/api/public/search', '/rss.xml', '/sitemap.xml']) {
     const text = await (await app.request(route, 'GET', undefined, false)).text(); assert.doesNotMatch(text, new RegExp(note.id)); assert.doesNotMatch(text, /数据库|SQLite|私有分类|私有标签/);
   }
 });

@@ -91,6 +91,12 @@ export function openHtmlStore(dbPath, { archiveDir = path.join(path.dirname(dbPa
         FROM html_notes n JOIN content_revisions r ON r.id=n.published_revision_id AND r.note_id=n.id WHERE n.id=?`).get(id);
       return r ? { ...r, tags: JSON.parse(r.tags), headings: JSON.parse(r.headings) } : null;
     },
+    // Read only the published metadata required by lists; never load bodies or drafts.
+    publicSummaryList() {
+      return db.prepare(`SELECT n.id,n.created_at,n.published_at,r.id AS revision_id,r.title,r.description,r.tags,r.category
+        FROM html_notes n JOIN content_revisions r ON r.id=n.published_revision_id AND r.note_id=n.id
+        ORDER BY n.published_at DESC,n.id`).all().map(r => ({ ...r, tags: JSON.parse(r.tags) }));
+    },
     publicList() { return db.prepare('SELECT id FROM html_notes WHERE published_revision_id IS NOT NULL ORDER BY published_at DESC,id').all().map(n => this.publicGet(n.id)).filter(Boolean); },
     create(input) { const id = input.id || randomUUID(), now = new Date().toISOString(); transaction(() => {
       db.prepare('INSERT INTO html_notes (id,version,draft_revision_id,published_revision_id,created_at,updated_at,published_at) VALUES (?,1,NULL,NULL,?,?,NULL)').run(id, now, now);
